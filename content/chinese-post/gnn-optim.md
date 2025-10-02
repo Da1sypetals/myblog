@@ -1,5 +1,5 @@
 +++
-date = '2025-10-02T19:48:27+08:00'
+date = '2025-10-02'
 title = '近期GNN Attention算子优化工作速览'
 featured = true
 tags = ["deep-learning"]

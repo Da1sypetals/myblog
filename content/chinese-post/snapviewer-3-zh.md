@@ -1,5 +1,5 @@
 +++
-date = '2025-10-02T17:29:02+08:00'
+date = '2025-06-07'
 title = 'Snapviewer Devlog #3: 性能优化'
 tags = ["torch", "deep-learning", "rust"]
 featured = true
