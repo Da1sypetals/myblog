@@ -8,19 +8,19 @@
     <loc>http://localhost:1313/chinese-post/</loc>
     <lastmod>2025-10-02T19:48:27+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/chinese-post/gnn-optim/</loc>
+    <loc>http://localhost:1313/tags/deep-learning/</loc>
     <lastmod>2025-10-02T19:48:27+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/tags/deep-learning/</loc>
-    <lastmod>2025-10-02T17:29:02+08:00</lastmod>
+    <loc>http://localhost:1313/tags/</loc>
+    <lastmod>2025-10-02T19:48:27+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/chinese-post/gnn-optim/</loc>
+    <lastmod>2025-10-02T19:48:27+08:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/tags/rust/</loc>
     <lastmod>2025-10-02T17:29:02+08:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/chinese-post/snapviewer-3-zh/</loc>
-    <lastmod>2025-10-02T17:29:02+08:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/tags/</loc>
     <lastmod>2025-10-02T17:29:02+08:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/tags/torch/</loc>

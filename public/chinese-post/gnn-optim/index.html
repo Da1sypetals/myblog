@@ -23,7 +23,7 @@
 <link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="http://localhost:1313/chinese-post/gnn-optim/">
   <meta property="og:site_name" content="Da1sypetals">
   <meta property="og:title" content="近期GNN Attention算子优化工作速览">
-  <meta property="og:description" content="注：本文用LLM辅助写作的地方主要在 我认为LLM比我理解的更好的地方，会用LLM的表述代替。
+  <meta property="og:description" content="注：本文用LLM辅助写作的地方主要在：我认为LLM比我理解的更好的地方，会用LLM的表述代替。
 问题设定 需要计算Graph Transformer中的Attention。在此我们忽略multihead-attention，考虑基本的single-head attention.
 此外，我们的attention mask(邻接矩阵A)是非结构化稀疏的。如果你的attention mask是结构化稀疏的，比如blockwise等可以被代码表示的稀疏pattern，你应该使用flash attention的varlen变体, 或者flex attention等attention编译器。
 Notation n: 图节点数，规模为 1k~1M nnz: 图边数（稀疏矩阵非零元素数，Num NonZero） 规模为10n~1000n q, k, v: (n, d) A: (n, n), binary, 高度稀疏 计算公式 softmax((q @ k.transpose()) * A) @ V 其中，@ 表示矩阵乘法，*表示element-wise乘法。
@@ -34,10 +34,11 @@ SDDMM (Sampled Dense-Dense MatMul) A (m, k), B (k, n), 稠密 M (n, n)， 稀疏
     <meta property="article:section" content="chinese-post">
     <meta property="article:published_time" content="2025-10-02T19:48:27+08:00">
     <meta property="article:modified_time" content="2025-10-02T19:48:27+08:00">
+    <meta property="article:tag" content="Deep-Learning">
 
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="近期GNN Attention算子优化工作速览">
-  <meta name="twitter:description" content="注：本文用LLM辅助写作的地方主要在 我认为LLM比我理解的更好的地方，会用LLM的表述代替。
+  <meta name="twitter:description" content="注：本文用LLM辅助写作的地方主要在：我认为LLM比我理解的更好的地方，会用LLM的表述代替。
 问题设定 需要计算Graph Transformer中的Attention。在此我们忽略multihead-attention，考虑基本的single-head attention.
 此外，我们的attention mask(邻接矩阵A)是非结构化稀疏的。如果你的attention mask是结构化稀疏的，比如blockwise等可以被代码表示的稀疏pattern，你应该使用flash attention的varlen变体, 或者flex attention等attention编译器。
 Notation n: 图节点数，规模为 1k~1M nnz: 图边数（稀疏矩阵非零元素数，Num NonZero） 规模为10n~1000n q, k, v: (n, d) A: (n, n), binary, 高度稀疏 计算公式 softmax((q @ k.transpose()) * A) @ V 其中，@ 表示矩阵乘法，*表示element-wise乘法。
@@ -129,8 +130,10 @@ SDDMM (Sampled Dense-Dense MatMul) A (m, k), B (k, n), 稠密 M (n, n)， 稀疏
     </li>
     <span>&nbsp»&nbsp</span>
 </ol>
-<h1>近期GNN Attention算子优化工作速览</h1><time class="dim" datetime="2025-10-02T19:48:27&#43;08:00">October 2, 2025</time></div>
-  <section class="page-section"><p>注：本文用LLM辅助写作的地方主要在 <strong>我认为LLM比我理解的更好的地方，会用LLM的表述代替。</strong></p>
+<h1>近期GNN Attention算子优化工作速览</h1><time class="dim" datetime="2025-10-02T19:48:27&#43;08:00">October 2, 2025</time><div class="term-container"><div class="tag">
+        <a href="http://localhost:1313/tags/deep-learning/">#deep-learning</a>
+      </div></ol></div>
+  <section class="page-section"><p>注：本文用LLM辅助写作的地方主要在：<em><strong>我认为LLM比我理解的更好的地方，会用LLM的表述代替。</strong></em></p>
 <h2 id="问题设定">问题设定</h2>
 <p>需要计算Graph Transformer中的Attention。在此我们忽略multihead-attention，考虑基本的single-head attention.</p>
 <p>此外，我们的attention mask(邻接矩阵A)是非结构化稀疏的。如果你的attention mask是结构化稀疏的，比如blockwise等可以被代码表示的稀疏pattern，你应该使用flash attention的varlen变体, 或者flex attention等attention编译器。</p>
@@ -401,7 +404,7 @@ $$C \leftarrow A_{\text{tile}} \cdot B_{\text{tile}} + C$$</li>
 </div>
 </footer>
       </div><aside id="side-pane" class="side-sticky"><div class="side-details">
-    <span>747 words</span>
+    <span>746 words</span>
     <span>11 - 14 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
   <ul>
     <li><a href="#问题设定">问题设定</a>
@@ -434,7 +437,8 @@ $$C \leftarrow A_{\text{tile}} \cdot B_{\text{tile}} + C$$</li>
       </ul>
     </li>
   </ul>
-</nav></aside></div>
+</nav><h3>Related</h3>
+    <ul><li><a href="/chinese-post/snapviewer-3-zh/">Snapviewer Devlog #3: 性能优化</a></li><li><a href="/english-post/triton-pitfalls/">Triton Common Pitfalls</a></li><li><a href="/english-post/snapviewer-3-optim/">SnapViewer Devlog #3: Optimizations</a></li><li><a href="/english-post/snapviewer-2-ui/">Snapviewer Devlog #2: UI</a></li><li><a href="/english-post/torch-cuda-ext/">Notes on Writing PyTorch CUDA Extensions</a></li></ul></aside></div>
   </div>
 </body>
 

@@ -2,10 +2,11 @@
 date = '2025-10-02T19:48:27+08:00'
 title = '近期GNN Attention算子优化工作速览'
 featured = true
+tags = ["deep-learning"]
 +++
 
 
-注：本文用LLM辅助写作的地方主要在 **我认为LLM比我理解的更好的地方，会用LLM的表述代替。**
+注：本文用LLM辅助写作的地方主要在：_**我认为LLM比我理解的更好的地方，会用LLM的表述代替。**_
 
 ## 问题设定
 需要计算Graph Transformer中的Attention。在此我们忽略multihead-attention，考虑基本的single-head attention.
