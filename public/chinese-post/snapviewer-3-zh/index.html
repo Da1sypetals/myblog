@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+    MathJax = {
+        tex: {
+            displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+            inlineMath: [['$', '$']]                  
+        },
+        loader: {
+            load: ['ui/safe']
+        },
+    };
+</script>
+  
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Snapviewer Devlog #3: 性能优化 | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="http://localhost:1313/chinese-post/snapviewer-3-zh/">
+  <meta property="og:site_name" content="Da1sypetals">
+  <meta property="og:title" content="Snapviewer Devlog #3: 性能优化">
+  <meta property="og:description" content="内存与速度性能问题排查 免责声明：我主要在 Windows 上使用最新的稳定版 Rust 工具链和 CPython 3.13 进行开发和测试。
+1. 背景与动机 SnapViewer 能够高效处理大型内存快照——例如，支持高达 1 GB 的 pickle 文件和高达 500 MB 的压缩快照。然而，在处理超大转储文件（例如 1.3 GB 的快照）时，我们遇到了严重的内存和速度瓶颈：
+格式转换（pickle → 压缩 JSON）引发了约 30 GB 的内存峰值。 将压缩 JSON 加载到 Rust 数据结构中又引发了另一次约 30 GB 的内存激增。 频繁的页面错误（page faults）和强烈的磁盘 I/O（在任务管理器中观察到）导致应用程序响应迟缓，甚至频繁卡顿。为了解决这一问题，我们采用了 Profile-Guided Optimization（PGO，基于性能分析的优化）方法。
+2. Profile-Guided Optimization（PGO） PGO 需要通过实证分析来识别真正的热点。我首先使用 memory-stats crate 进行内存分析，在早期优化阶段进行轻量级检查。随后，我将数据加载流水线拆解为若干离散步骤：
+读取压缩文件（重度磁盘 I/O） 从压缩流中提取 JSON 字符串 将 JSON 反序列化为原生 Rust 数据结构 填充内存中的 SQLite 数据库以支持即席 SQL 查询 在 CPU 上构建三角网格（triangle mesh） 初始化渲染窗口（CPU-GPU 数据传输） 性能分析揭示了两个主要的内存问题：过度克隆（excessive cloning）和多个中间数据结构。以下是我实施的优化措施。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="chinese-post">
+    <meta property="article:published_time" content="2025-10-02T17:29:02+08:00">
+    <meta property="article:modified_time" content="2025-10-02T17:29:02+08:00">
+    <meta property="article:tag" content="Torch">
+    <meta property="article:tag" content="Deep-Learning">
+    <meta property="article:tag" content="Rust">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Snapviewer Devlog #3: 性能优化">
+  <meta name="twitter:description" content="内存与速度性能问题排查 免责声明：我主要在 Windows 上使用最新的稳定版 Rust 工具链和 CPython 3.13 进行开发和测试。
+1. 背景与动机 SnapViewer 能够高效处理大型内存快照——例如，支持高达 1 GB 的 pickle 文件和高达 500 MB 的压缩快照。然而，在处理超大转储文件（例如 1.3 GB 的快照）时，我们遇到了严重的内存和速度瓶颈：
+格式转换（pickle → 压缩 JSON）引发了约 30 GB 的内存峰值。 将压缩 JSON 加载到 Rust 数据结构中又引发了另一次约 30 GB 的内存激增。 频繁的页面错误（page faults）和强烈的磁盘 I/O（在任务管理器中观察到）导致应用程序响应迟缓，甚至频繁卡顿。为了解决这一问题，我们采用了 Profile-Guided Optimization（PGO，基于性能分析的优化）方法。
+2. Profile-Guided Optimization（PGO） PGO 需要通过实证分析来识别真正的热点。我首先使用 memory-stats crate 进行内存分析，在早期优化阶段进行轻量级检查。随后，我将数据加载流水线拆解为若干离散步骤：
+读取压缩文件（重度磁盘 I/O） 从压缩流中提取 JSON 字符串 将 JSON 反序列化为原生 Rust 数据结构 填充内存中的 SQLite 数据库以支持即席 SQL 查询 在 CPU 上构建三角网格（triangle mesh） 初始化渲染窗口（CPU-GPU 数据传输） 性能分析揭示了两个主要的内存问题：过度克隆（excessive cloning）和多个中间数据结构。以下是我实施的优化措施。">
+
+    <link rel="stylesheet" href="/css/root.css">
+    <link rel="stylesheet" href="/css/bundle.css">
+
+      <script src="/js/bundle.js"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+<script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="notransition">
+  <div id="container">
+    <header id="main-header"><div role="navigation" aria-label="Main">
+  <div class="nav-left">
+    <a href="http://localhost:1313/" style="color: inherit;">Da1sypetals</a>
+  </div>
+  <div class="nav-right">
+    <div style="position:absolute;width:0px;height:0px;">
+      <div id="nav-dropdown-menu" class="hidden" href="#">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/chinese-post/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    </div>
+    <a id="nav-dropdown-button" href="#"><svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+    <div id="nav-menu">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/chinese-post/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    <a id="theme-switcher" href="#">
+<svg class="light-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5001M17.6859 17.69L18.5 18.5001M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+<svg class="dark-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.32031 11.6835C3.32031 16.6541 7.34975 20.6835 12.3203 20.6835C16.1075 20.6835 19.3483 18.3443 20.6768 15.032C19.6402 15.4486 18.5059 15.6834 17.3203 15.6834C12.3497 15.6834 8.32031 11.654 8.32031 6.68342C8.32031 5.50338 8.55165 4.36259 8.96453 3.32996C5.65605 4.66028 3.32031 7.89912 3.32031 11.6835Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+  </div>
+</div>
+</header>
+    <div class="flex grow">
+      <div id="main-pane">
+        <main id="main-content"><div class="single-header">
+<ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="http://localhost:1313/">
+        <span itemprop="name">Home</span>
+      </a>
+      <meta itemprop="position" content='1' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="http://localhost:1313/chinese-post/">
+        <span itemprop="name">Chinese-Posts</span>
+      </a>
+      <meta itemprop="position" content='2' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+</ol>
+<h1>Snapviewer Devlog #3: 性能优化</h1><time class="dim" datetime="2025-10-02T17:29:02&#43;08:00">October 2, 2025</time><div class="term-container"><div class="tag">
+        <a href="http://localhost:1313/tags/torch/">#torch</a>
+      </div><div class="tag">
+        <a href="http://localhost:1313/tags/deep-learning/">#deep-learning</a>
+      </div><div class="tag">
+        <a href="http://localhost:1313/tags/rust/">#rust</a>
+      </div></ol></div>
+  <section class="page-section"><h1 id="内存与速度性能问题排查">内存与速度性能问题排查</h1>
+<p><strong>免责声明</strong>：我主要在 Windows 上使用最新的稳定版 Rust 工具链和 CPython 3.13 进行开发和测试。</p>
+<h2 id="1-背景与动机">1. 背景与动机</h2>
+<p>SnapViewer 能够高效处理大型内存快照——例如，支持高达 1 GB 的 pickle 文件和高达 500 MB 的压缩快照。然而，在处理超大转储文件（例如 1.3 GB 的快照）时，我们遇到了严重的内存和速度瓶颈：</p>
+<ul>
+<li>格式转换（pickle → 压缩 JSON）引发了约 30 GB 的内存峰值。</li>
+<li>将压缩 JSON 加载到 Rust 数据结构中又引发了另一次约 30 GB 的内存激增。</li>
+</ul>
+<p>频繁的页面错误（page faults）和强烈的磁盘 I/O（在任务管理器中观察到）导致应用程序响应迟缓，甚至频繁卡顿。为了解决这一问题，我们采用了 Profile-Guided Optimization（PGO，基于性能分析的优化）方法。</p>
+<h2 id="2-profile-guided-optimizationpgo">2. Profile-Guided Optimization（PGO）</h2>
+<p>PGO 需要通过实证分析来识别真正的热点。我首先使用 <a href="https://crates.io/crates/memory-stats">memory-stats</a> crate 进行内存分析，在早期优化阶段进行轻量级检查。随后，我将数据加载流水线拆解为若干离散步骤：</p>
+<ul>
+<li>读取压缩文件（重度磁盘 I/O）</li>
+<li>从压缩流中提取 JSON 字符串</li>
+<li>将 JSON 反序列化为原生 Rust 数据结构</li>
+<li>填充内存中的 SQLite 数据库以支持即席 SQL 查询</li>
+<li>在 CPU 上构建三角网格（triangle mesh）</li>
+<li>初始化渲染窗口（CPU-GPU 数据传输）</li>
+</ul>
+<p>性能分析揭示了两个主要的内存问题：过度克隆（excessive cloning）和多个中间数据结构。以下是我实施的优化措施。</p>
+<h3 id="消除冗余的-clone">消除冗余的 Clone</h3>
+<p>在快速原型开发阶段，调用 <code>.clone()</code> 非常方便，但代价高昂。性能分析显示，克隆大型 <code>Vec</code> 显著加剧了内存峰值和 CPU 时间。</p>
+<ul>
+<li><strong>首次尝试</strong>：将克隆的 <code>Vec&lt;T&gt;</code> 改为借用的 <code>&amp;[T]</code> 切片。但由于生命周期约束，此方案失败。</li>
+<li><strong>最终方案</strong>：改用 <code>Arc&lt;[T]&gt;</code>。尽管我并未使用多线程，但 <code>Arc</code> 满足了 PyO3 的要求，且在此上下文中未观察到明显开销。</li>
+</ul>
+<p>仅此一项改动就显著降低了内存使用并提升了吞吐量。</p>
+<h3 id="提前释放中间结构">提前释放中间结构</h3>
+<p>构建三角网格涉及多个临时表示形式：</p>
+<ul>
+<li>原始分配缓冲区</li>
+<li>三角形列表（顶点 + 面索引）</li>
+<li>CPU 端的网格结构</li>
+<li>GPU 上传缓冲区</li>
+</ul>
+<p>每个阶段都会保留其前驱数据直至作用域结束，从而推高了峰值内存占用。为及时释放这些中间数据，我们采取了以下措施：</p>
+<ul>
+<li>使用作用域块（scoped blocks）限制生命周期</li>
+<li>对不再需要的缓冲区显式调用 <code>drop()</code></li>
+</ul>
+<p>经过这些调整，峰值内存大约减少了三分之一。</p>
+<h2 id="3-分片处理-json-反序列化">3. 分片处理 JSON 反序列化</h2>
+<p>对包含超过 50,000 个条目的调用栈 JSON 进行反序列化时，内存使用急剧飙升。为缓解此问题：</p>
+<ul>
+<li>将 JSON 数据分片，每片最多包含 50,000 个条目。</li>
+<li>独立反序列化每个分片。</li>
+<li>合并结果向量。</li>
+</ul>
+<p>这种流式处理方法使每个分片的内存占用保持在较低水平，避免了之前的大规模单次分配。</p>
+<blockquote>
+<p>值得注意的是，<code>serde_json::StreamDeserializer</code> 是另一个值得尝试的选项。</p></blockquote>
+<h2 id="4-重新设计快照格式">4. 重新设计快照格式</h2>
+<p>即使经过上述优化，调用栈数据仍然是内存中最大的组件——在 Rust 中和内存 SQLite 数据库中各存一份，造成重复。</p>
+<p>为消除冗余，我重新思考了每种表示形式的用途：</p>
+<ul>
+<li><strong>Rust 结构</strong>：用户点击时在屏幕上显示调用栈。</li>
+<li><strong>SQLite 数据库</strong>：支持即席 SQL 查询。</li>
+</ul>
+<p>由于 SnapViewer 是单线程的，且可容忍偶尔的磁盘 I/O，我将快照拆分为两个文件：</p>
+<ul>
+<li><strong>allocations.json</strong>：轻量级 JSON，包含分配时间戳和大小。</li>
+<li><strong>elements.db</strong>：SQLite 数据库，存储调用栈文本（按分配索引建立索引）。</li>
+</ul>
+<p>这两个文件被一起压缩打包。运行时：</p>
+<ul>
+<li>解压快照。</li>
+<li>将 <code>allocations.json</code> 加载到内存（占用很小）。</li>
+<li>打开磁盘上的 <code>elements.db</code>。</li>
+<li>用户点击时，通过 <code>WHERE idx = &lt;allocation_index&gt;</code> 查询 <code>elements.db</code>。</li>
+</ul>
+<p>SQLite 高效的磁盘索引使这些查询非常迅速，对帧率几乎没有可感知的影响。</p>
+<h3 id="重构转换脚本">重构转换脚本</h3>
+<p>我对快照转换脚本进行了如下更新：</p>
+<ul>
+<li>解析原始快照格式。</li>
+<li>将调用栈批量插入内存 SQLite 数据库，然后将数据库转储为字节流。</li>
+<li>将分配元数据序列化为 JSON。</li>
+<li>将 JSON 与数据库字节流一起压缩。</li>
+</ul>
+<p>虽然转换过程略慢，但生成的快照加载更快，且内存占用大幅降低。</p>
+<h2 id="5-成果与经验总结">5. 成果与经验总结</h2>
+<p>经过这些优化，SnapViewer 实现了以下改进：</p>
+<ul>
+<li>不再因加载大型快照而触发 60+ GB 的内存峰值，因为我们完全不再将整个调用栈信息加载到内存中。</li>
+<li>启动速度显著提升。</li>
+<li>即使进行按需调用栈查询，渲染依然流畅。</li>
+</ul>
+<p>我学到的经验：</p>
+<ul>
+<li>不要总是把所有数据都加载到内存中。当你耗尽物理内存时，虚拟内存交换系统的性能可能比你想象的还要差。</li>
+<li>当你需要将大部分数据存储在磁盘上，同时智能地缓存部分数据到内存时，请使用 SQLite。它内置了经过工业验证的高效算法。</li>
+</ul>
+</section></main>
+        <footer id="main-footer"><div class="footer">
+  <a href="#">Scroll to Top</a>
+  <div class="footer-copyright">
+    <div class="dim">© 2025 Da1sypetals</div>
+    <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
+  </div>
+</div>
+</footer>
+      </div><aside id="side-pane" class="side-sticky"><div class="side-details">
+    <span>195 words</span>
+    <span>4 - 6 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-背景与动机">1. 背景与动机</a></li>
+    <li><a href="#2-profile-guided-optimizationpgo">2. Profile-Guided Optimization（PGO）</a>
+      <ul>
+        <li><a href="#消除冗余的-clone">消除冗余的 Clone</a></li>
+        <li><a href="#提前释放中间结构">提前释放中间结构</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-分片处理-json-反序列化">3. 分片处理 JSON 反序列化</a></li>
+    <li><a href="#4-重新设计快照格式">4. 重新设计快照格式</a>
+      <ul>
+        <li><a href="#重构转换脚本">重构转换脚本</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-成果与经验总结">5. 成果与经验总结</a></li>
+  </ul>
+</nav><h3>Related</h3>
+    <ul><li><a href="/english-post/snapviewer-3-optim/">SnapViewer Devlog #3: Optimizations</a></li><li><a href="/english-post/snapviewer-2-ui/">Snapviewer Devlog #2: UI</a></li><li><a href="/english-post/snapviewer/">SnapViewer: Faster PyTorch Memory Allocation Viewer</a></li><li><a href="/english-post/torch-cuda-ext/">Notes on Writing PyTorch CUDA Extensions</a></li><li><a href="/english-post/raddy/">Raddy devlog: forward autodiff system</a></li></ul></aside></div>
+  </div>
+</body>
+
+</html>

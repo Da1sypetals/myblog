@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Numerical on Da1sypetals</title>
+    <link>http://localhost:1313/tags/numerical/</link>
+    <description>Recent content in Numerical on Da1sypetals</description>
+    <generator>Hugo</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Thu, 02 Oct 2025 15:15:21 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/numerical/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Raddy devlog: forward autodiff system</title>
+      <link>http://localhost:1313/english-post/raddy/</link>
+      <pubDate>Thu, 02 Oct 2025 15:15:21 +0800</pubDate>
+      <guid>http://localhost:1313/english-post/raddy/</guid>
+      <description>&lt;p&gt;&lt;strong&gt;TL;DR:&lt;/strong&gt; I created &lt;a href=&#34;https://github.com/Da1sypetals/Raddy&#34;&gt;Raddy&lt;/a&gt;, a forward autodiff library, and &lt;a href=&#34;https://github.com/Da1sypetals/Symars&#34;&gt;Symars&lt;/a&gt;, a symbolic codegen library.&lt;/p&gt;&#xA;&lt;p&gt;If you&amp;rsquo;re interested, please give them a star and try them out! ❤️&lt;/p&gt;&#xA;&lt;h2 id=&#34;the-origin-of-the-story&#34;&gt;The Origin of the Story&lt;/h2&gt;&#xA;&lt;p&gt;I recently read papers on physical simulation and wanted to reproduce them. I started with &lt;a href=&#34;https://graphics.pixar.com/library/StableElasticity/paper.pdf&#34;&gt;Stable Neo-Hookean Flesh Simulation&lt;/a&gt;, though the choice isn&amp;rsquo;t critical. Many modern physical simulations are implicit, requiring Newton&amp;rsquo;s method to solve optimization problems.&lt;/p&gt;&#xA;&lt;p&gt;This involves:&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;Computing derivatives of the constitutive energy model (first-order gradient, second-order Hessian).&lt;/li&gt;&#xA;&lt;li&gt;Assembling a large, sparse Hessian from small, dense Hessian submatrices — a delicate task prone to hard-to-debug bugs.&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;From &lt;a href=&#34;https://www.tkim.graphics/DYNAMIC_DEFORMABLES/&#34;&gt;Dynamic Deformables&lt;/a&gt;, I learned deriving these formulas is labor-intensive (even understanding the notation takes time). Searching for alternatives to avoid meticulous debugging, I found two solutions:&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

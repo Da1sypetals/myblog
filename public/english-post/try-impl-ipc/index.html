@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+    MathJax = {
+        tex: {
+            displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+            inlineMath: [['$', '$']]                  
+        },
+        loader: {
+            load: ['ui/safe']
+        },
+    };
+</script>
+  
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Try To Implement IPC | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="http://localhost:1313/english-post/try-impl-ipc/">
+  <meta property="og:site_name" content="Da1sypetals">
+  <meta property="og:title" content="Try To Implement IPC">
+  <meta property="og:description" content="Intro: A taste of the Rust programming language
+Recently, I tried to get started with Rust and wanted to write some code.
+Most people’s first application is probably some kind of backend service (converting HTTP requests from the frontend into CRUD operations on a database and returning the results to the frontend).
+However, I’ve never learned how to write backend services (I’ve been wanting to learn recently — if anyone has good zero-to-hero beginner resources, feel free to recommend them). So, I ended up picking up the two papers I’ve been studying lately (@Li2020IPC, @abd) to try reproducing them.">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="english-post">
+    <meta property="article:published_time" content="2025-10-02T15:03:07+08:00">
+    <meta property="article:modified_time" content="2025-10-02T15:03:07+08:00">
+    <meta property="article:tag" content="Graphics">
+    <meta property="article:tag" content="Rust">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Try To Implement IPC">
+  <meta name="twitter:description" content="Intro: A taste of the Rust programming language
+Recently, I tried to get started with Rust and wanted to write some code.
+Most people’s first application is probably some kind of backend service (converting HTTP requests from the frontend into CRUD operations on a database and returning the results to the frontend).
+However, I’ve never learned how to write backend services (I’ve been wanting to learn recently — if anyone has good zero-to-hero beginner resources, feel free to recommend them). So, I ended up picking up the two papers I’ve been studying lately (@Li2020IPC, @abd) to try reproducing them.">
+
+    <link rel="stylesheet" href="/css/root.css">
+    <link rel="stylesheet" href="/css/bundle.css">
+
+      <script src="/js/bundle.js"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+<script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="notransition">
+  <div id="container">
+    <header id="main-header"><div role="navigation" aria-label="Main">
+  <div class="nav-left">
+    <a href="http://localhost:1313/" style="color: inherit;">Da1sypetals</a>
+  </div>
+  <div class="nav-right">
+    <div style="position:absolute;width:0px;height:0px;">
+      <div id="nav-dropdown-menu" class="hidden" href="#">
+    <div class="nav-item">
+      <a href="/chinese-post/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/english-post/"
+      >Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    </div>
+    <a id="nav-dropdown-button" href="#"><svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+    <div id="nav-menu">
+    <div class="nav-item">
+      <a href="/chinese-post/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/english-post/"
+      >Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    <a id="theme-switcher" href="#">
+<svg class="light-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5001M17.6859 17.69L18.5 18.5001M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+<svg class="dark-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.32031 11.6835C3.32031 16.6541 7.34975 20.6835 12.3203 20.6835C16.1075 20.6835 19.3483 18.3443 20.6768 15.032C19.6402 15.4486 18.5059 15.6834 17.3203 15.6834C12.3497 15.6834 8.32031 11.654 8.32031 6.68342C8.32031 5.50338 8.55165 4.36259 8.96453 3.32996C5.65605 4.66028 3.32031 7.89912 3.32031 11.6835Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+  </div>
+</div>
+</header>
+    <div class="flex grow">
+      <div id="main-pane">
+        <main id="main-content"><div class="single-header">
+<ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="http://localhost:1313/">
+        <span itemprop="name">Home</span>
+      </a>
+      <meta itemprop="position" content='1' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="http://localhost:1313/english-post/">
+        <span itemprop="name">English-Posts</span>
+      </a>
+      <meta itemprop="position" content='2' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+</ol>
+<h1>Try To Implement IPC</h1><time class="dim" datetime="2025-10-02T15:03:07&#43;08:00">October 2, 2025</time><div class="term-container"><div class="tag">
+        <a href="http://localhost:1313/tags/graphics/">#graphics</a>
+      </div><div class="tag">
+        <a href="http://localhost:1313/tags/rust/">#rust</a>
+      </div></ol></div>
+  <section class="page-section"><p><strong>Intro: A taste of the Rust programming language</strong></p>
+<p>Recently, I tried to get started with Rust and wanted to write some code.</p>
+<p>Most people&rsquo;s first application is probably some kind of backend service (converting HTTP requests from the frontend into CRUD operations on a database and returning the results to the frontend).</p>
+<p>However, I&rsquo;ve never learned how to write backend services (I&rsquo;ve been wanting to learn recently — if anyone has good zero-to-hero beginner resources, feel free to recommend them). So, I ended up picking up the two papers I&rsquo;ve been studying lately (@Li2020IPC, @abd) to try reproducing them.</p>
+<p><strong>Note:</strong> This post only reproduces/discusses the IPC family of algorithms and does not address any performance optimizations, whether the algorithm is efficient, or why not to use some other algorithm.</p>
+<p>Project repo: <a href="https://github.com/Da1sypetals/ip-sim/">Github</a></p>
+<h2 id="implicit-euler">Implicit Euler</h2>
+<p>Physical simulation is essentially a numerical integration process.</p>
+<p>Explicit integration tends to explode, but implicit integration suffers from a &ldquo;chicken-and-egg&rdquo; problem (calculating the position at the next timestep requires knowing the velocity at the next timestep), making it impossible to solve explicitly. Instead, it requires solving a (possibly non-convex) optimization problem.</p>
+<p>What can be implicitly integrated? A mass-spring system can. But honestly, I&rsquo;ve never written an optimization-based implicit integrator before, so I decided to start by implementing a mass-spring system.</p>
+<h3 id="what-is-it">What Is It?</h3>
+<p>Incremental Potential (IP) is a function of the degrees of freedom (DOF) of a scene at time t, IP(t).</p>
+<p>Implicit Euler constructs an then minimizes the IP <code>(x(t+\Delta t) = \argmin_x E_{\text{IP}}(x(t)))</code> to obtain the position at <code>t+\Delta t</code>.</p>
+<p>Deep learning typically uses gradient descent (and its variants), but in graphics, empirical evidence suggests gradient descent performs poorly. So, we opt for Newton&rsquo;s method.</p>
+<h3 id="implementation">Implementation</h3>
+<ul>
+<li>Newton&rsquo;s method is faster, but it introduces a problem: assembling the Hessian matrix.</li>
+<li>Fortunately, each component of the incremental potential is mostly a function of (k \cdot n DOFs), where n is the dimensionality (I implemented 2D), and k is a small number (at most a few dozen). Thus, for each small IP contributing to the larger IP, the Hessian has only tens to hundreds of entries, which can be stored sparsely and assembled into the full Hessian.</li>
+</ul>
+<p>Following this <a href="https://zhuanlan.zhihu.com/p/444105016">tutorial</a>, I implemented springs with vertices pinned to a wall.</p>
+<ul>
+<li>Choosing libraries:
+<ul>
+<li>Used macroquad for GUI.</li>
+<li>Used nalgebra_glm for small-scale linear algebra.</li>
+<li>Initially planned to use nalgebra for large-scale linear algebra, but its sparse matrix functionality seemed incomplete, so I switched to faer.</li>
+<li>Initially used argmin for optimization.</li>
+</ul>
+</li>
+</ul>
+<h3 id="a-small-detour-before-contact-ip">A Small Detour Before Contact IP</h3>
+<p>Rust takes forever to compile, so configuring geometry shapes shouldn&rsquo;t be hardcoded.</p>
+<p>At first, I invented a weird file format and wrote a config based on my own logic:</p>
+<pre tabindex="0"><code>!k 1000.0
+!node
+0.0 0.0
+0.2 0.0
+0.4 0.0
+0.6 0.0
+0.1 0.2
+0.3 0.2
+</code></pre><p>Then I asked an AI to write a parser for me.</p>
+<p>Later, I realized that existing formats like JSON or TOML already have parsers, but by then, I was too lazy to change it.</p>
+<h2 id="contact-ip">Contact IP</h2>
+<p>In short, Contact IP:</p>
+<ul>
+<li>Requires that point-edge pairs (aka primitive pairs) from two different bodies, which are close enough (within a threshold \hat{d}), are assigned energy based on their distance.</li>
+</ul>
+<p>But to prevent interpenetration, there are additional requirements:</p>
+<ul>
+<li>Optimization courses teach that (damped) Newton&rsquo;s method iteratively approaches the optimum. Each iteration involves a line search, and to prevent interpenetration, every intermediate step of the line search must ensure no primitive pairs penetrate, ultimately guaranteeing no interpenetration in the final result.</li>
+</ul>
+<h3 id="procedure">Procedure</h3>
+<p>At each line search step in Newton&rsquo;s method:</p>
+<ul>
+<li>Traverse all primitive pairs (or use some acceleration structure — I didn&rsquo;t implement this) and identify those with distances below the threshold.</li>
+<li>Compute the energy, gradient, and Hessian of the Contact IP for each primitive pair&rsquo;s DOFs, then solve d = -A^{-1}g to get the search direction.</li>
+<li>Perform a CCD (Continuous Collision Detection) operation to ensure the line search doesn&rsquo;t cause interpenetration (by setting a maximum step length).</li>
+<li>Use the Armijo condition for the line search.</li>
+</ul>
+<p>Repeat until sufficiently close to the minimum, at which point optimization is complete.</p>
+<h3 id="implementation-1">Implementation</h3>
+<p>Every step involved endless debugging…</p>
+<p><strong>Gradient &amp; Hessian:</strong></p>
+<ul>
+<li>In 2D, each primitive pair&rsquo;s DOFs are (2 DOFs per point) × (3 points) = 6 DOFs.</li>
+<li>The gradient of energy E w.r.t. DOFs can still be computed manually (a 6D vector). But the Hessian is a 6×6 matrix, and the paper&rsquo;s notation is a mess—sometimes dyadic product, sometimes Kronecker product, with no clear labeling in the text. Manual computation failed.</li>
+<li>So, I used SymPy for symbolic computation and generated code from it.</li>
+<li>The differentiation code can be found in the <code>symbolic/</code> folder.</li>
+<li>SymPy actually has Rust codegen, but it&rsquo;s half-baked — often producing invalid Rust syntax, requiring string replacements, and only supporting single expressions (no vectors/matrices).</li>
+</ul>
+<p><strong>Note:</strong> Later, I built my own SymPy→Rust code generator:</p>
+<p><a href="https://github.com/Da1sypetals/Symars">Symars: Generate Rust code from SymPy expressions</a></p>
+<ul>
+<li>Remember: Point-to-segment distance requires case-by-case handling.</li>
+<li>CCD (ACCD) needs to be integrated into the optimization process, so argmin wasn&rsquo;t suitable anymore. I discarded it and handwrote a damped Newton solver with ACCD and Armijo condition.</li>
+</ul>
+<p>After days of coding and debugging, the demo finally worked:</p>
+<p><img src="../images/ipc-1.gif" alt=""></p>
+<ul>
+<li>The constraints here are springs.</li>
+</ul>
+<h2 id="abd">ABD</h2>
+<p>TL;DR, ABD Replaces traditional 6-DOF (translation + rotation) rigid bodies with 12-DOF bodies and heavily penalizes transformation matrices that deviate too far from rotation matrices, resulting in a (near-)rigid body simulation algorithm.</p>
+<p>In 2D, an affine body (AB) has 6 DOFs: x = A x_0 + b, where the shape is defined by A (2×2) and b (2×1), assembled into a DOF vector: q = [flatten(A), b^T].</p>
+<p>We know rotation matrices R satisfy R^T R = I. ABD uses an orthogonal potential energy \kappa \cdot \text{frobnorm}(A^T A - I) to penalize A and keep it close to a rotation matrix.</p>
+<h3 id="implementation-2">Implementation</h3>
+<ul>
+<li>Any energy term requires second derivatives. Again, I used SymPy for differentiation.</li>
+<li>The project has thousands of lines of numerical computation code — don&rsquo;t look at them.</li>
+<li>Affine bodies also need contact handling:
+<ul>
+<li>Unlike mass-spring systems where each vertex is a DOF, an AB&rsquo;s vertex position p is a function of DOFs, and the Contact IP is a function of p.</li>
+<li>A primitive pair involves two bodies, where one contributes an edge (two points p_1, p_2).</li>
+<li>Thus, derivatives must be taken w.r.t. both q s. The computational graph looks like this:</li>
+</ul>
+</li>
+</ul>
+<p><img src="../images/2025-10-02-15-08-13.png" alt=""></p>
+<p>After more endless debugging and parameter tuning (mainly \kappa), the simulation finally ran:</p>
+<p><img src="../images/ipc-2.gif" alt=""></p>
+<h2 id="final-thoughts">Final Thoughts</h2>
+<p>The resulting code is a bona fide spaghetti monster.</p>
+<p>Even though I spent a long time thinking about unifying interfaces before coding, the final design is neither OOP nor Rust-like, with inconsistent parameter passing everywhere.</p>
+<p>I can&rsquo;t help but wonder: Is my ability just too low, or is code complexity truly not something design alone can solve?</p>
+<p>The bright side:</p>
+<ul>
+<li>Cargo is amazing — adding a dependency takes three seconds. Compared to <code>Cmake</code>, <code>xmake</code> or whatever-<code>make</code>, it&rsquo;s night and day.</li>
+<li>No memory issues (since I didn&rsquo;t and did not need to write <code>unsafe</code> code), so most effort went into logic.</li>
+</ul>
+</section></main>
+        <footer id="main-footer"><div class="footer">
+  <a href="#">Scroll to Top</a>
+  <div class="footer-copyright">
+    <div class="dim">© 2025 Da1sypetals</div>
+    <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
+  </div>
+</div>
+</footer>
+      </div><aside id="side-pane" class="side-sticky"><div class="side-details">
+    <span>1164 words</span>
+    <span>7 - 9 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
+  <ul>
+    <li><a href="#implicit-euler">Implicit Euler</a>
+      <ul>
+        <li><a href="#what-is-it">What Is It?</a></li>
+        <li><a href="#implementation">Implementation</a></li>
+        <li><a href="#a-small-detour-before-contact-ip">A Small Detour Before Contact IP</a></li>
+      </ul>
+    </li>
+    <li><a href="#contact-ip">Contact IP</a>
+      <ul>
+        <li><a href="#procedure">Procedure</a></li>
+        <li><a href="#implementation-1">Implementation</a></li>
+      </ul>
+    </li>
+    <li><a href="#abd">ABD</a>
+      <ul>
+        <li><a href="#implementation-2">Implementation</a></li>
+      </ul>
+    </li>
+    <li><a href="#final-thoughts">Final Thoughts</a></li>
+  </ul>
+</nav><h3>Related</h3>
+    <ul><li><a href="/english-post/snapviewer-3-optim/">SnapViewer Devlog #3: Optimizations</a></li><li><a href="/english-post/snapviewer-2-ui/">Snapviewer Devlog #2: UI</a></li><li><a href="/english-post/snapviewer/">SnapViewer: Faster PyTorch Memory Allocation Viewer</a></li></ul></aside></div>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+    MathJax = {
+        tex: {
+            displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+            inlineMath: [['$', '$']]                  
+        },
+        loader: {
+            load: ['ui/safe']
+        },
+    };
+</script>
+  
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Snapviewer Devlog #2: UI | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="http://localhost:1313/english-post/snapviewer-2-ui/">
+  <meta property="og:site_name" content="Da1sypetals">
+  <meta property="og:title" content="Snapviewer Devlog #2: UI">
+  <meta property="og:description" content="Intro: Building the UI as a Hybrid Rust &amp; Python Application
+Building a UI can often be the trickiest part of a development project, especially when you’re trying to integrate different languages and paradigms.
+For SnapViewer, my memory allocation viewer, I needed an integrated UI that could display allocation details on click and feature a REPL for SQL queries against a SQLite database. This post details my journey, the hurdles I faced, and the solutions I found, primarily focusing on a Rust backend and Python UI.">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="english-post">
+    <meta property="article:published_time" content="2025-10-02T14:56:13+08:00">
+    <meta property="article:modified_time" content="2025-10-02T14:56:13+08:00">
+    <meta property="article:tag" content="Torch">
+    <meta property="article:tag" content="Deep-Learning">
+    <meta property="article:tag" content="Rust">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Snapviewer Devlog #2: UI">
+  <meta name="twitter:description" content="Intro: Building the UI as a Hybrid Rust &amp; Python Application
+Building a UI can often be the trickiest part of a development project, especially when you’re trying to integrate different languages and paradigms.
+For SnapViewer, my memory allocation viewer, I needed an integrated UI that could display allocation details on click and feature a REPL for SQL queries against a SQLite database. This post details my journey, the hurdles I faced, and the solutions I found, primarily focusing on a Rust backend and Python UI.">
+
+    <link rel="stylesheet" href="/css/root.css">
+    <link rel="stylesheet" href="/css/bundle.css">
+
+      <script src="/js/bundle.js"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+<script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="notransition">
+  <div id="container">
+    <header id="main-header"><div role="navigation" aria-label="Main">
+  <div class="nav-left">
+    <a href="http://localhost:1313/" style="color: inherit;">Da1sypetals</a>
+  </div>
+  <div class="nav-right">
+    <div style="position:absolute;width:0px;height:0px;">
+      <div id="nav-dropdown-menu" class="hidden" href="#">
+    <div class="nav-item">
+      <a href="/chinese-post/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/english-post/"
+      >Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    </div>
+    <a id="nav-dropdown-button" href="#"><svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+    <div id="nav-menu">
+    <div class="nav-item">
+      <a href="/chinese-post/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/english-post/"
+      >Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    <a id="theme-switcher" href="#">
+<svg class="light-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5001M17.6859 17.69L18.5 18.5001M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+<svg class="dark-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.32031 11.6835C3.32031 16.6541 7.34975 20.6835 12.3203 20.6835C16.1075 20.6835 19.3483 18.3443 20.6768 15.032C19.6402 15.4486 18.5059 15.6834 17.3203 15.6834C12.3497 15.6834 8.32031 11.654 8.32031 6.68342C8.32031 5.50338 8.55165 4.36259 8.96453 3.32996C5.65605 4.66028 3.32031 7.89912 3.32031 11.6835Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+  </div>
+</div>
+</header>
+    <div class="flex grow">
+      <div id="main-pane">
+        <main id="main-content"><div class="single-header">
+<ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="http://localhost:1313/">
+        <span itemprop="name">Home</span>
+      </a>
+      <meta itemprop="position" content='1' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="http://localhost:1313/english-post/">
+        <span itemprop="name">English-Posts</span>
+      </a>
+      <meta itemprop="position" content='2' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+</ol>
+<h1>Snapviewer Devlog #2: UI</h1><time class="dim" datetime="2025-10-02T14:56:13&#43;08:00">October 2, 2025</time><div class="term-container"><div class="tag">
+        <a href="http://localhost:1313/tags/torch/">#torch</a>
+      </div><div class="tag">
+        <a href="http://localhost:1313/tags/deep-learning/">#deep-learning</a>
+      </div><div class="tag">
+        <a href="http://localhost:1313/tags/rust/">#rust</a>
+      </div></ol></div>
+  <section class="page-section"><p><strong>Intro: Building the UI as a Hybrid Rust &amp; Python Application</strong></p>
+<p>Building a UI can often be the trickiest part of a development project, especially when you&rsquo;re trying to integrate different languages and paradigms.</p>
+<p>For SnapViewer, my memory allocation viewer, I needed an integrated UI that could display allocation details on click and feature a REPL for SQL queries against a SQLite database. This post details my journey, the hurdles I faced, and the solutions I found, primarily focusing on a Rust backend and Python UI.</p>
+<p>Project page: <a href="https://github.com/Da1sypetals/SnapViewer">https://github.com/Da1sypetals/SnapViewer</a></p>
+<h2 id="the-initial-vision-an-integrated-ui">The Initial Vision: An Integrated UI</h2>
+<p>My core requirements for the UI were:</p>
+<ul>
+<li><strong>Interactive Display:</strong> When an allocation is clicked in the viewer, its size, call stack, and other relevant information should be immediately displayed.</li>
+<li><strong>SQL REPL:</strong> A command-line interface to execute SQL queries directly against the underlying database.</li>
+<li><strong>Non-Blocking Operations:</strong> Both functionalities needed to operate without blocking each other.</li>
+</ul>
+<h2 id="early-attempts-and-roadblocks">Early Attempts and Roadblocks</h2>
+<h3 id="web-rust-to-wasm">Web: Rust to WASM</h3>
+<p>My first thought was a web interface. Rust&rsquo;s ability to compile to WASM and the <code>three-d</code> crate&rsquo;s WebGPU support seemed promising. However, I quickly hit a wall with library versioning issues trying to compile even a simple Rust program to WASM. Rather than get bogged down, I decided to pivot.</p>
+<h3 id="tui-terminal-user-interface">TUI: Terminal User Interface</h3>
+<p>The natural next step was a Terminal User Interface (TUI). This approach avoids the complexities of cross-compilation and platform-specific GUI libraries.</p>
+<h4 id="ratatui-a-promising-rust-tui-framework">Ratatui: A Promising Rust TUI Framework</h4>
+<p>I started with Ratatui, a TUI framework for Rust. I got their demos running, but my plan to find an open-source example matching my &ldquo;left-console, right-REPL&rdquo; layout failed.</p>
+<p>Diving deep into the Ratatui documentation felt as complex as learning a new frontend framework like React, which defeated my goal of getting work done quickly. I abandoned this path.</p>
+<h4 id="textual--ai-powered-development">Textual &amp; AI-Powered Development</h4>
+<p>Given my goal of getting work done rather than becoming a TUI expert, I started thinking about AI. Rust isn&rsquo;t particularly &ldquo;AI-friendly&rdquo; for code generation, but Python certainly is. This sparked an idea: What if I used AI to generate the TUI code in Python and then integrated my Rust application?</p>
+<p>I fed my requirements to several LLMs: Claude, Gemini, Deepseek, ChatGPT, and Grok. Claude&rsquo;s initial results were impressive, while the others were largely unusable. After a few rounds of refinement with Claude, I had a working TUI demo:</p>
+<p><img src="../images/2025-10-02-14-57-38.png" alt=""></p>
+<h2 id="combining-rust-and-python-a-hybrid-approach">Combining Rust and Python: A Hybrid Approach</h2>
+<p>Integrating Rust and Python is a standard process, but it has its quirks. I used PyO3 as a dependency to expose my Rust structures and bind Rust functions to Python.</p>
+<p>My core Rust logic consists of:</p>
+<ul>
+<li><strong>Viewer:</strong> An infinite loop handling render draw calls and an event loop until the application shuts down.</li>
+<li><strong>SQL REPL:</strong> Loads snapshot data into SQLite and executes SQL queries.</li>
+</ul>
+<p>Each of these operations is designed to be completed in milliseconds.</p>
+<h3 id="designing-app-structure">Designing App Structure</h3>
+<p>My initial application structure idea was:</p>
+<ul>
+<li><strong>Main Thread:</strong> Renders the TUI and accepts REPL inputs, calling SQL REPL Rust functions.</li>
+<li><strong>Spawned Thread:</strong> Runs the infinite loop for the Snapshot Viewer.</li>
+</ul>
+<p>However, the <code>three-d</code> crate, which uses <code>winit</code> for window management, dictates that the window must run on the main thread. This immediately threw a wrench in my plans.</p>
+<h3 id="attempt-1-multiprocessing">Attempt 1: Multiprocessing</h3>
+<p>My first revised design used multiprocessing:</p>
+<ul>
+<li>Start the application and load snapshot data.</li>
+<li>Spawn a new process to run the TUI application.</li>
+<li>Run the Viewer in the parent process.</li>
+</ul>
+<p>This setup allowed the child process to run the viewer window without blocking the TUI app. The challenge, however, was Inter-Process Communication (IPC). I needed a way for the viewer to send information (like selected allocation details) back to the TUI.</p>
+<p>I experimented with Python&rsquo;s <code>multiprocessing.Queue</code>. My approach was to define a callback in Rust that put messages into the queue, and then have the parent process check the queue at a fixed interval (e.g., 0.1 seconds) to update the TUI&rsquo;s logging panel.</p>
+<p>I encountered an implementation bug where the parent process wasn&rsquo;t consuming all messages, causing the viewer and TUI to become out of sync. I then switched to a shared byte array with a lock for IPC. The child process would acquire the lock, write to the buffer, and release it. The parent process would try to acquire the lock at intervals to read the message and update the TUI.</p>
+<h3 id="attempt-2-threading">Attempt 2: Threading</h3>
+<p>The multiprocessing solution had a couple of issues:</p>
+<ul>
+<li>The TUI sometimes froze when typing in the REPL, likely due to lock contention.</li>
+<li>Balancing the log message update interval with the viewer&rsquo;s framerate was tricky. Too frequent, and the UI lagged; too slow, and the viewer became unresponsive.</li>
+</ul>
+<p>I realized I could use multithreading instead! While <code>winit</code> requires the viewer window to run on the main thread, the TUI application does not. This led to a new, more elegant structure:</p>
+<ul>
+<li>Spawn a thread and start the TUI application on that thread.</li>
+<li>Start the viewer on the main thread.</li>
+</ul>
+<p>A naive implementation, however, caused the entire TUI to freeze. The culprit? The Global Interpreter Lock (GIL) in Python. The GIL ensures that only one thread can execute Python bytecode at a time.</p>
+<p>Time for some PyO3 details. By default, the extension function holds GIL during its execution; but when you don&rsquo;t need to use Python objects during this call, a call to <code>py::allow_thread</code> can opt out this behavior, releasing the GIL.</p>
+<p>In my case, the Rust extension holds GIL in the infinte render loop, preventing the TUI thread from updating the UI. By explicitly releasing the GIL during the viewer&rsquo;s render loop, the TUI, running in its own sub-thread, was free to update, and the application could run as expected.</p>
+<h3 id="an-alternative-gui-with-pyqt">An Alternative: GUI with PyQt</h3>
+<p>As an interesting side experiment, I wondered about a GUI instead of a TUI. I tasked Claude with translating my TUI code into a GUI application using PyQt. Claude did this in minutes, without errors.</p>
+<p><img src="../images/snapviewer-2.gif" alt=""></p>
+<p>After a few minor styling tweaks (also done via chatting with Claude), here is what the app looks like:</p>
+<p><img src="../images/2025-10-02-15-00-10.png" alt=""></p>
+<p>(I finally switched to Tkinter for compatibility issues with multithreading across platforms.)</p>
+<h2 id="wrapping-up">Wrapping Up</h2>
+<p>This journey highlights the flexibility and power of combining Rust&rsquo;s performance with Python&rsquo;s rapid development capabilities, especially when augmented by AI.</p>
+<p>Understanding the intricacies of thread management and inter-process communication helped a lot in this journey.</p>
+<p>Hope you find this post is fun and informative to read! ❤️❤️❤️</p>
+</section></main>
+        <footer id="main-footer"><div class="footer">
+  <a href="#">Scroll to Top</a>
+  <div class="footer-copyright">
+    <div class="dim">© 2025 Da1sypetals</div>
+    <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
+  </div>
+</div>
+</footer>
+      </div><aside id="side-pane" class="side-sticky"><div class="side-details">
+    <span>1058 words</span>
+    <span>6 - 7 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
+  <ul>
+    <li><a href="#the-initial-vision-an-integrated-ui">The Initial Vision: An Integrated UI</a></li>
+    <li><a href="#early-attempts-and-roadblocks">Early Attempts and Roadblocks</a>
+      <ul>
+        <li><a href="#web-rust-to-wasm">Web: Rust to WASM</a></li>
+        <li><a href="#tui-terminal-user-interface">TUI: Terminal User Interface</a></li>
+      </ul>
+    </li>
+    <li><a href="#combining-rust-and-python-a-hybrid-approach">Combining Rust and Python: A Hybrid Approach</a>
+      <ul>
+        <li><a href="#designing-app-structure">Designing App Structure</a></li>
+        <li><a href="#attempt-1-multiprocessing">Attempt 1: Multiprocessing</a></li>
+        <li><a href="#attempt-2-threading">Attempt 2: Threading</a></li>
+        <li><a href="#an-alternative-gui-with-pyqt">An Alternative: GUI with PyQt</a></li>
+      </ul>
+    </li>
+    <li><a href="#wrapping-up">Wrapping Up</a></li>
+  </ul>
+</nav><h3>Related</h3>
+    <ul><li><a href="/english-post/snapviewer/">SnapViewer: Faster PyTorch Memory Allocation Viewer</a></li><li><a href="/english-post/torch-cuda-ext/">Notes on Writing PyTorch CUDA Extensions</a></li></ul></aside></div>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,60 @@
+baseURL = 'https://example.org/'
+languageCode = 'zh-CN'
+title = 'Da1sypetals'
+theme = 'rusty-typewriter'
+
+enableRobotsTXT = true
+
+# rtwt = Rusty Typewriter Theme
+[params.rtwt.side.home]
+taxonomies = ['tags', 'series']
+countTaxonomy = 3
+
+[taxonomies]
+tag = 'tags'
+topic = 'topics'
+series = 'series'
+
+[params.author]
+name = 'Da1sypetals'
+
+[[menus.main]]
+name = '文章'
+pageRef = '/chinese-post'
+weight = 1
+
+[[menus.main]]
+name = 'Posts'
+pageRef = '/english-post'
+weight = 2
+
+[[menus.main]]
+name = '关于我'
+pageRef = '/about.md'
+weight = 3
+
+# build search index ================
+[outputFormats]
+[outputFormats.SearchIndex]
+mediaType = "application/json"
+baseName = "searchindex"
+isPlainText = true
+notAlternative = true
+
+[mediaTypes]
+[mediaTypes."application/json"]
+suffixes = ["json"]
+
+[outputs]
+home = ["HTML", "RSS", "SearchIndex"]
+
+[markup]
+[markup.goldmark]
+[markup.goldmark.extensions]
+[markup.goldmark.extensions.passthrough]
+enable = true
+[markup.goldmark.extensions.passthrough.delimiters]
+block = [['\[', '\]'], ['$$', '$$']]
+inline = [['$', '$']]
+[params]
+math = true

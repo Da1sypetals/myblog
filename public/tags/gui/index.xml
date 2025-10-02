@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Gui on Da1sypetals</title>
+    <link>http://localhost:1313/tags/gui/</link>
+    <description>Recent content in Gui on Da1sypetals</description>
+    <generator>Hugo</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Thu, 02 Oct 2025 14:56:13 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/gui/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Snapviewer Devlog #2: UI</title>
+      <link>http://localhost:1313/english-post/snapviewer-2-ui/</link>
+      <pubDate>Thu, 02 Oct 2025 14:56:13 +0800</pubDate>
+      <guid>http://localhost:1313/english-post/snapviewer-2-ui/</guid>
+      <description>&lt;p&gt;&lt;strong&gt;Intro: Building the UI as a Hybrid Rust &amp;amp; Python Application&lt;/strong&gt;&lt;/p&gt;&#xA;&lt;p&gt;Building a UI can often be the trickiest part of a development project, especially when you&amp;rsquo;re trying to integrate different languages and paradigms.&lt;/p&gt;&#xA;&lt;p&gt;For SnapViewer, my memory allocation viewer, I needed an integrated UI that could display allocation details on click and feature a REPL for SQL queries against a SQLite database. This post details my journey, the hurdles I faced, and the solutions I found, primarily focusing on a Rust backend and Python UI.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>SnapViewer: Faster PyTorch Memory Allocation Viewer</title>
+      <link>http://localhost:1313/english-post/snapviewer/</link>
+      <pubDate>Wed, 01 Oct 2025 16:09:53 +0800</pubDate>
+      <guid>http://localhost:1313/english-post/snapviewer/</guid>
+      <description>&lt;h1 id=&#34;background&#34;&gt;Background&lt;/h1&gt;&#xA;&lt;p&gt;When training models with PyTorch, out-of-memory (OOM) errors are common, necessitating GPU memory optimization. When simple methods (like reducing batch size) no longer work, analyzing the memory footprint of the model itself may be required.&lt;/p&gt;&#xA;&lt;p&gt;At this point, you might come across this &lt;a href=&#34;https://docs.pytorch.org/docs/stable/torch_cuda_memory.html&#34;&gt;documentation&lt;/a&gt;, which teaches you how to record a memory snapshot and visualize it on this website.&lt;/p&gt;&#xA;&lt;p&gt;However, there’s a major issue: the website is extremely laggy. If your model is small, with snapshots of just a few MB, the performance is somewhat tolerable. But if your model is large, with snapshots reaching tens or even hundreds of MB, the website becomes unbearably slow, with frame rates dropping as low as 2–3 frames per minute (this is not a typo).&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

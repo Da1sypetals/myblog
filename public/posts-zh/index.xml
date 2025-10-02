@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts-Zhs on Da1sypetals</title>
+    <link>http://localhost:1313/posts-zh/</link>
+    <description>Recent content in Posts-Zhs on Da1sypetals</description>
+    <generator>Hugo</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Thu, 02 Oct 2025 17:29:02 +0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/posts-zh/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Snapviewer Devlog #3: 性能优化</title>
+      <link>http://localhost:1313/posts-zh/snapviewer-3-zh/</link>
+      <pubDate>Thu, 02 Oct 2025 17:29:02 +0800</pubDate>
+      <guid>http://localhost:1313/posts-zh/snapviewer-3-zh/</guid>
+      <description>&lt;h1 id=&#34;内存与速度性能问题排查&#34;&gt;内存与速度性能问题排查&lt;/h1&gt;&#xA;&lt;p&gt;&lt;strong&gt;免责声明&lt;/strong&gt;：我主要在 Windows 上使用最新的稳定版 Rust 工具链和 CPython 3.13 进行开发和测试。&lt;/p&gt;&#xA;&lt;h2 id=&#34;1-背景与动机&#34;&gt;1. 背景与动机&lt;/h2&gt;&#xA;&lt;p&gt;SnapViewer 能够高效处理大型内存快照——例如，支持高达 1 GB 的 pickle 文件和高达 500 MB 的压缩快照。然而，在处理超大转储文件（例如 1.3 GB 的快照）时，我们遇到了严重的内存和速度瓶颈：&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;格式转换（pickle → 压缩 JSON）引发了约 30 GB 的内存峰值。&lt;/li&gt;&#xA;&lt;li&gt;将压缩 JSON 加载到 Rust 数据结构中又引发了另一次约 30 GB 的内存激增。&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;频繁的页面错误（page faults）和强烈的磁盘 I/O（在任务管理器中观察到）导致应用程序响应迟缓，甚至频繁卡顿。为了解决这一问题，我们采用了 Profile-Guided Optimization（PGO，基于性能分析的优化）方法。&lt;/p&gt;&#xA;&lt;h2 id=&#34;2-profile-guided-optimizationpgo&#34;&gt;2. Profile-Guided Optimization（PGO）&lt;/h2&gt;&#xA;&lt;p&gt;PGO 需要通过实证分析来识别真正的热点。我首先使用 &lt;a href=&#34;https://crates.io/crates/memory-stats&#34;&gt;memory-stats&lt;/a&gt; crate 进行内存分析，在早期优化阶段进行轻量级检查。随后，我将数据加载流水线拆解为若干离散步骤：&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;读取压缩文件（重度磁盘 I/O）&lt;/li&gt;&#xA;&lt;li&gt;从压缩流中提取 JSON 字符串&lt;/li&gt;&#xA;&lt;li&gt;将 JSON 反序列化为原生 Rust 数据结构&lt;/li&gt;&#xA;&lt;li&gt;填充内存中的 SQLite 数据库以支持即席 SQL 查询&lt;/li&gt;&#xA;&lt;li&gt;在 CPU 上构建三角网格（triangle mesh）&lt;/li&gt;&#xA;&lt;li&gt;初始化渲染窗口（CPU-GPU 数据传输）&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;性能分析揭示了两个主要的内存问题：过度克隆（excessive cloning）和多个中间数据结构。以下是我实施的优化措施。&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>
