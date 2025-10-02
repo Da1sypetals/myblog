@@ -26,9 +26,9 @@
   <meta property="og:description" content="注：本文用LLM辅助写作的地方主要在：我认为LLM比我理解的更好的地方，会用LLM的表述代替。
 问题设定 需要计算Graph Transformer中的Attention。在此我们忽略multihead-attention，考虑基本的single-head attention.
 此外，我们的attention mask(邻接矩阵A)是非结构化稀疏的。如果你的attention mask是结构化稀疏的，比如blockwise等可以被代码表示的稀疏pattern，你应该使用flash attention的varlen变体, 或者flex attention等attention编译器。
-Notation n: 图节点数，规模为 1k~1M nnz: 图边数（稀疏矩阵非零元素数，Num NonZero） 规模为10n~1000n q, k, v: (n, d) A: (n, n), binary, 高度稀疏 计算公式 softmax((q @ k.transpose()) * A) @ V 其中，@ 表示矩阵乘法，*表示element-wise乘法。
+Notation n: 图节点数，规模为 1k~1Mnnz: 图边数（稀疏矩阵非零元素数，Num NonZero）规模为10n~1000nq, k, v: (n, d)A: (n, n), binary, 高度稀疏 计算公式 softmax((q @ k.transpose()) * A) @ V 其中，@ 表示矩阵乘法，*表示element-wise乘法。
 实现：naive version 最简单的就是把A给materialize出来，然后用作attention_mask。问题是A是n^2的，显存不够用。 A用COO方式存储，大小(2,nnz)，然后先把每条边的qk-pair算出来(nnz,d)，然后再做reduce和scatter和V相乘。 Reformulate 我们引入三个算子:
-SDDMM (Sampled Dense-Dense MatMul) A (m, k), B (k, n), 稠密 M (n, n)， 稀疏 SDDMM(A, B, M) 定义为： for i, j in product(range(n), range(n)): if M[i, j] != 0: out[i, j] = dot(A[i,:], B[:,j]) else: out[i, j] = 0 Sparse Softmax: 在稀疏矩阵上按行softmax SpMM：sparse A @ dense B 此时我们的计算公式就可以重新写成:">
+SDDMM (Sampled Dense-Dense MatMul) A (m, k), B (k, n), 稠密 M (n, n)， 稀疏 SDDMM(A, B, M) 定义为： for i, j in product(range(n), range(n)):if M[i, j] != 0:out[i, j] = dot(A[i,:], B[:,j])else:out[i, j] = 0 Sparse Softmax: 在稀疏矩阵上按行softmax SpMM：sparse A @ dense B 此时我们的计算公式就可以重新写成:">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:type" content="article">
     <meta property="article:section" content="chinese-post">
@@ -41,9 +41,9 @@ SDDMM (Sampled Dense-Dense MatMul) A (m, k), B (k, n), 稠密 M (n, n)， 稀疏
   <meta name="twitter:description" content="注：本文用LLM辅助写作的地方主要在：我认为LLM比我理解的更好的地方，会用LLM的表述代替。
 问题设定 需要计算Graph Transformer中的Attention。在此我们忽略multihead-attention，考虑基本的single-head attention.
 此外，我们的attention mask(邻接矩阵A)是非结构化稀疏的。如果你的attention mask是结构化稀疏的，比如blockwise等可以被代码表示的稀疏pattern，你应该使用flash attention的varlen变体, 或者flex attention等attention编译器。
-Notation n: 图节点数，规模为 1k~1M nnz: 图边数（稀疏矩阵非零元素数，Num NonZero） 规模为10n~1000n q, k, v: (n, d) A: (n, n), binary, 高度稀疏 计算公式 softmax((q @ k.transpose()) * A) @ V 其中，@ 表示矩阵乘法，*表示element-wise乘法。
+Notation n: 图节点数，规模为 1k~1Mnnz: 图边数（稀疏矩阵非零元素数，Num NonZero）规模为10n~1000nq, k, v: (n, d)A: (n, n), binary, 高度稀疏 计算公式 softmax((q @ k.transpose()) * A) @ V 其中，@ 表示矩阵乘法，*表示element-wise乘法。
 实现：naive version 最简单的就是把A给materialize出来，然后用作attention_mask。问题是A是n^2的，显存不够用。 A用COO方式存储，大小(2,nnz)，然后先把每条边的qk-pair算出来(nnz,d)，然后再做reduce和scatter和V相乘。 Reformulate 我们引入三个算子:
-SDDMM (Sampled Dense-Dense MatMul) A (m, k), B (k, n), 稠密 M (n, n)， 稀疏 SDDMM(A, B, M) 定义为： for i, j in product(range(n), range(n)): if M[i, j] != 0: out[i, j] = dot(A[i,:], B[:,j]) else: out[i, j] = 0 Sparse Softmax: 在稀疏矩阵上按行softmax SpMM：sparse A @ dense B 此时我们的计算公式就可以重新写成:">
+SDDMM (Sampled Dense-Dense MatMul) A (m, k), B (k, n), 稠密 M (n, n)， 稀疏 SDDMM(A, B, M) 定义为： for i, j in product(range(n), range(n)):if M[i, j] != 0:out[i, j] = dot(A[i,:], B[:,j])else:out[i, j] = 0 Sparse Softmax: 在稀疏矩阵上按行softmax SpMM：sparse A @ dense B 此时我们的计算公式就可以重新写成:">
 
     <link rel="stylesheet" href="/css/root.css">
     <link rel="stylesheet" href="/css/bundle.css">
