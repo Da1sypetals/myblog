@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN" dir="ltr">
 
-<head>
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
   
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 <script>
@@ -20,7 +20,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Lsm Tree 实现备注 | Da1sypetals</title>
-<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sy-petals.vercel.app/posts/lsm/">
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="http://localhost:1313/posts/lsm/">
   <meta property="og:site_name" content="Da1sypetals">
   <meta property="og:title" content="Lsm Tree 实现备注">
   <meta property="og:description" content="Lsm Tree 是一种内存-磁盘的层级式数据结构，常用于实现写多读少的存储引擎。
@@ -44,10 +44,10 @@
 等待 flush 信号量被 notify,获取一个 compact 信号量资源 启动一个 sstwriter,写入这个 memtable 一个 memtable 对一个 sst 等到写入 sst 写完之后,才进行: 从 frozen memtables、frozen memtable sizes 里面删除这个 memtable 从 wal 里面删除这个 memtable 对应的 wal update manifest Try Freeze 如果当前大小 &gt; freeze size 那么就 freeze;进一步如果所有 frozen memtable 大小之和 &gt; flush threshold,那么就 set flush signal。
 写操作 写 memtable 写 WAL try freeze 内存部分 Put 添加到 memtable; 更新 size。 size 不需要特别精确,只需要是一个大致的值即可。 Delete 添加一个 tomb 标记到 memtable Get 从 active memtable 中获取 从 new 到 old 遍历所有的 inactive memtable,获取。 磁盘部分 compact 信号量 二元信号量。">
 
-      <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
-      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
+    <link rel="stylesheet" href="/css/root.css">
+    <link rel="stylesheet" href="/css/bundle.css">
 
-      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+      <script src="/js/bundle.js"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
 <script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -61,7 +61,7 @@
   <div id="container">
     <header id="main-header"><div role="navigation" aria-label="Main">
   <div class="nav-left">
-    <a href="https://da1sy-petals.vercel.app/" style="color: inherit;">Da1sypetals</a>
+    <a href="http://localhost:1313/" style="color: inherit;">Da1sypetals</a>
   </div>
   <div class="nav-right">
     <div style="position:absolute;width:0px;height:0px;">
@@ -106,31 +106,22 @@
       >关于我</a>
     </div>
 </div>
-    <a id="theme-switcher" href="#">
-<svg class="light-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5001M17.6859 17.69L18.5 18.5001M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-
-<svg class="dark-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M3.32031 11.6835C3.32031 16.6541 7.34975 20.6835 12.3203 20.6835C16.1075 20.6835 19.3483 18.3443 20.6768 15.032C19.6402 15.4486 18.5059 15.6834 17.3203 15.6834C12.3497 15.6834 8.32031 11.654 8.32031 6.68342C8.32031 5.50338 8.55165 4.36259 8.96453 3.32996C5.65605 4.66028 3.32031 7.89912 3.32031 11.6835Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-</a>
+    
   </div>
-</div>
-</header>
+</div></header>
     <div class="flex grow">
       <div id="main-pane">
         <main id="main-content"><div class="single-header">
 <ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
     <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-      <a itemprop="item" href="https://da1sy-petals.vercel.app/">
+      <a itemprop="item" href="http://localhost:1313/">
         <span itemprop="name">Home</span>
       </a>
       <meta itemprop="position" content='1' />
     </li>
     <span>&nbsp»&nbsp</span>
     <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-      <a itemprop="item" href="https://da1sy-petals.vercel.app/posts/">
+      <a itemprop="item" href="http://localhost:1313/posts/">
         <span itemprop="name">Posts</span>
       </a>
       <meta itemprop="position" content='2' />
@@ -138,9 +129,9 @@
     <span>&nbsp»&nbsp</span>
 </ol>
 <h1>Lsm Tree 实现备注</h1><time class="dim" datetime="2025-03-01T00:00:00&#43;00:00">March 1, 2025</time><div class="term-container"><div class="tag">
-        <a href="https://da1sy-petals.vercel.app/tags/database/">#database</a>
+        <a href="http://localhost:1313/tags/database/">#database</a>
       </div><div class="tag">
-        <a href="https://da1sy-petals.vercel.app/tags/rust/">#rust</a>
+        <a href="http://localhost:1313/tags/rust/">#rust</a>
       </div></ol></div>
   <section class="page-section"><p>Lsm Tree 是一种内存-磁盘的层级式数据结构，常用于实现写多读少的存储引擎。</p>
 <p>这是我实现 <a href="https://github.com/Da1sypetals/Lsmkv">Lsmkv</a> 的时候记录的备注.</p>

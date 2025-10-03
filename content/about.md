@@ -1,17 +1,16 @@
 +++
 date = '2004-06-01'
-title = 'About'
+title = '关于我'
 +++
 
-# 个人信息
+## 个人信息
 
 - 名称：黛西
 
 - Nickname: Da1sypetals
 
-- [我的简历](https://drive.google.com/file/d/1LaMUEAR6m0tZpj-VpTIcS5DMKO6lRujL/view?usp=drive_link)
 
-# 爱好
+## 爱好
 
 唱**古风歌**。
 

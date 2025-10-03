@@ -2,10 +2,10 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Topics on Da1sypetals</title>
-    <link>https://da1sy-petals.vercel.app/topics/</link>
+    <link>http://localhost:1313/topics/</link>
     <description>Recent content in Topics on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
-    <atom:link href="https://da1sy-petals.vercel.app/topics/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/topics/index.xml" rel="self" type="application/rss+xml" />
   </channel>
 </rss>
