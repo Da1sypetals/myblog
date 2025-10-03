@@ -2,24 +2,24 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Cuda on Da1sypetals</title>
-    <link>http://localhost:1313/tags/cuda/</link>
+    <link>https://da1sypetals.github.io/tags/cuda/</link>
     <description>Recent content in Cuda on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
     <lastBuildDate>Thu, 02 Oct 2025 14:48:02 +0800</lastBuildDate>
-    <atom:link href="http://localhost:1313/tags/cuda/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://da1sypetals.github.io/tags/cuda/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Notes on Writing PyTorch CUDA Extensions</title>
-      <link>http://localhost:1313/english-post/torch-cuda-ext/</link>
+      <link>https://da1sypetals.github.io/english-post/torch-cuda-ext/</link>
       <pubDate>Thu, 02 Oct 2025 14:48:02 +0800</pubDate>
-      <guid>http://localhost:1313/english-post/torch-cuda-ext/</guid>
+      <guid>https://da1sypetals.github.io/english-post/torch-cuda-ext/</guid>
       <description>&lt;p&gt;&lt;strong&gt;Intro: PyTorch is a Deep Learning Operating System.&lt;/strong&gt;&lt;/p&gt;&#xA;&lt;h2 id=&#34;check-tensor-storage&#34;&gt;Check tensor storage&lt;/h2&gt;&#xA;&lt;h3 id=&#34;device-check&#34;&gt;Device check&lt;/h3&gt;&#xA;&lt;p&gt;You should ALWAYS check EXPLICITLY whether input tensors are on desired devices. In most cases you want them on the same GPU, or in rare cases you want some tensors on CPU to perform some operations that are not efficient on GPU.&lt;/p&gt;&#xA;&lt;p&gt;&lt;strong&gt;API:&lt;/strong&gt;&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;code&gt;tensor.is_cuda()&lt;/code&gt;&lt;/li&gt;&#xA;&lt;li&gt;&lt;code&gt;tensor.device()&lt;/code&gt; (Use &lt;code&gt;operator==&lt;/code&gt; for equality comparison).&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;Sometimes the not on correct device problem causes strange error messages like &lt;code&gt;Cusparse context initialization failure&lt;/code&gt; or things even more weird, which first seem unrelated to a device problem. This is why I suggest you always start your debug journey here.&lt;/p&gt;</description>
     </item>
     <item>
       <title>近期GNN Attention算子优化工作速览</title>
-      <link>http://localhost:1313/posts/gnn-optim/</link>
+      <link>https://da1sypetals.github.io/posts/gnn-optim/</link>
       <pubDate>Thu, 02 Oct 2025 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/posts/gnn-optim/</guid>
+      <guid>https://da1sypetals.github.io/posts/gnn-optim/</guid>
       <description>&lt;p&gt;注：本文用LLM辅助写作的地方主要在：&lt;em&gt;&lt;strong&gt;我认为LLM比我理解的更好的地方，会用LLM的表述代替。&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;&#xA;&lt;h2 id=&#34;问题设定&#34;&gt;问题设定&lt;/h2&gt;&#xA;&lt;p&gt;需要计算Graph Transformer中的Attention。在此我们忽略multihead-attention，考虑基本的single-head attention.&lt;/p&gt;&#xA;&lt;p&gt;此外，我们的attention mask(邻接矩阵A)是非结构化稀疏的。如果你的attention mask是结构化稀疏的，比如blockwise等可以被代码表示的稀疏pattern，你应该使用flash attention的varlen变体, 或者flex attention等attention编译器。&lt;/p&gt;&#xA;&lt;h3 id=&#34;notation&#34;&gt;Notation&lt;/h3&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;n: 图节点数，规模为 1k~1M&#xD;&#xA;nnz: 图边数（稀疏矩阵非零元素数，Num NonZero）&#xD;&#xA;&#x9;  规模为10n~1000n&#xD;&#xA;q, k, v: (n, d)&#xD;&#xA;A: (n, n), binary, 高度稀疏&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;计算公式&#34;&gt;计算公式&lt;/h3&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;softmax((q @ k.transpose()) * A) @ V&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;其中，&lt;code&gt;@&lt;/code&gt; 表示矩阵乘法，&lt;code&gt;*&lt;/code&gt;表示element-wise乘法。&lt;/p&gt;&#xA;&lt;h2 id=&#34;实现naive-version&#34;&gt;实现：naive version&lt;/h2&gt;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;最简单的就是把A给materialize出来，然后用作attention_mask。问题是A是$n^2$的，显存不够用。&lt;/li&gt;&#xA;&lt;li&gt;A用COO方式存储，大小(2,nnz)，然后先把每条边的qk-pair取出来得到(nnz,d)，然后再做reduce和scatter, 和V相乘。&lt;/li&gt;&#xA;&lt;/ol&gt;&#xA;&lt;h2 id=&#34;reformulate&#34;&gt;Reformulate&lt;/h2&gt;&#xA;&lt;p&gt;我们引入三个算子:&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;strong&gt;SDDMM (Sampled Dense-Dense MatMul)&lt;/strong&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;A (m, k), B (k, n), 稠密&lt;/li&gt;&#xA;&lt;li&gt;M (n, n)， 稀疏&#xA;SDDMM(A, B, M) 定义为：&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;for i, j in product(range(n), range(n)):&#xD;&#xA;&#x9;if M[i, j] != 0:&#xD;&#xA;&#x9;&#x9;out[i, j] = dot(A[i,:], B[:,j])&#xD;&#xA;&#x9;else:&#xD;&#xA;&#x9;&#x9;out[i, j] = 0&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;&#xA;&lt;li&gt;Sparse Softmax: 在稀疏矩阵上按行softmax&lt;/li&gt;&#xA;&lt;li&gt;SpMM：sparse A @ dense B&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;此时我们的计算公式就可以重新写成:&lt;/p&gt;</description>
     </item>
   </channel>

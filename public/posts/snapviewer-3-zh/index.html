@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN" dir="ltr">
 
-<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+<head>
   
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 <script>
@@ -20,7 +20,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Snapviewer Devlog #3: 性能优化 | Da1sypetals</title>
-<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="http://localhost:1313/posts/snapviewer-3-zh/">
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sypetals.github.io/posts/snapviewer-3-zh/">
   <meta property="og:site_name" content="Da1sypetals">
   <meta property="og:title" content="Snapviewer Devlog #3: 性能优化">
   <meta property="og:description" content="内存与速度性能问题排查 免责声明：我主要在 Windows 上使用最新的稳定版 Rust 工具链和 CPython 3.13 进行开发和测试。
@@ -45,10 +45,10 @@
 2. Profile-Guided Optimization（PGO） PGO 需要通过实证分析来识别真正的热点。我首先使用 memory-stats crate 进行内存分析，在早期优化阶段进行轻量级检查。随后，我将数据加载流水线拆解为若干离散步骤：
 读取压缩文件（重度磁盘 I/O） 从压缩流中提取 JSON 字符串 将 JSON 反序列化为原生 Rust 数据结构 填充内存中的 SQLite 数据库以支持即席 SQL 查询 在 CPU 上构建三角网格（triangle mesh） 初始化渲染窗口（CPU-GPU 数据传输） 性能分析揭示了两个主要的内存问题：过度使用 clone 和多个中间数据结构。以下是我实施的优化措施。">
 
-    <link rel="stylesheet" href="/css/root.css">
-    <link rel="stylesheet" href="/css/bundle.css">
+      <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
 
-      <script src="/js/bundle.js"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
 <script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -62,7 +62,7 @@
   <div id="container">
     <header id="main-header"><div role="navigation" aria-label="Main">
   <div class="nav-left">
-    <a href="http://localhost:1313/" style="color: inherit;">Da1sypetals</a>
+    <a href="https://da1sypetals.github.io/" style="color: inherit;">Da1sypetals</a>
   </div>
   <div class="nav-right">
     <div style="position:absolute;width:0px;height:0px;">
@@ -124,14 +124,14 @@
         <main id="main-content"><div class="single-header">
 <ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
     <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-      <a itemprop="item" href="http://localhost:1313/">
+      <a itemprop="item" href="https://da1sypetals.github.io/">
         <span itemprop="name">Home</span>
       </a>
       <meta itemprop="position" content='1' />
     </li>
     <span>&nbsp»&nbsp</span>
     <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-      <a itemprop="item" href="http://localhost:1313/posts/">
+      <a itemprop="item" href="https://da1sypetals.github.io/posts/">
         <span itemprop="name">Posts</span>
       </a>
       <meta itemprop="position" content='2' />
@@ -139,11 +139,11 @@
     <span>&nbsp»&nbsp</span>
 </ol>
 <h1>Snapviewer Devlog #3: 性能优化</h1><time class="dim" datetime="2025-06-07T00:00:00&#43;00:00">June 7, 2025</time><div class="term-container"><div class="tag">
-        <a href="http://localhost:1313/tags/torch/">#torch</a>
+        <a href="https://da1sypetals.github.io/tags/torch/">#torch</a>
       </div><div class="tag">
-        <a href="http://localhost:1313/tags/deep-learning/">#deep-learning</a>
+        <a href="https://da1sypetals.github.io/tags/deep-learning/">#deep-learning</a>
       </div><div class="tag">
-        <a href="http://localhost:1313/tags/rust/">#rust</a>
+        <a href="https://da1sypetals.github.io/tags/rust/">#rust</a>
       </div></ol></div>
   <section class="page-section"><h1 id="内存与速度性能问题排查">内存与速度性能问题排查</h1>
 <p><strong>免责声明</strong>：我主要在 Windows 上使用最新的稳定版 Rust 工具链和 CPython 3.13 进行开发和测试。</p>

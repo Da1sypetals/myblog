@@ -12,8 +12,8 @@ scroll_top: Scroll to Top
 footer: Made with ❤️ and powered by {{ .ThemeAnchor }} theme for {{ .HugoAnchor }}
 
 # Home
-featured_posts: Featured Posts
-recent_posts: Recent Posts
+featured_posts: 置顶文章
+recent_posts: 最近文章
 #
 # Search
 js_required: It's necessary to enable Javascript
