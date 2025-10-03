@@ -5,13 +5,13 @@
     <loc>http://localhost:1313/</loc>
     <lastmod>2025-10-03T01:02:21+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/chinese-post/chichi-story/</loc>
-    <lastmod>2025-10-03T01:02:21+08:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/chinese-post/</loc>
+    <loc>http://localhost:1313/posts/chichi-story/</loc>
     <lastmod>2025-10-03T01:02:21+08:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/tags/music/</loc>
+    <lastmod>2025-10-03T01:02:21+08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/posts/</loc>
     <lastmod>2025-10-03T01:02:21+08:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/tags/</loc>
@@ -59,13 +59,13 @@
     <loc>http://localhost:1313/english-post/torch-cuda-ext/</loc>
     <lastmod>2025-10-02T14:48:02+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/chinese-post/gnn-optim/</loc>
+    <loc>http://localhost:1313/posts/gnn-optim/</loc>
     <lastmod>2025-10-02T00:00:00+00:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/english-post/snapviewer/</loc>
     <lastmod>2025-10-01T16:09:53+08:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/chinese-post/snapviewer-3-zh/</loc>
+    <loc>http://localhost:1313/posts/snapviewer-3-zh/</loc>
     <lastmod>2025-06-07T00:00:00+00:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/search/</loc>
@@ -74,10 +74,10 @@
     <loc>http://localhost:1313/tags/database/</loc>
     <lastmod>2025-03-01T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/chinese-post/lsm/</loc>
+    <loc>http://localhost:1313/posts/lsm/</loc>
     <lastmod>2025-03-01T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/chinese-post/conj-grad/</loc>
+    <loc>http://localhost:1313/posts/conj-grad/</loc>
     <lastmod>2024-12-07T00:00:00+00:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/about/</loc>
