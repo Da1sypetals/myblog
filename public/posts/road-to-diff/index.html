@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+
+<head>
+  
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+    MathJax = {
+        tex: {
+            displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+            inlineMath: [['$', '$']]                  
+        },
+        loader: {
+            load: ['ui/safe']
+        },
+    };
+</script>
+  
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Road to Diff | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sy-petals.vercel.app/posts/road-to-diff/">
+  <meta property="og:site_name" content="Da1sypetals">
+  <meta property="og:title" content="Road to Diff">
+  <meta property="og:description" content="TL;DR: Symars Rust代码生成库和 Raddy 自动求导库的来龙去脉
+故事的起因： 前段时间读了一些物理模拟的论文，想尝试复现一下。下手点先选了 stable neo hookean flesh simulation，但是选了什么并不重要。重要的是，所谓“现代”的物理模拟很多是隐式模拟，需要用牛顿法解一个优化问题。
+这之中就涉及到了：对能量的本构模型求导数（一阶梯度，二阶 hessian 矩阵）。这之中还涉及到从 小而稠密 的 hessian 子矩阵组装成 大而稀疏 的完整 hessian。这是一个精细活，一不小心就会出现极其难以排查的 bug。
+从 Dynamic Deformables 这篇文章中可以看出推导这个公式就要花不少功夫（就算是看懂论文里的 notation 也要好一会儿），于是我搜了搜更多东西，尝试寻找一些其他的解决方法：我不是很想在精细的 debug 上花很多时间。最终找到的解决方法有两种：
+求符号导数，然后进行代码生成； 自动求导。 找到的资料中，前者有 MATLAB 或者 SymPy，后者有 PyTorch 等深度学习库，和更适合的 TinyAD。
+为什么说更适合？因为深度学习库的求导是以tensor为单位的，但是我这里的求导需要以单个标量为单位，粒度不同，深度学习库可能会跑出完全没法看的帧率。
+但是一个致命的问题来了：上述工具都在 C&#43;&#43; 的工具链上，而我不会 C&#43;&#43;（或者，我可能会一点点 C&#43;&#43;，但是我不会 CMake，因此不会调包。）
+我曾经花了三天尝试在项目里用上 Eigen，然后失败告终，还是技术水平太菜了。
+我只好换一门我比较熟悉的语言：Rust。这是一切罪恶的开始…
+一条看起来简单的路 目前 Rust 还没有一个可以求二阶 hessian 的自动求导库（至少我在 crates.io 没搜到）。
+SymPy 目前还不能生成 Rust 代码（可以，但是有 bug）。
+考虑实现难度我先选了后者：从 SymPy 表达式生成 Rust 代码。于是有了 Symars。
+SymPy 提供的访问符号表达式的数据结构是树的形式，节点类型是运算符类型（Add, Mul, Div, Sin, 等等）或者常数/符号，节点的孩子是 operand 操作数。实现代码生成的思路就是按深度优先遍历树，得到孩子的表达式，然后再根据节点类型得到当前节点的表达式。边界条件是当前节点是常数，或者符号。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2024-12-29T00:00:00+00:00">
+    <meta property="article:modified_time" content="2024-12-29T00:00:00+00:00">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Road to Diff">
+  <meta name="twitter:description" content="TL;DR: Symars Rust代码生成库和 Raddy 自动求导库的来龙去脉
+故事的起因： 前段时间读了一些物理模拟的论文，想尝试复现一下。下手点先选了 stable neo hookean flesh simulation，但是选了什么并不重要。重要的是，所谓“现代”的物理模拟很多是隐式模拟，需要用牛顿法解一个优化问题。
+这之中就涉及到了：对能量的本构模型求导数（一阶梯度，二阶 hessian 矩阵）。这之中还涉及到从 小而稠密 的 hessian 子矩阵组装成 大而稀疏 的完整 hessian。这是一个精细活，一不小心就会出现极其难以排查的 bug。
+从 Dynamic Deformables 这篇文章中可以看出推导这个公式就要花不少功夫（就算是看懂论文里的 notation 也要好一会儿），于是我搜了搜更多东西，尝试寻找一些其他的解决方法：我不是很想在精细的 debug 上花很多时间。最终找到的解决方法有两种：
+求符号导数，然后进行代码生成； 自动求导。 找到的资料中，前者有 MATLAB 或者 SymPy，后者有 PyTorch 等深度学习库，和更适合的 TinyAD。
+为什么说更适合？因为深度学习库的求导是以tensor为单位的，但是我这里的求导需要以单个标量为单位，粒度不同，深度学习库可能会跑出完全没法看的帧率。
+但是一个致命的问题来了：上述工具都在 C&#43;&#43; 的工具链上，而我不会 C&#43;&#43;（或者，我可能会一点点 C&#43;&#43;，但是我不会 CMake，因此不会调包。）
+我曾经花了三天尝试在项目里用上 Eigen，然后失败告终，还是技术水平太菜了。
+我只好换一门我比较熟悉的语言：Rust。这是一切罪恶的开始…
+一条看起来简单的路 目前 Rust 还没有一个可以求二阶 hessian 的自动求导库（至少我在 crates.io 没搜到）。
+SymPy 目前还不能生成 Rust 代码（可以，但是有 bug）。
+考虑实现难度我先选了后者：从 SymPy 表达式生成 Rust 代码。于是有了 Symars。
+SymPy 提供的访问符号表达式的数据结构是树的形式，节点类型是运算符类型（Add, Mul, Div, Sin, 等等）或者常数/符号，节点的孩子是 operand 操作数。实现代码生成的思路就是按深度优先遍历树，得到孩子的表达式，然后再根据节点类型得到当前节点的表达式。边界条件是当前节点是常数，或者符号。">
+
+      <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
+
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+<script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="notransition">
+  <div id="container">
+    <header id="main-header"><div role="navigation" aria-label="Main">
+  <div class="nav-left">
+    <a href="https://da1sy-petals.vercel.app/" style="color: inherit;">Da1sypetals</a>
+  </div>
+  <div class="nav-right">
+    <div style="position:absolute;width:0px;height:0px;">
+      <div id="nav-dropdown-menu" class="hidden" href="#">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    </div>
+    <a id="nav-dropdown-button" href="#"><svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+    <div id="nav-menu">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    
+  </div>
+</div></header>
+    <div class="flex grow">
+      <div id="main-pane">
+        <main id="main-content"><div class="single-header">
+<ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/">
+        <span itemprop="name">Home</span>
+      </a>
+      <meta itemprop="position" content='1' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/posts/">
+        <span itemprop="name">Posts</span>
+      </a>
+      <meta itemprop="position" content='2' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+</ol>
+<h1>Road to Diff</h1><time class="dim" datetime="2024-12-29T00:00:00&#43;00:00">December 29, 2024</time></div>
+  <section class="page-section"><p>TL;DR: <a href="https://github.com/Da1sypetals/Symars">Symars </a> Rust代码生成库和 <a href="https://github.com/Da1sypetals/Raddy">Raddy</a> 自动求导库的来龙去脉</p>
+<h2 id="故事的起因">故事的起因：</h2>
+<p>前段时间读了一些物理模拟的论文，想尝试复现一下。下手点先选了 <a href="https://graphics.pixar.com/library/StableElasticity/paper.pdf">stable neo hookean flesh simulation</a>，但是选了什么并不重要。重要的是，所谓“现代”的物理模拟很多是隐式模拟，需要用牛顿法解一个优化问题。</p>
+<p>这之中就涉及到了：对能量的本构模型求导数（一阶梯度，二阶 hessian 矩阵）。这之中还涉及到从 <em>小而稠密</em>  的 hessian 子矩阵组装成 <em>大而稀疏</em> 的完整 hessian。这是一个精细活，一不小心就会出现极其难以排查的 bug。</p>
+<p>从 <a href="https://www.tkim.graphics/DYNAMIC_DEFORMABLES/"><em>Dynamic Deformables</em></a> 这篇文章中可以看出推导这个公式就要花不少功夫（就算是看懂论文里的 notation 也要好一会儿），于是我搜了搜更多东西，尝试寻找一些其他的解决方法：我不是很想在精细的 debug 上花很多时间。最终找到的解决方法有两种：</p>
+<ul>
+<li>求符号导数，然后进行代码生成；</li>
+<li>自动求导。</li>
+</ul>
+<p>找到的资料中，前者有 MATLAB 或者 SymPy，后者有 PyTorch 等深度学习库，和更适合的 <a href="https://github.com/patr-schm/TinyAD">TinyAD</a>。</p>
+<blockquote>
+<p>为什么说更适合？因为深度学习库的求导是以tensor为单位的，但是我这里的求导需要以单个标量为单位，粒度不同，深度学习库可能会跑出完全没法看的帧率。</p></blockquote>
+<p>但是一个致命的问题来了：上述工具都在 C++ 的工具链上，而我不会 C++（或者，我可能会一点点 C++，但是我不会 CMake，因此不会调包。）</p>
+<blockquote>
+<p>我曾经花了三天尝试在项目里用上 Eigen，然后失败告终，还是技术水平太菜了。</p></blockquote>
+<p>我只好换一门我比较熟悉的语言：Rust。这是一切罪恶的开始&hellip;</p>
+<h2 id="一条看起来简单的路">一条看起来简单的路</h2>
+<p>目前 Rust 还没有一个可以求二阶 hessian 的自动求导库（至少我在 crates.io 没搜到）。<br>
+SymPy 目前还不能生成 Rust 代码（可以，但是有 bug）。<br>
+考虑实现难度我先选了后者：从 SymPy 表达式生成 Rust 代码。于是有了 <a href="https://github.com/Da1sypetals/Symars">Symars</a>。</p>
+<p>SymPy 提供的访问符号表达式的数据结构是树的形式，节点类型是运算符类型（<code>Add</code>, <code>Mul</code>, <code>Div</code>, <code>Sin</code>, 等等）或者常数/符号，节点的孩子是 operand 操作数。实现代码生成的思路就是按深度优先遍历树，得到孩子的表达式，然后再根据节点类型得到当前节点的表达式。边界条件是当前节点是常数，或者符号。</p>
+<p>实现完了之后，我拿着生成的导数去先写一个简单的隐式弹簧质点系统；但是还是在 hessian 组装上消耗了很多时间在排查 index 打错这种 bug 上。</p>
+<h2 id="再去走没走过的路">再去走没走过的路</h2>
+<p>为了解决上述问题，我打算尝试原来放弃的那条路：自动求导。方案是在 Rust 里面使用 TinyAD。</p>
+<h3 id="一条路的两种走法">一条路的两种走法</h3>
+<p>一开始想了两个方法：毕竟我不是很懂 C++，可能相比于看懂整个 TinyAD 的 codebase，做一套 FFI 更现实一些。</p>
+<p>但是我发现，项目 clone 下来之后，我甚至不会拉依赖不会编译。（什么赛博残废）</p>
+<p>然后我重新观察了 TinyAD 的 codebase，发现核心逻辑大概在 ~1000 行代码，似乎不是不可能在完全不运行这个项目的前提下把代码复刻一遍。说干就干，于是有了<a href="https://github.com/Da1sypetals/raddy">Raddy</a>：</p>
+<h3 id="正确的走路姿势">正确的走路姿势</h3>
+<p>找到了正确的走路姿势，开始着手实现。说一些实现细节：</p>
+<ul>
+<li>每个求导链路上的标量值都带一个相对变量的梯度和 hessian，所以肉眼可见的 memory overhead 比较严重；一个提醒用户的方法是不实现 <code>Copy</code> trait，在需要一个副本的时候 <code>explicit clone</code>。</li>
+<li>有大量需要实现 <code>(&amp;)Type</code> 和 <code>(&amp;)Type</code> 之间的 operator trait，组合有 <code>2 * 2 = 4</code> 种，这意味着相同的代码要写 4 次。于是考虑引进某些元编程的方法：
+<ul>
+<li>用宏 <code>macro</code> 批量实现；</li>
+<li>用 Python 脚本进行代码生成。</li>
+</ul>
+</li>
+</ul>
+<p>考虑到宏会让 <code>rust-analyzer</code> （局部）罢工，但是我离开 LSP 简直活不了，于是选择了后者。具体代码见 <code>meta/</code> 目录，其实没啥技术含量，就是字符串拼接。</p>
+<ul>
+<li>测试：我要如何验证我求出来的导数是对的？第一个想法就是用我前面写过的 <code>symars</code>，对每个测试表达式生成其符号 <code>grad</code> 和 <code>hessian</code> 的代码，然后和求导结果交叉验证，然后让这些测试表达式尽可能覆盖所有实现过的方法。
+<ul>
+<li><code>symars</code> 居然表现得很不错，稳定使用没有发现 bug。</li>
+</ul>
+</li>
+</ul>
+<h2 id="稀疏之路">稀疏之路</h2>
+<p>稠密的矩阵用一块连续的内存空间表示相邻的值；稀疏矩阵动辄上万的边长（上亿的总元素数 <code>numel</code>）不允许。于是针对稀疏矩阵单独实现了其 hessian 的组装过程：</p>
+<ul>
+<li>
+<p>定义一个问题，即实现一个 <code>Objective&lt;N&gt;</code> trait，需要：</p>
+<ul>
+<li>确定 problem size <code>N</code>（这是编译器要求 const generics 必须是编译期常量）</li>
+<li>实现计算逻辑</li>
+<li>比如：弹簧质点系统的逻辑（其实就是高中学的胡克定律 $E =\dfrac{1}{2}kx^2$ ）：
+<ul>
+<li>简单解释：在二维平面中模拟，每个点坐标 $(x,y)$ 有两个实数；每个弹簧涉及两个点，得到 $2 \times  2 =4$ 这个自由度。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#66d9ef">impl</span> Objective<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">4</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> SpringEnergy {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">EvalArgs</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">f64</span>; <span style="color:#75715e">// restlength
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">eval</span>(<span style="color:#f92672">&amp;</span>self, variables: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">advec</span><span style="color:#f92672">&lt;</span><span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">4</span><span style="color:#f92672">&gt;</span>, restlen: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Self</span>::EvalArgs) -&gt; <span style="color:#a6e22e">Ad</span><span style="color:#f92672">&lt;</span><span style="color:#ae81ff">4</span><span style="color:#f92672">&gt;</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// extract node positions from problem input:
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#66d9ef">let</span> p1 <span style="color:#f92672">=</span> advec::<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">2</span><span style="color:#f92672">&gt;</span>::new(variables[<span style="color:#ae81ff">0</span>].clone(), variables[<span style="color:#ae81ff">1</span>].clone());
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> p2 <span style="color:#f92672">=</span> advec::<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">2</span><span style="color:#f92672">&gt;</span>::new(variables[<span style="color:#ae81ff">2</span>].clone(), variables[<span style="color:#ae81ff">3</span>].clone());
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> len <span style="color:#f92672">=</span> (p2 <span style="color:#f92672">-</span> p1).norm();
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">let</span> e <span style="color:#f92672">=</span> make::val(<span style="color:#ae81ff">0.5</span> <span style="color:#f92672">*</span> self.k) <span style="color:#f92672">*</span> (len <span style="color:#f92672">-</span> make::val(<span style="color:#f92672">*</span>restlen)).powi(<span style="color:#ae81ff">2</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        e
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div></li>
+</ul>
+</li>
+<li>
+<p>定义这个稀疏向量中的哪些分量，需要作为这个问题的输入（提供其 indices，<code>&amp;[[usize; N]]</code>）。</p>
+</li>
+<li>
+<p>AD 自动组装 <code>grad</code> 和 <code>hess</code>（稀疏），涉及到 index map 的问题；</p>
+</li>
+<li>
+<p>最后用户手动将多个 <code>grad</code> 和 <code>hess</code> 加和。这一步就没有 index map 的问题了，就是简单的矩阵加法（triplet matrix 就更简单，直接把多个 triplet vector 接在一起就好了）。</p>
+</li>
+</ul>
+<p>添加测试之前总共有2.2k行代码，添加测试之后项目总代码量膨胀到了18k行，再次证明数LOC是个没啥用的事情。</p>
+<p>最后，经过一大堆冗长的测试，写了一个 demo 来娱乐自己，顺便作为 example：
+<img src="../images/spring.gif" alt="spring"></p>
+<h1 id="结语">结语</h1>
+<p>收获：</p>
+<ul>
+<li>熟悉了自动求导</li>
+<li>用 AI 写文档（他目前还读不懂我的代码，或者说还读不太懂 Rust，所以写的测试有许多语法问题）</li>
+<li>Happiness!</li>
+</ul>
+</section></main>
+        <footer id="main-footer"><div class="footer">
+  <a href="#">Scroll to Top</a>
+  <div class="footer-copyright">
+    <div class="dim">© 2025 Da1sypetals</div>
+    <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
+  </div>
+</div>
+</footer>
+      </div><aside id="side-pane" class="side-sticky"><div class="side-details">
+    <span>278 words</span>
+    <span>6 - 8 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
+  <ul>
+    <li><a href="#故事的起因">故事的起因：</a></li>
+    <li><a href="#一条看起来简单的路">一条看起来简单的路</a></li>
+    <li><a href="#再去走没走过的路">再去走没走过的路</a>
+      <ul>
+        <li><a href="#一条路的两种走法">一条路的两种走法</a></li>
+        <li><a href="#正确的走路姿势">正确的走路姿势</a></li>
+      </ul>
+    </li>
+    <li><a href="#稀疏之路">稀疏之路</a></li>
+  </ul>
+</nav></aside></div>
+  </div>
+</body>
+
+</html>

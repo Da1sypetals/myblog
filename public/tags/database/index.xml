@@ -2,17 +2,17 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Database on Da1sypetals</title>
-    <link>http://localhost:1313/tags/database/</link>
+    <link>https://da1sy-petals.vercel.app/tags/database/</link>
     <description>Recent content in Database on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
     <lastBuildDate>Sat, 01 Mar 2025 00:00:00 +0000</lastBuildDate>
-    <atom:link href="http://localhost:1313/tags/database/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://da1sy-petals.vercel.app/tags/database/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Lsm Tree 实现备注</title>
-      <link>http://localhost:1313/posts/lsm/</link>
+      <link>https://da1sy-petals.vercel.app/posts/lsm/</link>
       <pubDate>Sat, 01 Mar 2025 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/posts/lsm/</guid>
+      <guid>https://da1sy-petals.vercel.app/posts/lsm/</guid>
       <description>&lt;p&gt;Lsm Tree 是一种内存-磁盘的层级式数据结构，常用于实现写多读少的存储引擎。&lt;/p&gt;&#xA;&lt;p&gt;这是我实现 &lt;a href=&#34;https://github.com/Da1sypetals/Lsmkv&#34;&gt;Lsmkv&lt;/a&gt; 的时候记录的备注.&lt;/p&gt;&#xA;&lt;h2 id=&#34;组件&#34;&gt;组件&lt;/h2&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;内存部分&lt;/li&gt;&#xA;&lt;li&gt;磁盘部分&lt;/li&gt;&#xA;&lt;li&gt;WAL&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;h2 id=&#34;总体&#34;&gt;总体&lt;/h2&gt;&#xA;&lt;h2 id=&#34;初始化&#34;&gt;初始化&lt;/h2&gt;&#xA;&lt;p&gt;需要 init flush thread。flush thread 的工作流程:&lt;/p&gt;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;等待 flush 信号量被 notify,获取一个 compact 信号量资源&lt;/li&gt;&#xA;&lt;li&gt;启动一个 sstwriter,写入这个 memtable&#xA;&lt;ul&gt;&#xA;&lt;li&gt;一个 memtable 对一个 sst&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;/li&gt;&#xA;&lt;li&gt;等到写入 sst 写完之后,才进行:&#xA;&lt;ul&gt;&#xA;&lt;li&gt;从 frozen memtables、frozen memtable sizes 里面删除这个 memtable&lt;/li&gt;&#xA;&lt;li&gt;从 wal 里面删除这个 memtable 对应的 wal&lt;/li&gt;&#xA;&lt;li&gt;update manifest&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;/li&gt;&#xA;&lt;/ol&gt;&#xA;&lt;h2 id=&#34;try-freeze&#34;&gt;Try Freeze&lt;/h2&gt;&#xA;&lt;p&gt;如果当前大小 &amp;gt; freeze size 那么就 freeze;进一步如果所有 frozen memtable 大小之和 &amp;gt; flush threshold,那么就 set flush signal。&lt;/p&gt;&#xA;&lt;h2 id=&#34;写操作&#34;&gt;写操作&lt;/h2&gt;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;写 memtable&lt;/li&gt;&#xA;&lt;li&gt;写 WAL&lt;/li&gt;&#xA;&lt;li&gt;try freeze&lt;/li&gt;&#xA;&lt;/ol&gt;&#xA;&lt;h2 id=&#34;内存部分&#34;&gt;内存部分&lt;/h2&gt;&#xA;&lt;h3 id=&#34;put&#34;&gt;Put&lt;/h3&gt;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;添加到 memtable;&lt;/li&gt;&#xA;&lt;li&gt;更新 size。&#xA;&lt;ul&gt;&#xA;&lt;li&gt;size 不需要特别精确,只需要是一个大致的值即可。&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;/li&gt;&#xA;&lt;/ol&gt;&#xA;&lt;h3 id=&#34;delete&#34;&gt;Delete&lt;/h3&gt;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;添加一个 tomb 标记到 memtable&lt;/li&gt;&#xA;&lt;/ol&gt;&#xA;&lt;h3 id=&#34;get&#34;&gt;Get&lt;/h3&gt;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;从 active memtable 中获取&lt;/li&gt;&#xA;&lt;li&gt;从 new 到 old 遍历所有的 inactive memtable,获取。&lt;/li&gt;&#xA;&lt;/ol&gt;&#xA;&lt;h2 id=&#34;磁盘部分&#34;&gt;磁盘部分&lt;/h2&gt;&#xA;&lt;h3 id=&#34;compact-信号量&#34;&gt;compact 信号量&lt;/h3&gt;&#xA;&lt;p&gt;二元信号量。&lt;/p&gt;</description>
     </item>
   </channel>
