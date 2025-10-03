@@ -1,9 +1,12 @@
 +++
 date = '2025-03-01'
 title = 'Lsm Tree 实现备注'
+tags = ["database", "rust"]
 +++
 
 Lsm Tree 是一种内存-磁盘的层级式数据结构，常用于实现写多读少的存储引擎。
+
+这是我实现 [Lsmkv](https://github.com/Da1sypetals/Lsmkv) 的时候记录的备注.
 
 ## 组件
 - 内存部分

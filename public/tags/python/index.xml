@@ -6,14 +6,6 @@
     <description>Recent content in Python on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Thu, 02 Oct 2025 15:12:24 +0800</lastBuildDate>
     <atom:link href="http://localhost:1313/tags/python/index.xml" rel="self" type="application/rss+xml" />
-    <item>
-      <title>Triton Common Pitfalls</title>
-      <link>http://localhost:1313/english-post/triton-pitfalls/</link>
-      <pubDate>Thu, 02 Oct 2025 15:12:24 +0800</pubDate>
-      <guid>http://localhost:1313/english-post/triton-pitfalls/</guid>
-      <description>&lt;p&gt;From the perspective of a newbie user&lt;/p&gt;&#xA;&lt;h2 id=&#34;the-documentation-is-a-disaster&#34;&gt;The Documentation is a Disaster&lt;/h2&gt;&#xA;&lt;p&gt;Recently, I had to optimize a custom operator and decided to use OpenAI&amp;rsquo;s Triton. After digging into the documentation, I was shocked at how poorly written it is — like an academic paper full of equations but lacking practical code examples.&lt;/p&gt;&#xA;&lt;p&gt;If the library operates on tensors, the docs should clearly specify input/output shapes and provide concrete examples (like PyTorch does). Instead, everything is vaguely described in plain text, leaving users to guess the details.&lt;/p&gt;</description>
-    </item>
   </channel>
 </rss>

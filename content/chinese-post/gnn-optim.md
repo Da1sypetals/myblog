@@ -2,7 +2,7 @@
 date = '2025-10-02'
 title = '近期GNN Attention算子优化工作速览'
 featured = true
-tags = ["deep-learning"]
+tags = ["deep-learning", "cuda"]
 +++
 
 
@@ -31,8 +31,8 @@ softmax((q @ k.transpose()) * A) @ V
 
 
 ## 实现：naive version
-1. 最简单的就是把A给materialize出来，然后用作attention_mask。问题是A是n^2的，显存不够用。
-2. A用COO方式存储，大小(2,nnz)，然后先把每条边的qk-pair算出来(nnz,d)，然后再做reduce和scatter和V相乘。
+1. 最简单的就是把A给materialize出来，然后用作attention_mask。问题是A是$n^2$的，显存不够用。
+2. A用COO方式存储，大小(2,nnz)，然后先把每条边的qk-pair取出来得到(nnz,d)，然后再做reduce和scatter, 和V相乘。
 
 ## Reformulate
 我们引入三个算子:

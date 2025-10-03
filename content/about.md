@@ -38,5 +38,5 @@ title = 'About'
 
 - 《东风志》 Aki阿杰
 
-- 等等...
+- [这里](https://singings.netlify.app)还有很多... 
 

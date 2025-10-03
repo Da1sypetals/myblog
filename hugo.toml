@@ -8,7 +8,7 @@ enableRobotsTXT = true
 # rtwt = Rusty Typewriter Theme
 [params.rtwt.side.home]
 taxonomies = ['tags', 'series']
-countTaxonomy = 3
+countTaxonomy = 2147483647
 
 [taxonomies]
 tag = 'tags'
@@ -24,14 +24,20 @@ pageRef = '/chinese-post'
 weight = 1
 
 [[menus.main]]
-name = 'Posts'
+name = 'en-Posts'
 pageRef = '/english-post'
 weight = 2
 
 [[menus.main]]
 name = '关于我'
 pageRef = '/about.md'
+weight = 4
+
+[[menus.main]]
+name = '歌单'
+url = 'https://singings.netlify.app'
 weight = 3
+
 
 # build search index ================
 [outputFormats]

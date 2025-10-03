@@ -26,7 +26,7 @@ IMAGE_DIR_NAME = "images"
 # ============================================================
 
 # 支持识别的图片扩展名
-IMAGE_EXTENSIONS = ("*.png", "*.jpg", "*.gif", "*.webp")
+IMAGE_EXTENSIONS = ("*.png", "*.jpg", "*.gif", "*.webp", "*.svg")
 
 
 def read_all_markdown_content(md_dir):

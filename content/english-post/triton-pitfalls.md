@@ -1,7 +1,7 @@
 +++
 date = '2025-10-02T15:12:24+08:00'
 title = 'Triton Common Pitfalls'
-tags = ["deep-learning", "python", "triton"]
+tags = ["deep-learning", "triton"]
 +++
 
 From the perspective of a newbie user
