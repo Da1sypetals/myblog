@@ -53,8 +53,14 @@ home = ["HTML", "RSS", "SearchIndex"]
 [markup.goldmark.extensions]
 [markup.goldmark.extensions.passthrough]
 enable = true
+
+[markup.goldmark.renderer]
+unsafe = true
+
 [markup.goldmark.extensions.passthrough.delimiters]
 block = [['\[', '\]'], ['$$', '$$']]
 inline = [['$', '$']]
+
+
 [params]
 math = true

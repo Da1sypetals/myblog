@@ -2,17 +2,17 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Cuda on Da1sypetals</title>
-    <link>https://da1sypetals.github.io/tags/cuda/</link>
+    <link>http://localhost:1313/tags/cuda/</link>
     <description>Recent content in Cuda on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
     <lastBuildDate>Thu, 02 Oct 2025 14:48:02 +0800</lastBuildDate>
-    <atom:link href="https://da1sypetals.github.io/tags/cuda/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/tags/cuda/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Notes on Writing PyTorch CUDA Extensions</title>
-      <link>https://da1sypetals.github.io/english-post/torch-cuda-ext/</link>
+      <link>http://localhost:1313/english-post/torch-cuda-ext/</link>
       <pubDate>Thu, 02 Oct 2025 14:48:02 +0800</pubDate>
-      <guid>https://da1sypetals.github.io/english-post/torch-cuda-ext/</guid>
+      <guid>http://localhost:1313/english-post/torch-cuda-ext/</guid>
       <description>&lt;p&gt;&lt;strong&gt;Intro: PyTorch is a Deep Learning Operating System.&lt;/strong&gt;&lt;/p&gt;&#xA;&lt;h2 id=&#34;check-tensor-storage&#34;&gt;Check tensor storage&lt;/h2&gt;&#xA;&lt;h3 id=&#34;device-check&#34;&gt;Device check&lt;/h3&gt;&#xA;&lt;p&gt;You should ALWAYS check EXPLICITLY whether input tensors are on desired devices. In most cases you want them on the same GPU, or in rare cases you want some tensors on CPU to perform some operations that are not efficient on GPU.&lt;/p&gt;&#xA;&lt;p&gt;&lt;strong&gt;API:&lt;/strong&gt;&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;code&gt;tensor.is_cuda()&lt;/code&gt;&lt;/li&gt;&#xA;&lt;li&gt;&lt;code&gt;tensor.device()&lt;/code&gt; (Use &lt;code&gt;operator==&lt;/code&gt; for equality comparison).&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;Sometimes the not on correct device problem causes strange error messages like &lt;code&gt;Cusparse context initialization failure&lt;/code&gt; or things even more weird, which first seem unrelated to a device problem. This is why I suggest you always start your debug journey here.&lt;/p&gt;</description>
     </item>
   </channel>

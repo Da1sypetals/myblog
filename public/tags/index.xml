@@ -2,66 +2,66 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Tags on Da1sypetals</title>
-    <link>https://da1sypetals.github.io/tags/</link>
+    <link>http://localhost:1313/tags/</link>
     <description>Recent content in Tags on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
     <lastBuildDate>Thu, 02 Oct 2025 15:15:21 +0800</lastBuildDate>
-    <atom:link href="https://da1sypetals.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/tags/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Graphics</title>
-      <link>https://da1sypetals.github.io/tags/graphics/</link>
+      <link>http://localhost:1313/tags/graphics/</link>
       <pubDate>Thu, 02 Oct 2025 15:15:21 +0800</pubDate>
-      <guid>https://da1sypetals.github.io/tags/graphics/</guid>
+      <guid>http://localhost:1313/tags/graphics/</guid>
       <description></description>
     </item>
     <item>
       <title>Math</title>
-      <link>https://da1sypetals.github.io/tags/math/</link>
+      <link>http://localhost:1313/tags/math/</link>
       <pubDate>Thu, 02 Oct 2025 15:15:21 +0800</pubDate>
-      <guid>https://da1sypetals.github.io/tags/math/</guid>
+      <guid>http://localhost:1313/tags/math/</guid>
       <description></description>
     </item>
     <item>
       <title>Rust</title>
-      <link>https://da1sypetals.github.io/tags/rust/</link>
+      <link>http://localhost:1313/tags/rust/</link>
       <pubDate>Thu, 02 Oct 2025 15:15:21 +0800</pubDate>
-      <guid>https://da1sypetals.github.io/tags/rust/</guid>
+      <guid>http://localhost:1313/tags/rust/</guid>
       <description></description>
     </item>
     <item>
       <title>Deep-Learning</title>
-      <link>https://da1sypetals.github.io/tags/deep-learning/</link>
+      <link>http://localhost:1313/tags/deep-learning/</link>
       <pubDate>Thu, 02 Oct 2025 15:12:24 +0800</pubDate>
-      <guid>https://da1sypetals.github.io/tags/deep-learning/</guid>
+      <guid>http://localhost:1313/tags/deep-learning/</guid>
       <description></description>
     </item>
     <item>
       <title>Python</title>
-      <link>https://da1sypetals.github.io/tags/python/</link>
+      <link>http://localhost:1313/tags/python/</link>
       <pubDate>Thu, 02 Oct 2025 15:12:24 +0800</pubDate>
-      <guid>https://da1sypetals.github.io/tags/python/</guid>
+      <guid>http://localhost:1313/tags/python/</guid>
       <description></description>
     </item>
     <item>
       <title>Triton</title>
-      <link>https://da1sypetals.github.io/tags/triton/</link>
+      <link>http://localhost:1313/tags/triton/</link>
       <pubDate>Thu, 02 Oct 2025 15:12:24 +0800</pubDate>
-      <guid>https://da1sypetals.github.io/tags/triton/</guid>
+      <guid>http://localhost:1313/tags/triton/</guid>
       <description></description>
     </item>
     <item>
       <title>Torch</title>
-      <link>https://da1sypetals.github.io/tags/torch/</link>
+      <link>http://localhost:1313/tags/torch/</link>
       <pubDate>Thu, 02 Oct 2025 15:01:14 +0800</pubDate>
-      <guid>https://da1sypetals.github.io/tags/torch/</guid>
+      <guid>http://localhost:1313/tags/torch/</guid>
       <description></description>
     </item>
     <item>
       <title>Cuda</title>
-      <link>https://da1sypetals.github.io/tags/cuda/</link>
+      <link>http://localhost:1313/tags/cuda/</link>
       <pubDate>Thu, 02 Oct 2025 14:48:02 +0800</pubDate>
-      <guid>https://da1sypetals.github.io/tags/cuda/</guid>
+      <guid>http://localhost:1313/tags/cuda/</guid>
       <description></description>
     </item>
   </channel>
