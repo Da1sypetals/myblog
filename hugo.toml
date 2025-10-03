@@ -1,4 +1,4 @@
-baseURL = 'https://da1sypetals.github.io'
+baseURL = 'https://da1sy-petals.vercel.app'
 languageCode = 'zh-CN'
 title = 'Da1sypetals'
 theme = 'rusty-typewriter'
