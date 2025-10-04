@@ -6,15 +6,8 @@
     <description>Recent content in Tags on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Fri, 03 Oct 2025 01:02:21 +0800</lastBuildDate>
+    <lastBuildDate>Thu, 02 Oct 2025 15:15:21 +0800</lastBuildDate>
     <atom:link href="https://da1sy-petals.vercel.app/tags/index.xml" rel="self" type="application/rss+xml" />
-    <item>
-      <title>Music</title>
-      <link>https://da1sy-petals.vercel.app/tags/music/</link>
-      <pubDate>Fri, 03 Oct 2025 01:02:21 +0800</pubDate>
-      <guid>https://da1sy-petals.vercel.app/tags/music/</guid>
-      <description></description>
-    </item>
     <item>
       <title>Graphics</title>
       <link>https://da1sy-petals.vercel.app/tags/graphics/</link>
@@ -69,6 +62,13 @@
       <link>https://da1sy-petals.vercel.app/tags/database/</link>
       <pubDate>Sat, 01 Mar 2025 00:00:00 +0000</pubDate>
       <guid>https://da1sy-petals.vercel.app/tags/database/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Music</title>
+      <link>https://da1sy-petals.vercel.app/tags/music/</link>
+      <pubDate>Mon, 13 Jan 2025 00:00:00 +0000</pubDate>
+      <guid>https://da1sy-petals.vercel.app/tags/music/</guid>
       <description></description>
     </item>
   </channel>
