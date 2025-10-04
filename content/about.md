@@ -9,12 +9,14 @@ title = '关于我'
 
 - Nickname: Da1sypetals
 
+- Email: `da1sypetals.iota@gmail.com`
+
 
 ## 爱好
 
 唱**古风歌**。
 
-我会唱这些：
+比如, 我会唱这些：
 - 《人间不值得》《楚歌起》 黄诗扶
 
 - 《迟迟》《腐草为萤》 银临

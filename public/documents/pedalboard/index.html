@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+
+<head>
+  
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+    MathJax = {
+        tex: {
+            displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+            inlineMath: [['$', '$']]                  
+        },
+        loader: {
+            load: ['ui/safe']
+        },
+    };
+</script>
+  
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Pedalboard 文档 | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sy-petals.vercel.app/documents/pedalboard/">
+  <meta property="og:site_name" content="Da1sypetals">
+  <meta property="og:title" content="Pedalboard 文档">
+  <meta property="og:description" content="Github: https://github.com/spotify/pedalboard
+Docs: https://spotify.github.io/pedalboard/reference/pedalboard.html#pedalboard.LowShelfFilter
+Pedalboard API Documentation The pedalboard module provides classes and functions for adding effects to audio. Most classes in this module are subclasses of Plugin, each of which allows applying effects to an audio buffer or stream.
+Note: For audio I/O functionality (i.e.: reading and writing audio files), see the pedalboard.io module.
+The pedalboard module is named after the concept of a guitar pedalboard, in which musicians will chain various effects pedals together to give them complete control over their sound. The pedalboard module implements this concept with its main Pedalboard class:">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="documents">
+    <meta property="article:published_time" content="2025-10-04T14:20:22+08:00">
+    <meta property="article:modified_time" content="2025-10-04T14:20:22+08:00">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Pedalboard 文档">
+  <meta name="twitter:description" content="Github: https://github.com/spotify/pedalboard
+Docs: https://spotify.github.io/pedalboard/reference/pedalboard.html#pedalboard.LowShelfFilter
+Pedalboard API Documentation The pedalboard module provides classes and functions for adding effects to audio. Most classes in this module are subclasses of Plugin, each of which allows applying effects to an audio buffer or stream.
+Note: For audio I/O functionality (i.e.: reading and writing audio files), see the pedalboard.io module.
+The pedalboard module is named after the concept of a guitar pedalboard, in which musicians will chain various effects pedals together to give them complete control over their sound. The pedalboard module implements this concept with its main Pedalboard class:">
+
+      <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
+
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+<script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="notransition">
+  <div id="container">
+    <header id="main-header"><div role="navigation" aria-label="Main">
+  <div class="nav-left">
+    <a href="https://da1sy-petals.vercel.app/" style="color: inherit;">Da1sypetals</a>
+  </div>
+  <div class="nav-right">
+    <div style="position:absolute;width:0px;height:0px;">
+      <div id="nav-dropdown-menu" class="hidden" href="#">
+    <div class="nav-item">
+      <a href="/posts/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    </div>
+    <a id="nav-dropdown-button" href="#"><svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+    <div id="nav-menu">
+    <div class="nav-item">
+      <a href="/posts/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    <a id="theme-switcher" href="#">
+<svg class="light-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5001M17.6859 17.69L18.5 18.5001M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+<svg class="dark-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.32031 11.6835C3.32031 16.6541 7.34975 20.6835 12.3203 20.6835C16.1075 20.6835 19.3483 18.3443 20.6768 15.032C19.6402 15.4486 18.5059 15.6834 17.3203 15.6834C12.3497 15.6834 8.32031 11.654 8.32031 6.68342C8.32031 5.50338 8.55165 4.36259 8.96453 3.32996C5.65605 4.66028 3.32031 7.89912 3.32031 11.6835Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+  </div>
+</div></header>
+    <div class="flex grow">
+      <div id="main-pane">
+        <main id="main-content"><div class="single-header">
+<ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/">
+        <span itemprop="name">Home</span>
+      </a>
+      <meta itemprop="position" content='1' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/documents/">
+        <span itemprop="name">Documents</span>
+      </a>
+      <meta itemprop="position" content='2' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+</ol>
+<h1>Pedalboard 文档</h1><time class="dim" datetime="2025-10-04T14:20:22&#43;08:00">October 4, 2025</time></div>
+  <section class="page-section"><p>Github: <a href="https://github.com/spotify/pedalboard">https://github.com/spotify/pedalboard</a></p>
+<p>Docs: <a href="https://spotify.github.io/pedalboard/reference/pedalboard.html#pedalboard.LowShelfFilter">https://spotify.github.io/pedalboard/reference/pedalboard.html#pedalboard.LowShelfFilter</a></p>
+<h1 id="pedalboard-api-documentation">Pedalboard API Documentation</h1>
+<p>The <code>pedalboard</code> module provides classes and functions for adding effects to audio. Most classes in this module are subclasses of <code>Plugin</code>, each of which allows applying effects to an audio buffer or stream.</p>
+<blockquote>
+<p><strong>Note:</strong> For audio I/O functionality (i.e.: reading and writing audio files), see the <code>pedalboard.io</code> module.</p></blockquote>
+<p>The <code>pedalboard</code> module is named after the concept of a guitar pedalboard, in which musicians will chain various effects pedals together to give them complete control over their sound. The <code>pedalboard</code> module implements this concept with its main <code>Pedalboard</code> class:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> pedalboard <span style="color:#f92672">import</span> Pedalboard, Chorus, Distortion, Reverb
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Create an empty Pedalboard object:</span>
+</span></span><span style="display:flex;"><span>my_pedalboard <span style="color:#f92672">=</span> Pedalboard()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Treat this object like a Python list:</span>
+</span></span><span style="display:flex;"><span>my_pedalboard<span style="color:#f92672">.</span>append(Chorus())
+</span></span><span style="display:flex;"><span>my_pedalboard<span style="color:#f92672">.</span>append(Distortion())
+</span></span><span style="display:flex;"><span>my_pedalboard<span style="color:#f92672">.</span>append(Reverb())
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Pass audio through this pedalboard:</span>
+</span></span><span style="display:flex;"><span>output_audio <span style="color:#f92672">=</span> my_pedalboard(input_audio, input_audio_samplerate)
+</span></span></code></pre></div><p><code>Pedalboard</code> objects are lists of zero or more <code>Plugin</code> objects, and <code>Pedalboard</code> objects themselves are subclasses of <code>Plugin</code> - which allows for nesting and composition.</p>
+<hr>
+<h2 id="classes">Classes</h2>
+<h3 id="pedalboardaudioprocessorparameter"><code>pedalboard.AudioProcessorParameter</code></h3>
+<p>A wrapper around various different parameters exposed by <code>VST3Plugin</code> or <code>AudioUnitPlugin</code> instances.</p>
+<p><code>AudioProcessorParameter</code> objects are rarely used directly, and usually used via their implicit interface:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>my_plugin <span style="color:#f92672">=</span> load_plugin(<span style="color:#e6db74">&#34;My Cool Audio Effect.vst3&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Print all of the parameter names:</span>
+</span></span><span style="display:flex;"><span>print(my_plugin<span style="color:#f92672">.</span>parameters<span style="color:#f92672">.</span>keys())
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># [&#34;mix&#34;, &#34;delay_time_ms&#34;, &#34;foobar&#34;]</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Access each parameter as if it were just a Python attribute:</span>
+</span></span><span style="display:flex;"><span>my_plugin<span style="color:#f92672">.</span>mix <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.5</span>
+</span></span><span style="display:flex;"><span>my_plugin<span style="color:#f92672">.</span>delay_time_ms <span style="color:#f92672">=</span> <span style="color:#ae81ff">400</span>
+</span></span></code></pre></div><blockquote>
+<p><strong>Note:</strong> <code>AudioProcessorParameter</code> tries to guess the range of valid parameter values, as well as the type/unit of the parameter, when instantiated. This guess may not always be accurate. Raw control over the underlying parameter’s value can be had by accessing the <code>raw_value</code> attribute, which is always bounded on [0, 1] and is passed directly to the underlying plugin object.</p></blockquote>
+<h4 id="properties">Properties</h4>
+<ul>
+<li><code>label: Optional[str]</code> – The units used by this parameter (Hz, dB, etc). May be <code>None</code> if the plugin does not expose units for this parameter or if automatic unit detection fails.</li>
+<li><code>units: Optional[str]</code> – Alias for &ldquo;label&rdquo; – the units used by this parameter (Hz, dB, etc). May be <code>None</code> if the plugin does not expose units for this parameter or if automatic unit detection fails.</li>
+</ul>
+<hr>
+<h3 id="pedalboardexternalplugin"><code>pedalboard.ExternalPlugin</code></h3>
+<p>A wrapper around a third-party effect plugin.</p>
+<p>Don’t use this directly; use one of <code>pedalboard.VST3Plugin</code> or <code>pedalboard.AudioUnitPlugin</code> instead.</p>
+<h4 id="methods">Methods</h4>
+<ul>
+<li><code>__call__(*args, **kwargs)</code> – Overloaded function.
+<ul>
+<li><code>__call__(self: pedalboard.Plugin, input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio or MIDI buffer through this plugin, returning audio. Alias for <code>process()</code>.</li>
+<li><code>__call__(self: pedalboard.ExternalPlugin, midi_messages: object, duration: float, sample_rate: float, num_channels: int = 2, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio or MIDI buffer through this plugin, returning audio. Alias for <code>process()</code>.</li>
+</ul>
+</li>
+</ul>
+<h4 id="properties-1">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<h4 id="methods-1">Methods</h4>
+<ul>
+<li><code>process(*args, **kwargs)</code> – Overloaded function.
+<ul>
+<li><code>process(self: pedalboard.ExternalPlugin, midi_messages: object, duration: float, sample_rate: float, num_channels: int = 2, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Pass a buffer of audio (as a 32- or 64-bit NumPy array) or a list of MIDI messages to this plugin, returning audio.</li>
+<li><code>process(self: pedalboard.Plugin, input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Pass a buffer of audio (as a 32- or 64-bit NumPy array) or a list of MIDI messages to this plugin, returning audio.</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> The <code>process()</code> method can also be used via <code>__call__()</code>; i.e.: just calling this object like a function (<code>my_plugin(...)</code>) will automatically invoke <code>process()</code> with the same arguments.</p></blockquote>
+<ul>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<hr>
+<h3 id="pedalboardpedalboardplugins-optionallistplugin--none"><code>pedalboard.Pedalboard(plugins: Optional[List[Plugin]] = None)</code></h3>
+<p>A container for a series of <code>Plugin</code> objects, to use for processing audio, like a guitar pedalboard.</p>
+<p><code>Pedalboard</code> objects act like regular Python <code>List</code> objects, but come with an additional <code>process()</code> method (also aliased to <code>__call__()</code>), allowing audio to be passed through the entire <code>Pedalboard</code> object for processing:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>my_pedalboard <span style="color:#f92672">=</span> Pedalboard()
+</span></span><span style="display:flex;"><span>my_pedalboard<span style="color:#f92672">.</span>append(Reverb())
+</span></span><span style="display:flex;"><span>output_audio <span style="color:#f92672">=</span> my_pedalboard(input_audio)
+</span></span></code></pre></div><blockquote>
+<p><strong>Warning:</strong> <code>Pedalboard</code> objects may only contain effects plugins (i.e.: those for which <code>is_effect</code> is <code>True</code>), and cannot contain instrument plugins (i.e.: those for which <code>is_instrument</code> is <code>True</code>).</p></blockquote>
+<h4 id="methods-2">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>append(plugin: Plugin) -&gt; None</code> – Append a plugin to the end of this container.</li>
+<li><code>insert(index: int, plugin: Plugin) -&gt; None</code> – Insert a plugin at the specified index.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>remove(plugin: Plugin) -&gt; None</code> – Remove a plugin by its value.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-2">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardload_pluginpath_to_plugin_file-str-parameter_values-dictstr-unionstr-int-float-bool---plugin_name-optionalstr--none-initialization_timeout-float--100---externalplugin"><code>pedalboard.load_plugin(path_to_plugin_file: str, parameter_values: Dict[str, Union[str, int, float, bool]] = {}, plugin_name: Optional[str] = None, initialization_timeout: float = 10.0) -&gt; ExternalPlugin</code></h3>
+<p>Load an audio plugin.</p>
+<p>Two plugin formats are supported:</p>
+<ul>
+<li>VST3® format is supported on macOS, Windows, and Linux</li>
+<li>Audio Units are supported on macOS</li>
+</ul>
+<h4 id="parameters">Parameters</h4>
+<ul>
+<li><code>path_to_plugin_file (str)</code> – The path of a VST3® or Audio Unit plugin file or bundle.</li>
+<li><code>parameter_values (Dict[str, Union[str, int, float, bool]])</code> – An optional dictionary of initial values to provide to the plugin after loading. Keys in this dictionary are expected to match the parameter names reported by the plugin, but normalized to strings that can be used as Python identifiers. (These are the same identifiers that are used as keys in the <code>.parameters</code> dictionary of a loaded plugin.)</li>
+<li><code>plugin_name (Optional[str])</code> – An optional plugin name that can be used to load a specific plugin from a multi-plugin package. If a package is loaded but a <code>plugin_name</code> is not provided, an exception will be thrown.</li>
+<li><code>initialization_timeout (float)</code> – The number of seconds that Pedalboard will spend trying to load this plugin. Some plugins load resources asynchronously in the background on startup; using larger values for this parameter can give these plugins time to load properly. Introduced in v0.7.6.</li>
+</ul>
+<h4 id="returns">Returns</h4>
+<p>An instance of <code>pedalboard.VST3Plugin</code> or <code>pedalboard.AudioUnitPlugin</code>.</p>
+<h4 id="throws">Throws</h4>
+<ul>
+<li><code>ImportError</code> – if the plugin cannot be found or loaded</li>
+<li><code>RuntimeError</code> – if the plugin file contains more than one plugin, but no <code>plugin_name</code> was provided</li>
+</ul>
+<hr>
+<h3 id="pedalboardbitcrush"><code>pedalboard.Bitcrush</code></h3>
+<p>A plugin that reduces the signal to a given bit depth, giving the audio a lo-fi, digitized sound. Floating-point bit depths are supported.</p>
+<p>Bitcrushing changes the amount of &ldquo;vertical&rdquo; resolution used for an audio signal (i.e.: how many unique values could be used to represent each sample). For an effect that changes the &ldquo;horizontal&rdquo; resolution (i.e.: how many samples are available per second), see <code>pedalboard.Resample</code>.</p>
+<h4 id="properties-3">Properties</h4>
+<ul>
+<li><code>bit_depth</code> – The bit depth to quantize the signal to. Must be between 0 and 32 bits. May be an integer, decimal, or floating-point value. Each audio sample will be quantized onto <code>2 ** bit_depth</code> values.</li>
+</ul>
+<h4 id="methods-3">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-4">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardchain"><code>pedalboard.Chain</code></h3>
+<p>Run zero or more plugins as a plugin. Useful when used with the <code>Mix</code> plugin.</p>
+<h4 id="methods-4">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>append(plugin: Plugin) -&gt; None</code> – Append a plugin to the end of this container.</li>
+<li><code>insert(index: int, plugin: Plugin) -&gt; None</code> – Insert a plugin at the specified index.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>remove(plugin: Plugin) -&gt; None</code> – Remove a plugin by its value.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-5">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardchorus"><code>pedalboard.Chorus</code></h3>
+<p>A basic chorus effect.</p>
+<p>This audio effect can be controlled via the speed and depth of the LFO controlling the frequency response, a mix control, a feedback control, and the centre delay of the modulation.</p>
+<blockquote>
+<p><strong>Note:</strong> To get classic chorus sounds try to use a centre delay time around 7-8 ms with a low feedback volume and a low depth. This effect can also be used as a flanger with a lower centre delay time and a lot of feedback, and as a vibrato effect if the mix value is 1.</p></blockquote>
+<h4 id="properties-6">Properties</h4>
+<ul>
+<li><code>rate_hz</code> – The speed of the chorus effect’s low-frequency oscillator (LFO), in Hertz. This value must be between 0 Hz and 100 Hz.</li>
+</ul>
+<h4 id="methods-5">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-7">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardclipping"><code>pedalboard.Clipping</code></h3>
+<p>A distortion plugin that adds hard distortion to the signal by clipping the signal at the provided threshold (in decibels).</p>
+<h4 id="methods-6">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-8">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardcompressor"><code>pedalboard.Compressor</code></h3>
+<p>A dynamic range compressor, used to reduce the volume of loud sounds and &ldquo;compress&rdquo; the loudness of the signal.</p>
+<p>For a lossy compression algorithm that introduces noise or artifacts, see <code>pedalboard.MP3Compressor</code> or <code>pedalboard.GSMCompressor</code>.</p>
+<h4 id="methods-7">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-9">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardconvolution"><code>pedalboard.Convolution</code></h3>
+<p>An audio convolution, suitable for things like speaker simulation or reverb modeling.</p>
+<p>The convolution impulse response can be specified either by filename or as a 32-bit floating point NumPy array. If a NumPy array is provided, the <code>sample_rate</code> argument must also be provided to indicate the sample rate of the impulse response.</p>
+<p>Support for passing NumPy arrays as impulse responses introduced in v0.9.10.</p>
+<h4 id="methods-8">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-10">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboarddelay"><code>pedalboard.Delay</code></h3>
+<p>A digital delay plugin with controllable delay time, feedback percentage, and dry/wet mix.</p>
+<h4 id="methods-9">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-11">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboarddistortion"><code>pedalboard.Distortion</code></h3>
+<p>A distortion effect, which applies a non-linear (tanh, or hyperbolic tangent) waveshaping function to apply harmonically pleasing distortion to a signal.</p>
+<p>This plugin produces a signal that is roughly equivalent to running:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">distortion</span>(x):
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> tanh(x <span style="color:#f92672">*</span> db_to_gain(drive_db))
+</span></span></code></pre></div><h4 id="methods-10">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-12">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardexternalpluginreloadtype"><code>pedalboard.ExternalPluginReloadType</code></h3>
+<p>Indicates the behavior of an external plugin when <code>reset()</code> is called.</p>
+<h4 id="members">Members</h4>
+<ul>
+<li><code>Unknown</code> – The behavior of the plugin is unknown. This will force a full reinstantiation of the plugin every time reset is called.</li>
+<li><code>ClearsAudioOnReset</code> – This plugin clears its internal buffers correctly when <code>reset()</code> is called. The plugin will not be reinstantiated when reset is called.</li>
+<li><code>PersistsAudioOnReset</code> – This plugin does not clear its internal buffers as expected when <code>reset()</code> is called. This will force a full reinstantiation of the plugin every time reset is called.</li>
+</ul>
+<h4 id="properties-13">Properties</h4>
+<ul>
+<li><code>name</code></li>
+</ul>
+<hr>
+<h3 id="pedalboardgsmfullratecompressor"><code>pedalboard.GSMFullRateCompressor</code></h3>
+<p>An audio degradation/compression plugin that applies the GSM &ldquo;Full Rate&rdquo; compression algorithm to emulate the sound of a 2G cellular phone connection. This plugin internally resamples the input audio to a fixed sample rate of 8kHz (required by the GSM Full Rate codec), although the quality of the resampling algorithm can be specified.</p>
+<h4 id="methods-11">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-14">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardgain"><code>pedalboard.Gain</code></h3>
+<p>A gain plugin that increases or decreases the volume of a signal by amplifying or attenuating it by the provided value (in decibels). No distortion or other effects are applied.</p>
+<p>Think of this as a volume control.</p>
+<h4 id="methods-12">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-15">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardhighshelffilter"><code>pedalboard.HighShelfFilter</code></h3>
+<p>A high shelf filter plugin with variable Q and gain, as would be used in an equalizer. Frequencies above the cutoff frequency will be boosted (or cut) by the provided gain (in decibels).</p>
+<h4 id="methods-13">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-16">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardhighpassfilter"><code>pedalboard.HighpassFilter</code></h3>
+<p>Apply a first-order high-pass filter with a roll-off of 6dB/octave. The cutoff frequency will be attenuated by -3dB (i.e.: 0.707x as loud, expressed as a gain factor) and lower frequencies will be attenuated by a further 6dB per octave.</p>
+<h4 id="methods-14">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-17">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardiirfilter"><code>pedalboard.IIRFilter</code></h3>
+<p>An abstract class that implements various kinds of infinite impulse response (IIR) filter designs. This should not be used directly; use <code>HighShelfFilter</code>, <code>LowShelfFilter</code>, or <code>PeakFilter</code> directly instead.</p>
+<h4 id="methods-15">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-18">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardinvert"><code>pedalboard.Invert</code></h3>
+<p>Flip the polarity of the signal. This effect is not audible on its own and takes no parameters. This effect is mathematically identical to <code>def invert(x): return -x</code>.</p>
+<p>Inverting a signal may be useful to cancel out signals in many cases; for instance, <code>Invert</code> can be used with the <code>Mix</code> plugin to remove the original signal from an effects chain that contains multiple signals.</p>
+<h4 id="methods-16">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-19">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardladderfilter"><code>pedalboard.LadderFilter</code></h3>
+<p>A multi-mode audio filter based on the classic Moog synthesizer ladder filter, invented by Dr. Bob Moog in 1968.</p>
+<p>Depending on the filter’s mode, frequencies above, below, or on both sides of the cutoff frequency will be attenuated. Higher values for the resonance parameter may cause peaks in the frequency response around the cutoff frequency.</p>
+<h4 id="class-mode">Class <code>Mode</code></h4>
+<p>The type of filter architecture to use.</p>
+<h5 id="members-1">Members</h5>
+<ul>
+<li><code>LPF12</code> – A low-pass filter with 12 dB of attenuation per octave above the cutoff frequency.</li>
+<li><code>HPF12</code> – A high-pass filter with 12 dB of attenuation per octave below the cutoff frequency.</li>
+<li><code>BPF12</code> – A band-pass filter with 12 dB of attenuation per octave on both sides of the cutoff frequency.</li>
+<li><code>LPF24</code> – A low-pass filter with 24 dB of attenuation per octave above the cutoff frequency.</li>
+<li><code>HPF24</code> – A high-pass filter with 24 dB of attenuation per octave below the cutoff frequency.</li>
+<li><code>BPF24</code> – A band-pass filter with 24 dB of attenuation per octave on both sides of the cutoff frequency.</li>
+</ul>
+<h5 id="properties-20">Properties</h5>
+<ul>
+<li><code>name</code></li>
+</ul>
+<h4 id="methods-17">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-21">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardlimiter"><code>pedalboard.Limiter</code></h3>
+<p>A simple limiter with standard threshold and release time controls, featuring two compressors and a hard clipper at 0 dB.</p>
+<h4 id="methods-18">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-22">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardlowshelffilter"><code>pedalboard.LowShelfFilter</code></h3>
+<p>A low shelf filter with variable Q and gain, as would be used in an equalizer. Frequencies below the cutoff frequency will be boosted (or cut) by the provided gain value.</p>
+<h4 id="methods-19">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-23">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardlowpassfilter"><code>pedalboard.LowpassFilter</code></h3>
+<p>Apply a first-order low-pass filter with a roll-off of 6dB/octave. The cutoff frequency will be attenuated by -3dB (i.e.: 0.707x as loud).</p>
+<h4 id="methods-20">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-24">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardmp3compressor"><code>pedalboard.MP3Compressor</code></h3>
+<p>An MP3 compressor plugin that runs the LAME MP3 encoder in real-time to add compression artifacts to the audio stream.</p>
+<p>Currently only supports variable bit-rate mode (VBR) and accepts a floating-point VBR quality value (between 0.0 and 10.0; lower is better).</p>
+<p>Note that the MP3 format only supports 8kHz, 11025Hz, 12kHz, 16kHz, 22050Hz, 24kHz, 32kHz, 44.1kHz, and 48kHz audio; if an unsupported sample rate is provided, an exception will be thrown at processing time.</p>
+<h4 id="methods-21">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-25">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardmix"><code>pedalboard.Mix</code></h3>
+<p>A utility plugin that allows running other plugins in parallel. All plugins provided will be mixed equally.</p>
+<h4 id="methods-22">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>append(plugin: Plugin) -&gt; None</code> – Append a plugin to the end of this container.</li>
+<li><code>insert(index: int, plugin: Plugin) -&gt; None</code> – Insert a plugin at the specified index.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>remove(plugin: Plugin) -&gt; None</code> – Remove a plugin by its value.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-26">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardnoisegate"><code>pedalboard.NoiseGate</code></h3>
+<p>A simple noise gate with standard threshold, ratio, attack time and release time controls. Can be used as an expander if the ratio is low.</p>
+<h4 id="methods-23">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-27">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardpeakfilter"><code>pedalboard.PeakFilter</code></h3>
+<p>A peak (or notch) filter with variable Q and gain, as would be used in an equalizer. Frequencies around the cutoff frequency will be boosted (or cut) by the provided gain value.</p>
+<h4 id="methods-24">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-28">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardphaser"><code>pedalboard.Phaser</code></h3>
+<p>A 6 stage phaser that modulates first order all-pass filters to create sweeping notches in the magnitude frequency response. This audio effect can be controlled with standard phaser parameters: the speed and depth of the LFO controlling the frequency response, a mix control, a feedback control, and the centre frequency of the modulation.</p>
+<h4 id="methods-25">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-29">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardpitchshift"><code>pedalboard.PitchShift</code></h3>
+<p>A pitch shifting effect that can change the pitch of audio without affecting its duration.</p>
+<p>This effect uses Chris Cannam’s wonderful <em>Rubber Band</em> library audio stretching library.</p>
+<h4 id="methods-26">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-30">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardplugin"><code>pedalboard.Plugin</code></h3>
+<p>A generic audio processing plugin. Base class of all Pedalboard plugins.</p>
+<h4 id="methods-27">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-31">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardplugincontainer"><code>pedalboard.PluginContainer</code></h3>
+<p>A generic audio processing plugin that contains zero or more other plugins. Not intended for direct use.</p>
+<h4 id="methods-28">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>append(plugin: Plugin) -&gt; None</code> – Append a plugin to the end of this container.</li>
+<li><code>insert(index: int, plugin: Plugin) -&gt; None</code> – Insert a plugin at the specified index.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>remove(plugin: Plugin) -&gt; None</code> – Remove a plugin by its value.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-32">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardresample"><code>pedalboard.Resample</code></h3>
+<p>A plugin that downsamples the input audio to the given sample rate, then upsamples it back to the original sample rate. Various quality settings will produce audible distortion and aliasing effects.</p>
+<h4 id="class-quality">Class <code>Quality</code></h4>
+<p>Indicates which specific resampling algorithm to use.</p>
+<p>Resampling algorithms each provide a different tradeoff between speed and quality. Pedalboard provides two different types of resampling algorithms:</p>
+<ul>
+<li><strong>Aliasing algorithms</strong>, which cause high frequencies to appear as lower frequencies.</li>
+<li><strong>Non-aliasing algorithms</strong>, which filter out high frequencies when downsampling and avoid introducing extra high-frequency content when upsampling. (These algorithms were introduced in Pedalboard v0.9.15.)</li>
+</ul>
+<p>Aliasing algorithms include:</p>
+<ul>
+<li><code>ZeroOrderHold</code></li>
+<li><code>Linear</code></li>
+<li><code>CatmullRom</code></li>
+<li><code>Lagrange</code></li>
+<li><code>WindowedSinc</code></li>
+</ul>
+<p>Non-aliasing algorithms include:</p>
+<ul>
+<li><code>WindowedSinc256</code></li>
+<li><code>WindowedSinc128</code></li>
+<li><code>WindowedSinc64</code></li>
+<li><code>WindowedSinc32</code></li>
+<li><code>WindowedSinc16</code></li>
+<li><code>WindowedSinc8</code></li>
+</ul>
+<p>Choosing an algorithm to use depends on the signal being resampled, the relationship between the source and target sample rates, and the application of the resampled signal.</p>
+<p>If downsampling by an integer factor (i.e.: from 44.1kHz to 22050Hz, or 48kHz to 24kHz), and if the source signal has no high-frequency content above half of the target sample rate the <code>ZeroOrderHold</code> algorithm will be the fastest by far and will produce no artifacts.</p>
+<p>In all other cases, any of the numbered <code>WindowedSinc</code> algorithms (i.e.: <code>WindowedSinc256</code>, <code>WindowedSinc64</code>) will produce a clean signal with no artifacts. Higher numbers will produce a cleaner signal with less roll-off of high frequency content near the Nyquist frequency of the new sample rate.</p>
+<p>However, depending on your application, the artifacts introduced by each resampling method may be acceptable. Test each method to determine which is the best tradeoff between speed and accuracy for your use case.</p>
+<p>To provide a good balance between speed and accuracy, <code>WindowedSinc32</code> is the default from Pedalboard v0.9.15 onwards. (Previously, <code>WindowedSinc</code> was the default.)</p>
+<h5 id="members-2">Members</h5>
+<ul>
+<li><code>ZeroOrderHold</code> – The lowest quality and fastest resampling method, with lots of audible artifacts. Zero-order hold resampling chooses the next value to use based on the last value, without any interpolation. Think of it like nearest-neighbor resampling. <strong>Warning:</strong> This algorithm produces aliasing artifacts.</li>
+<li><code>Linear</code> – A resampling method slightly less noisy than the simplest method. Linear resampling takes the average of the two nearest values to the desired sample, which is reasonably good for downsampling. <strong>Warning:</strong> This algorithm produces aliasing artifacts.</li>
+<li><code>CatmullRom</code> – A moderately good-sounding resampling method which is fast to run. Slightly slower than Linear resampling, but slightly higher quality. <strong>Warning:</strong> This algorithm produces aliasing artifacts.</li>
+<li><code>Lagrange</code> – A moderately good-sounding resampling method which is slow to run. Slower than CatmullRom resampling, but slightly higher quality. <strong>Warning:</strong> This algorithm produces aliasing artifacts.</li>
+<li><code>WindowedSinc</code> – A very high quality (and the slowest) resampling method, with no audible artifacts when upsampling. This resampler applies a windowed sinc filter design with 100 zero-crossings of the sinc function to approximate an ideal brick-wall low-pass filter. <strong>Warning:</strong> This algorithm produces aliasing artifacts when downsampling, but not when upsampling. <strong>Note:</strong> This method was the default in versions of Pedalboard prior to v0.9.15.</li>
+<li><code>WindowedSinc256</code> – The highest possible quality resampling algorithm, with no audible artifacts when upsampling or downsampling. This resampler applies a windowed sinc filter with 256 zero-crossings to approximate an ideal brick-wall low-pass filter. This filter does not produce aliasing artifacts when upsampling or downsampling. Compare this in speed and quality to Resampy’s <code>kaiser_best</code> method.</li>
+<li><code>WindowedSinc128</code> – A very high quality resampling algorithm, with no audible artifacts when upsampling or downsampling. This resampler applies a windowed sinc filter with 128 zero-crossings to approximate an ideal brick-wall low-pass filter. This filter does not produce aliasing artifacts when upsampling or downsampling. This method is roughly as fast as Resampy’s <code>kaiser_fast</code> method, while producing results roughly equal in quality to Resampy’s <code>kaiser_best</code> method.</li>
+<li><code>WindowedSinc64</code> – A very high quality resampling algorithm, with few audible artifacts when upsampling or downsampling. This resampler applies a windowed sinc filter with 64 zero-crossings to approximate an ideal brick-wall low-pass filter. This filter does not produce aliasing artifacts when upsampling or downsampling. This method is (on average) faster than Resampy’s <code>kaiser_fast</code> method, and roughly equal in quality.</li>
+<li><code>WindowedSinc32</code> – A reasonably high quality resampling algorithm, with few audible artifacts when upsampling or downsampling. This resampler applies a windowed sinc filter with 32 zero-crossings to approximate an ideal brick-wall low-pass filter. This filter produces very few aliasing artifacts when upsampling or downsampling. This method is always faster than Resampy’s <code>kaiser_fast</code> method, while being reasonable in quality. <strong>Note:</strong> This method is the default in Pedalboard v0.9.15 and later.</li>
+<li><code>WindowedSinc16</code> – A medium quality resampling algorithm, with few audible artifacts when upsampling or downsampling. This resampler applies a windowed sinc filter with 16 zero-crossings to approximate an ideal brick-wall low-pass filter. This filter produces some aliasing artifacts when upsampling or downsampling. This method is faster than Resampy’s <code>kaiser_fast</code> method, while being acceptable in quality.</li>
+<li><code>WindowedSinc8</code> – A low quality resampling algorithm, with few audible artifacts when upsampling or downsampling. This resampler applies a windowed sinc filter with 16 zero-crossings to approximate an ideal brick-wall low-pass filter. This filter produces noticeable aliasing artifacts when upsampling or downsampling. This method can be more than 10x faster than Resampy’s <code>kaiser_fast</code> method, and is useful for applications that are tolerant of some resampling artifacts.</li>
+</ul>
+<h5 id="properties-33">Properties</h5>
+<ul>
+<li><code>name</code></li>
+</ul>
+<h4 id="methods-29">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-34">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+<li><code>quality</code> – The resampling algorithm used to resample the audio.</li>
+<li><code>target_sample_rate</code> – The sample rate to resample the input audio to. This value may be a floating-point number, in which case a floating-point sampling rate will be used. Note that the output of this plugin will still be at the original sample rate; this is merely the sample rate used for quality reduction.</li>
+</ul>
+<hr>
+<h3 id="pedalboardreverb"><code>pedalboard.Reverb</code></h3>
+<p>A simple reverb effect. Uses a simple stereo reverb algorithm, based on the technique and tunings used in <a href="https://ccrma.stanford.edu/~jos/pasp/Freeverb.html">FreeVerb</a>.</p>
+<h4 id="methods-30">Methods</h4>
+<ul>
+<li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
+<li><code>process(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run a 32-bit or 64-bit floating point audio buffer through this plugin.</li>
+<li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
+</ul>
+<h4 id="properties-35">Properties</h4>
+<ul>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin is not an audio effect and accepts only MIDI input, not audio. Introduced in v0.7.4.</li>
+</ul>
+<hr>
+<h3 id="pedalboardvst3plugin"><code>pedalboard.VST3Plugin</code></h3>
+<p>A wrapper around third-party, audio effect or instrument plugins in Steinberg GmbH’s VST3® format.</p>
+<p>VST3® plugins are supported on macOS, Windows, and Linux. However, VST3® plugin files are not cross-compatible with different operating systems; a platform-specific build of each plugin is required to load that plugin on a given platform. (For example: a Windows VST3 plugin bundle will not load on Linux or macOS.)</p>
+<blockquote>
+<p><strong>Warning:</strong> Some VST3® plugins may throw errors, hang, generate incorrect output, or outright crash if called from background threads. If you find that a VST3® plugin is not working as expected, try calling it from the main thread instead and open a GitHub Issue to track the incompatibility.</p></blockquote>
+<p>Support for instrument plugins introduced in v0.7.4.<br>
+Support for running VST3® plugins on background threads introduced in v0.8.8.</p>
+<h4 id="methods-31">Methods</h4>
+<ul>
+<li>
+<p><code>__call__(*args, **kwargs)</code> – Overloaded function.</p>
+<ul>
+<li><code>__call__(self: pedalboard.Plugin, input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio or MIDI buffer through this plugin, returning audio. Alias for <code>process()</code>.</li>
+<li><code>__call__(self: pedalboard.VST3Plugin, midi_messages: object, duration: float, sample_rate: float, num_channels: int = 2, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio or MIDI buffer through this plugin, returning audio. Alias for <code>process()</code>.</li>
+</ul>
+</li>
+<li>
+<p><code>load_preset(preset_file_path: str) -&gt; None</code> – Load a VST3 preset file in <code>.vstpreset</code> format.</p>
+</li>
+<li>
+<p><code>process(*args, **kwargs)</code> – Overloaded function.</p>
+<ul>
+<li><code>process(self: pedalboard.Plugin, input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Pass a buffer of audio (as a 32- or 64-bit NumPy array) or a list of MIDI messages to this plugin, returning audio.</li>
+<li><code>process(self: pedalboard.VST3Plugin, midi_messages: object, duration: float, sample_rate: float, num_channels: int = 2, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Pass a buffer of audio (as a 32- or 64-bit NumPy array) or a list of MIDI messages to this plugin, returning audio.</li>
+</ul>
+</li>
+<li>
+<p><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</p>
+</li>
+<li>
+<p><code>show_editor(close_event: object = None) -&gt; None</code> – Show the UI of this plugin as a native window.<br>
+This method may only be called on the main thread, and will block the main thread until any of the following things happens:</p>
+<ul>
+<li>the window is closed by clicking the close button</li>
+<li>the window is closed by pressing the appropriate (OS-specific) keyboard shortcut</li>
+<li>a KeyboardInterrupt (Ctrl-C) is sent to the program</li>
+<li>the <code>threading.Event.set()</code> method is called (by another thread) on a provided <code>threading.Event</code> object</li>
+</ul>
+<p>An example of how to programmatically close an editor window:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">import</span> pedalboard
+</span></span><span style="display:flex;"><span><span style="color:#f92672">from</span> threading <span style="color:#f92672">import</span> Event, Thread
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>plugin <span style="color:#f92672">=</span> pedalboard<span style="color:#f92672">.</span>load_plugin(<span style="color:#e6db74">&#34;../path-to-my-plugin-file&#34;</span>)
+</span></span><span style="display:flex;"><span>close_window_event <span style="color:#f92672">=</span> Event()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">other_thread</span>():
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># do something to determine when to close the window</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> should_close_window:
+</span></span><span style="display:flex;"><span>        close_window_event<span style="color:#f92672">.</span>set()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>thread <span style="color:#f92672">=</span> Thread(target<span style="color:#f92672">=</span>other_thread)
+</span></span><span style="display:flex;"><span>thread<span style="color:#f92672">.</span>start()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># This will block until the other thread calls .set():</span>
+</span></span><span style="display:flex;"><span>plugin<span style="color:#f92672">.</span>show_editor(close_window_event)
+</span></span></code></pre></div></li>
+</ul>
+<h4 id="properties-36">Properties</h4>
+<ul>
+<li><code>category</code> – A category that this plugin falls into, such as &ldquo;Dynamics&rdquo;, &ldquo;Reverbs&rdquo;, etc. Introduced in v0.9.4.</li>
+<li><code>descriptive_name</code> – A more descriptive name for this plugin. This may be the same as the ‘name’ field, but some plugins may provide an alternative name. Introduced in v0.9.4.</li>
+<li><code>has_shared_container</code> – True iff this plugin is part of a multi-plugin container. Introduced in v0.9.4.</li>
+<li><code>identifier</code> – A string that can be saved and used to uniquely identify this plugin (and version) again. Introduced in v0.9.4.</li>
+<li><code>is_effect</code> – True iff this plugin is an audio effect and accepts audio as input. Introduced in v0.7.4.</li>
+<li><code>is_instrument</code> – True iff this plugin identifies itself as an instrument (generator, synthesizer, etc) plugin. Introduced in v0.9.4.</li>
+<li><code>manufacturer_name</code> – The name of the manufacturer of this plugin, as reported by the plugin itself. Introduced in v0.9.4.</li>
+<li><code>name</code> – The name of this plugin.</li>
+<li><code>preset_data</code> – Get or set the current plugin state as bytes in <code>.vstpreset</code> format.
+<blockquote>
+<p><strong>Warning:</strong> This property can be set to change the plugin’s internal state, but providing invalid data may cause the plugin to crash, taking the entire Python process down with it.</p></blockquote>
+</li>
+<li><code>raw_state</code> – A bytes object representing the plugin’s internal state. For the VST3 format, this is usually an XML-encoded string prefixed with an 8-byte header and suffixed with a single null byte.
+<blockquote>
+<p><strong>Warning:</strong> This property can be set to change the plugin’s internal state, but providing invalid data may cause the plugin to crash, taking the entire Python process down with it.</p></blockquote>
+</li>
+<li><code>reported_latency_samples</code> – The number of samples of latency (delay) that this plugin reports to introduce into the audio signal due to internal buffering and processing. Pedalboard automatically compensates for this latency during processing, so this property is present for informational purposes. Note that not all plugins correctly report the latency that they introduce, so this value may be inaccurate (especially if the plugin reports 0). Introduced in v0.9.12.</li>
+<li><code>version</code> – The version string for this plugin, as reported by the plugin itself. Introduced in v0.9.4.</li>
+</ul>
+<hr>
+<h2 id="functions">Functions</h2>
+<h3 id="time_stretch"><code>time_stretch</code></h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">time_stretch</span>(
+</span></span><span style="display:flex;"><span>    input_audio: numpy<span style="color:#f92672">.</span>ndarray[numpy<span style="color:#f92672">.</span>float32],
+</span></span><span style="display:flex;"><span>    samplerate: float,
+</span></span><span style="display:flex;"><span>    stretch_factor: Union[float, numpy<span style="color:#f92672">.</span>ndarray[numpy<span style="color:#f92672">.</span>float64]] <span style="color:#f92672">=</span> <span style="color:#ae81ff">1.0</span>,
+</span></span><span style="display:flex;"><span>    pitch_shift_in_semitones: Union[float, numpy<span style="color:#f92672">.</span>ndarray[numpy<span style="color:#f92672">.</span>float64]] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.0</span>,
+</span></span><span style="display:flex;"><span>    high_quality: bool <span style="color:#f92672">=</span> <span style="color:#66d9ef">True</span>,
+</span></span><span style="display:flex;"><span>    transient_mode: str <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;crisp&#34;</span>,
+</span></span><span style="display:flex;"><span>    transient_detector: str <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;compound&#34;</span>,
+</span></span><span style="display:flex;"><span>    retain_phase_continuity: bool <span style="color:#f92672">=</span> <span style="color:#66d9ef">True</span>,
+</span></span><span style="display:flex;"><span>    use_long_fft_window: Optional[bool] <span style="color:#f92672">=</span> <span style="color:#66d9ef">None</span>,
+</span></span><span style="display:flex;"><span>    use_time_domain_smoothing: bool <span style="color:#f92672">=</span> <span style="color:#66d9ef">False</span>,
+</span></span><span style="display:flex;"><span>    preserve_formants: bool <span style="color:#f92672">=</span> <span style="color:#66d9ef">True</span>,
+</span></span><span style="display:flex;"><span>) <span style="color:#f92672">-&gt;</span> numpy<span style="color:#f92672">.</span>ndarray[numpy<span style="color:#f92672">.</span>float32]
+</span></span></code></pre></div><p>Time-stretch (and optionally pitch-shift) a buffer of audio, changing its length.</p>
+<p>Using a higher <code>stretch_factor</code> will shorten the audio – i.e., a <code>stretch_factor</code> of 2.0 will double the speed of the audio and halve the length of the audio, without changing the pitch of the audio.</p>
+<p>This function allows for changing the pitch of the audio during the time stretching operation. The <code>stretch_factor</code> and <code>pitch_shift_in_semitones</code> arguments are independent and do not affect each other (i.e.: you can change one, the other, or both without worrying about how they interact).</p>
+<p>Both <code>stretch_factor</code> and <code>pitch_shift_in_semitones</code> can be either floating-point numbers or NumPy arrays of double-precision floating point numbers. Providing a NumPy array allows the stretch factor and/or pitch shift to vary over the length of the output audio.</p>
+<blockquote>
+<p><strong>Note:</strong> If a NumPy array is provided for <code>stretch_factor</code> or <code>pitch_shift_in_semitones</code>:</p>
+<ul>
+<li>The length of each array must be the same as the length of the input audio.</li>
+<li>More frequent changes in the stretch factor or pitch shift will result in slower processing, as the audio will be processed in smaller chunks.</li>
+<li>Changes to the <code>stretch_factor</code> or <code>pitch_shift_in_semitones</code> more frequent than once every 1,024 samples (23 milliseconds at 44.1kHz) will not have any effect.</li>
+</ul></blockquote>
+<p>The additional arguments provided to this function allow for more fine-grained control over the behavior of the time stretcher:</p>
+<ul>
+<li><code>high_quality</code> (the default) enables a higher quality time stretching mode. Set this option to <code>False</code> to use less CPU power.</li>
+<li><code>transient_mode</code> controls the behavior of the stretcher around transients (percussive parts of the audio). Valid options are <code>&quot;crisp&quot;</code> (the default), <code>&quot;mixed&quot;</code>, or <code>&quot;smooth&quot;</code>.</li>
+<li><code>transient_detector</code> controls which method is used to detect transients in the audio signal. Valid options are <code>&quot;compound&quot;</code> (the default), <code>&quot;percussive&quot;</code>, or <code>&quot;soft&quot;</code>.</li>
+<li><code>retain_phase_continuity</code> ensures that the phases of adjacent frequency bins in the audio stream are kept as similar as possible. Set this to <code>False</code> for a softer, phasier sound.</li>
+<li><code>use_long_fft_window</code> controls the size of the fast-Fourier transform window used during stretching. The default (<code>None</code>) will result in a window size that varies based on other parameters and should produce better results in most situations. Set this option to <code>True</code> to result in a smoother sound (at the expense of clarity and timing), or <code>False</code> to result in a crisper sound.</li>
+<li><code>use_time_domain_smoothing</code> can be enabled to produce a softer sound with audible artifacts around sharp transients. This option mixes well with <code>use_long_fft_window=False</code>.</li>
+<li><code>preserve_formants</code> allows shifting the pitch of notes without substantially affecting the pitch profile (formants) of a voice or instrument.</li>
+</ul>
+<blockquote>
+<p><strong>Warning:</strong> This is a function, not a <code>Plugin</code> instance, and cannot be used in <code>Pedalboard</code> objects, as it changes the duration of the audio stream.</p></blockquote>
+<blockquote>
+<p><strong>Note:</strong> The ability to pass a NumPy array for <code>stretch_factor</code> and <code>pitch_shift_in_semitones</code> was added in Pedalboard v0.9.8.</p></blockquote>
+</section></main>
+        <footer id="main-footer"><div class="footer">
+  <a href="#">Scroll to Top</a>
+  <div class="footer-copyright">
+    <div class="dim">© 2025 Da1sypetals</div>
+    <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
+  </div>
+</div>
+</footer>
+      </div><aside id="side-pane" class="side-sticky"><div class="side-details">
+    <span>8126 words</span>
+    <span>53 - 67 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
+  <ul>
+    <li><a href="#classes">Classes</a>
+      <ul>
+        <li><a href="#pedalboardaudioprocessorparameter"><code>pedalboard.AudioProcessorParameter</code></a></li>
+        <li><a href="#pedalboardexternalplugin"><code>pedalboard.ExternalPlugin</code></a></li>
+        <li><a href="#pedalboardpedalboardplugins-optionallistplugin--none"><code>pedalboard.Pedalboard(plugins: Optional[List[Plugin]] = None)</code></a></li>
+        <li><a href="#pedalboardload_pluginpath_to_plugin_file-str-parameter_values-dictstr-unionstr-int-float-bool---plugin_name-optionalstr--none-initialization_timeout-float--100---externalplugin"><code>pedalboard.load_plugin(path_to_plugin_file: str, parameter_values: Dict[str, Union[str, int, float, bool]] = {}, plugin_name: Optional[str] = None, initialization_timeout: float = 10.0) -&gt; ExternalPlugin</code></a></li>
+        <li><a href="#pedalboardbitcrush"><code>pedalboard.Bitcrush</code></a></li>
+        <li><a href="#pedalboardchain"><code>pedalboard.Chain</code></a></li>
+        <li><a href="#pedalboardchorus"><code>pedalboard.Chorus</code></a></li>
+        <li><a href="#pedalboardclipping"><code>pedalboard.Clipping</code></a></li>
+        <li><a href="#pedalboardcompressor"><code>pedalboard.Compressor</code></a></li>
+        <li><a href="#pedalboardconvolution"><code>pedalboard.Convolution</code></a></li>
+        <li><a href="#pedalboarddelay"><code>pedalboard.Delay</code></a></li>
+        <li><a href="#pedalboarddistortion"><code>pedalboard.Distortion</code></a></li>
+        <li><a href="#pedalboardexternalpluginreloadtype"><code>pedalboard.ExternalPluginReloadType</code></a></li>
+        <li><a href="#pedalboardgsmfullratecompressor"><code>pedalboard.GSMFullRateCompressor</code></a></li>
+        <li><a href="#pedalboardgain"><code>pedalboard.Gain</code></a></li>
+        <li><a href="#pedalboardhighshelffilter"><code>pedalboard.HighShelfFilter</code></a></li>
+        <li><a href="#pedalboardhighpassfilter"><code>pedalboard.HighpassFilter</code></a></li>
+        <li><a href="#pedalboardiirfilter"><code>pedalboard.IIRFilter</code></a></li>
+        <li><a href="#pedalboardinvert"><code>pedalboard.Invert</code></a></li>
+        <li><a href="#pedalboardladderfilter"><code>pedalboard.LadderFilter</code></a></li>
+        <li><a href="#pedalboardlimiter"><code>pedalboard.Limiter</code></a></li>
+        <li><a href="#pedalboardlowshelffilter"><code>pedalboard.LowShelfFilter</code></a></li>
+        <li><a href="#pedalboardlowpassfilter"><code>pedalboard.LowpassFilter</code></a></li>
+        <li><a href="#pedalboardmp3compressor"><code>pedalboard.MP3Compressor</code></a></li>
+        <li><a href="#pedalboardmix"><code>pedalboard.Mix</code></a></li>
+        <li><a href="#pedalboardnoisegate"><code>pedalboard.NoiseGate</code></a></li>
+        <li><a href="#pedalboardpeakfilter"><code>pedalboard.PeakFilter</code></a></li>
+        <li><a href="#pedalboardphaser"><code>pedalboard.Phaser</code></a></li>
+        <li><a href="#pedalboardpitchshift"><code>pedalboard.PitchShift</code></a></li>
+        <li><a href="#pedalboardplugin"><code>pedalboard.Plugin</code></a></li>
+        <li><a href="#pedalboardplugincontainer"><code>pedalboard.PluginContainer</code></a></li>
+        <li><a href="#pedalboardresample"><code>pedalboard.Resample</code></a></li>
+        <li><a href="#pedalboardreverb"><code>pedalboard.Reverb</code></a></li>
+        <li><a href="#pedalboardvst3plugin"><code>pedalboard.VST3Plugin</code></a></li>
+      </ul>
+    </li>
+    <li><a href="#functions">Functions</a>
+      <ul>
+        <li><a href="#time_stretch"><code>time_stretch</code></a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></aside></div>
+  </div>
+</body>
+
+</html>

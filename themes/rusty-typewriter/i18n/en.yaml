@@ -3,9 +3,9 @@ theme_light: Light Theme
 theme_dark: Dark Theme
 
 # Not found (404)
-not_found_title: Page not found
+not_found_title: 找不到页面
 not_found_desc: 行到水穷处，坐看云起时
-not_found_home_link: Go Home
+not_found_home_link: 返回主页
 
 # Footer
 scroll_top: Scroll to Top

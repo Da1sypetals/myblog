@@ -29,14 +29,19 @@ pageRef = '/english-post'
 weight = 2
 
 [[menus.main]]
+name = '文档'
+pageRef = '/documents'
+weight = 3
+
+[[menus.main]]
 name = '歌单'
 url = 'https://singings.netlify.app'
-weight = 3
+weight = 4
 
 [[menus.main]]
 name = '关于我'
 pageRef = '/about.md'
-weight = 5
+weight = 9
 
 
 # build search index ================

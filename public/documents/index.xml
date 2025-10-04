@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Documents on Da1sypetals</title>
+    <link>https://da1sy-petals.vercel.app/documents/</link>
+    <description>Recent content in Documents on Da1sypetals</description>
+    <generator>Hugo</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Sat, 04 Oct 2025 14:20:22 +0800</lastBuildDate>
+    <atom:link href="https://da1sy-petals.vercel.app/documents/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Pedalboard 文档</title>
+      <link>https://da1sy-petals.vercel.app/documents/pedalboard/</link>
+      <pubDate>Sat, 04 Oct 2025 14:20:22 +0800</pubDate>
+      <guid>https://da1sy-petals.vercel.app/documents/pedalboard/</guid>
+      <description>&lt;p&gt;Github: &lt;a href=&#34;https://github.com/spotify/pedalboard&#34;&gt;https://github.com/spotify/pedalboard&lt;/a&gt;&lt;/p&gt;&#xA;&lt;p&gt;Docs: &lt;a href=&#34;https://spotify.github.io/pedalboard/reference/pedalboard.html#pedalboard.LowShelfFilter&#34;&gt;https://spotify.github.io/pedalboard/reference/pedalboard.html#pedalboard.LowShelfFilter&lt;/a&gt;&lt;/p&gt;&#xA;&lt;h1 id=&#34;pedalboard-api-documentation&#34;&gt;Pedalboard API Documentation&lt;/h1&gt;&#xA;&lt;p&gt;The &lt;code&gt;pedalboard&lt;/code&gt; module provides classes and functions for adding effects to audio. Most classes in this module are subclasses of &lt;code&gt;Plugin&lt;/code&gt;, each of which allows applying effects to an audio buffer or stream.&lt;/p&gt;&#xA;&lt;blockquote&gt;&#xA;&lt;p&gt;&lt;strong&gt;Note:&lt;/strong&gt; For audio I/O functionality (i.e.: reading and writing audio files), see the &lt;code&gt;pedalboard.io&lt;/code&gt; module.&lt;/p&gt;&lt;/blockquote&gt;&#xA;&lt;p&gt;The &lt;code&gt;pedalboard&lt;/code&gt; module is named after the concept of a guitar pedalboard, in which musicians will chain various effects pedals together to give them complete control over their sound. The &lt;code&gt;pedalboard&lt;/code&gt; module implements this concept with its main &lt;code&gt;Pedalboard&lt;/code&gt; class:&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

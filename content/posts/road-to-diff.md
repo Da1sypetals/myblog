@@ -3,7 +3,7 @@ date = '2024-12-29'
 title = '自动求导, 道阻且长'
 +++
 
-TL;DR: [Symars ](https://github.com/Da1sypetals/Symars) Rust代码生成库和 [Raddy](https://github.com/Da1sypetals/Raddy) 自动求导库的来龙去脉
+[Symars ](https://github.com/Da1sypetals/Symars) Rust代码生成库和 [Raddy](https://github.com/Da1sypetals/Raddy) 自动求导库的来龙去脉
 
 ## 故事的起因：
 

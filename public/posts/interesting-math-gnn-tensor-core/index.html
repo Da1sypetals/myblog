@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+
+<head>
+  
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+    MathJax = {
+        tex: {
+            displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+            inlineMath: [['$', '$']]                  
+        },
+        loader: {
+            load: ['ui/safe']
+        },
+    };
+</script>
+  
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>一个关于GNN在Tensor Core上的实现的数学问题 | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sy-petals.vercel.app/posts/interesting-math-gnn-tensor-core/">
+  <meta property="og:site_name" content="Da1sypetals">
+  <meta property="og:title" content="一个关于GNN在Tensor Core上的实现的数学问题">
+  <meta property="og:description" content="完整的问题 可以看我和Gemini的对话
+抽象出的问题 假设在mxn的矩阵中全为0，现在进行两个操作：
+以avgdeg/n的概率将矩阵中的值变为1； 如果矩阵中有一列有一个1，那就把这一列都变成1。 现在计算avgdeg’为矩阵中1的个数/(mn)，记avgdeg=d, avgdeg’=d&#39;
+Kimi的回答 我们来逐步分析这个问题，并给出数学推导。
+问题设定 我们有一个 $ m \times n $ 的矩阵，初始时所有元素为 0。
+进行两个操作：
+随机置 1：以概率 $ \frac{\text{avgdeg}}{n} $ 将每个元素独立地变为 1（否则保持 0）。
+记 $ d = \text{avgdeg} $，所以每个元素变为 1 的概率是 $ p = \frac{d}{n} $。
+列传播：如果某一列中至少有一个 1，则将该列所有元素都变为 1。
+最终，我们计算新的平均度：
+\[ d&#39; = \frac{\text{矩阵中 1 的总数}}{mn} \]我们的目标是求 $ d&#39; $ 关于 $ d $ 的表达式，即 $ d&#39; = f(d) $。
+步骤 1：计算某一列在操作 1 后至少有一个 1的概率 在操作 1 后，每个元素独立地以概率 $ p = \frac{d}{n} $ 变为 1。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-10-04T16:07:12+08:00">
+    <meta property="article:modified_time" content="2025-10-04T16:07:12+08:00">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="一个关于GNN在Tensor Core上的实现的数学问题">
+  <meta name="twitter:description" content="完整的问题 可以看我和Gemini的对话
+抽象出的问题 假设在mxn的矩阵中全为0，现在进行两个操作：
+以avgdeg/n的概率将矩阵中的值变为1； 如果矩阵中有一列有一个1，那就把这一列都变成1。 现在计算avgdeg’为矩阵中1的个数/(mn)，记avgdeg=d, avgdeg’=d&#39;
+Kimi的回答 我们来逐步分析这个问题，并给出数学推导。
+问题设定 我们有一个 $ m \times n $ 的矩阵，初始时所有元素为 0。
+进行两个操作：
+随机置 1：以概率 $ \frac{\text{avgdeg}}{n} $ 将每个元素独立地变为 1（否则保持 0）。
+记 $ d = \text{avgdeg} $，所以每个元素变为 1 的概率是 $ p = \frac{d}{n} $。
+列传播：如果某一列中至少有一个 1，则将该列所有元素都变为 1。
+最终，我们计算新的平均度：
+\[ d&#39; = \frac{\text{矩阵中 1 的总数}}{mn} \]我们的目标是求 $ d&#39; $ 关于 $ d $ 的表达式，即 $ d&#39; = f(d) $。
+步骤 1：计算某一列在操作 1 后至少有一个 1的概率 在操作 1 后，每个元素独立地以概率 $ p = \frac{d}{n} $ 变为 1。">
+
+      <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
+
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+<script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="notransition">
+  <div id="container">
+    <header id="main-header"><div role="navigation" aria-label="Main">
+  <div class="nav-left">
+    <a href="https://da1sy-petals.vercel.app/" style="color: inherit;">Da1sypetals</a>
+  </div>
+  <div class="nav-right">
+    <div style="position:absolute;width:0px;height:0px;">
+      <div id="nav-dropdown-menu" class="hidden" href="#">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    </div>
+    <a id="nav-dropdown-button" href="#"><svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+    <div id="nav-menu">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    <a id="theme-switcher" href="#">
+<svg class="light-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5001M17.6859 17.69L18.5 18.5001M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+<svg class="dark-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.32031 11.6835C3.32031 16.6541 7.34975 20.6835 12.3203 20.6835C16.1075 20.6835 19.3483 18.3443 20.6768 15.032C19.6402 15.4486 18.5059 15.6834 17.3203 15.6834C12.3497 15.6834 8.32031 11.654 8.32031 6.68342C8.32031 5.50338 8.55165 4.36259 8.96453 3.32996C5.65605 4.66028 3.32031 7.89912 3.32031 11.6835Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+  </div>
+</div></header>
+    <div class="flex grow">
+      <div id="main-pane">
+        <main id="main-content"><div class="single-header">
+<ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/">
+        <span itemprop="name">Home</span>
+      </a>
+      <meta itemprop="position" content='1' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/posts/">
+        <span itemprop="name">Posts</span>
+      </a>
+      <meta itemprop="position" content='2' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+</ol>
+<h1>一个关于GNN在Tensor Core上的实现的数学问题</h1><time class="dim" datetime="2025-10-04T16:07:12&#43;08:00">October 4, 2025</time></div>
+  <section class="page-section"><h2 id="完整的问题">完整的问题</h2>
+<p>可以看<a href="https://g.co/gemini/share/ad1bd7ed4a63">我和Gemini的对话</a></p>
+<h2 id="抽象出的问题">抽象出的问题</h2>
+<blockquote>
+<p>假设在mxn的矩阵中全为0，现在进行两个操作：</p>
+<ol>
+<li>以avgdeg/n的概率将矩阵中的值变为1；</li>
+<li>如果矩阵中有一列有一个1，那就把这一列都变成1。</li>
+</ol>
+<p>现在计算avgdeg&rsquo;为矩阵中1的个数/(mn)，记avgdeg=d, avgdeg&rsquo;=d'</p>
+</blockquote>
+<h2 id="kimi的回答">Kimi的回答</h2>
+<p>我们来逐步分析这个问题，并给出数学推导。</p>
+<h3 id="问题设定">问题设定</h3>
+<p>我们有一个 $ m \times n $ 的矩阵，初始时所有元素为 0。</p>
+<p>进行两个操作：</p>
+<ol>
+<li>
+<p><strong>随机置 1</strong>：以概率 $ \frac{\text{avgdeg}}{n} $ 将每个元素独立地变为 1（否则保持 0）。<br>
+记 $ d = \text{avgdeg} $，所以每个元素变为 1 的概率是 $ p = \frac{d}{n} $。</p>
+</li>
+<li>
+<p><strong>列传播</strong>：如果某一列中<strong>至少有一个 1</strong>，则将该列<strong>所有元素都变为 1</strong>。</p>
+</li>
+</ol>
+<p>最终，我们计算新的平均度：</p>
+\[
+d' = \frac{\text{矩阵中 1 的总数}}{mn}
+\]<p>我们的目标是求 $ d' $ 关于 $ d $ 的表达式，即 $ d' = f(d) $。</p>
+<h3 id="步骤-1计算某一列在操作-1-后至少有一个-1的概率">步骤 1：计算某一列在操作 1 后<strong>至少有一个 1</strong>的概率</h3>
+<p>在操作 1 后，每个元素独立地以概率 $ p = \frac{d}{n} $ 变为 1。</p>
+<p>某一列有 $ m $ 个元素，全为 0 的概率是：</p>
+\[
+(1 - p)^m = \left(1 - \frac{d}{n}\right)^m
+\]<p>所以，该列<strong>至少有一个 1</strong> 的概率是：</p>
+\[
+P_{\text{active}} = 1 - \left(1 - \frac{d}{n}\right)^m
+\]<h3 id="步骤-2操作-2-后每一列要么全为-1要么全为-0">步骤 2：操作 2 后，每一列要么全为 1，要么全为 0</h3>
+<p>因为在操作 2 中，只要某一列有一个 1，整列就变成 1；否则保持全 0。</p>
+<p>所以，最终矩阵中，每一列要么是全 1，要么是全 0。</p>
+<h3 id="步骤-3计算期望的-1-的总数">步骤 3：计算期望的 1 的总数</h3>
+<p>每一列以概率 $ P_{\text{active}} $ 变成全 1（即贡献 $ m $ 个 1），以概率 $ 1 - P_{\text{active}} $ 保持全 0（即贡献 0 个 1）。</p>
+<p>所以，<strong>期望的 1 的总数</strong>为：</p>
+\[
+\mathbb{E}[\text{total 1s}] = n \cdot m \cdot P_{\text{active}} = mn \left(1 - \left(1 - \frac{d}{n}\right)^m\right)
+\]<h3 id="步骤-4计算">步骤 4：计算 $ d' $</h3>
+\[
+d' = \frac{\mathbb{E}[\text{total 1s}]}{mn} = 1 - \left(1 - \frac{d}{n}\right)^m
+\]<h3 id="最终答案">最终答案</h3>
+<p>$\boxed{d' = 1 - \left(1 - \frac{d}{n}\right)^m}$</p>
+<p>这就是 $ d' $ 关于 $ d $ 的显式表达式。</p>
+<h2 id="计算我们所需的结果">计算我们所需的结果</h2>
+<ul>
+<li>$m=8 / m=16$</li>
+<li>$d$ 的分布统计量 $\mu=5.856, \sigma =0.133$, 这里取 $6$</li>
+<li>$n$ 的典型值为 5000~50000</li>
+</ul>
+<p>得到结果:</p>
+<pre tabindex="0"><code>m=8,n=5000,d&#39;=0.009559776622987126,d&#39;*n=47.798883114935634
+m=8,n=50000,d&#39;=0.0009595968967535118,d&#39;*n=47.979844837675586
+m=16,n=5000,d&#39;=0.01902816391689277,d&#39;*n=95.14081958446386
+m=16,n=50000,d&#39;=0.0019182729673028476,d&#39;*n=95.91364836514238
+</code></pre><h2 id="极限">极限</h2>
+<h3 id="问题">问题</h3>
+<p>如果n趋于无穷，nd&rsquo;的极限是多少？m和d保留</p>
+<h3 id="kimi的回答-1">Kimi的回答</h3>
+<p>我们已有</p>
+\[
+d' = 1 - \left(1 - \frac{d}{n}\right)^m.
+\]<p>令 $n\to\infty$ 而 $m,d$ 固定，考察</p>
+\[
+n d' = n\left[1 - \left(1 - \frac{d}{n}\right)^m\right].
+\]<p>利用极限</p>
+\[
+\lim_{n\to\infty} n\left[1 - \left(1 - \frac{d}{n}\right)^m\right]
+= \lim_{n\to\infty} n\left[1 - \exp\left(m\ln\!\Bigl(1 - \frac{d}{n}\Bigr)\right)\right].
+\]<p>对 $\ln(1 - x)$ 做泰勒展开：$\ln(1 - x) = -x - \frac{x^2}{2} - \dots$，取首项即可：</p>
+\[
+m\ln\!\Bigl(1 - \frac{d}{n}\Bigr) = -\frac{md}{n} + O\!\left(\frac{1}{n^2}\right).
+\]<p>于是</p>
+\[
+\exp\left(m\ln\!\Bigl(1 - \frac{d}{n}\Bigr)\right)
+= \exp\!\left(-\frac{md}{n} + O\!\left(\frac{1}{n^2}\right)\right)
+= 1 - \frac{md}{n} + O\!\left(\frac{1}{n^2}\right).
+\]<p>代回：</p>
+\[
+n d' = n\left[1 - \left(1 - \frac{md}{n} + O\!\left(\frac{1}{n^2}\right)\right)\right]
+= n\left[\frac{md}{n} + O\!\left(\frac{1}{n^2}\right)\right]
+= md + O\!\left(\frac{1}{n}\right).
+\]<p>因此</p>
+\[
+\boxed{\lim_{n\to\infty} n d' = md}.
+\]<h2 id="感悟">感悟</h2>
+<p>这么简单的数学题我居然都要用AI了, 看来上班后数学能力大幅下滑.</p>
+</section></main>
+        <footer id="main-footer"><div class="footer">
+  <a href="#">Scroll to Top</a>
+  <div class="footer-copyright">
+    <div class="dim">© 2025 Da1sypetals</div>
+    <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
+  </div>
+</div>
+</footer>
+      </div><aside id="side-pane" class="side-sticky"><div class="side-details">
+    <span>325 words</span>
+    <span>3 - 4 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
+  <ul>
+    <li><a href="#完整的问题">完整的问题</a></li>
+    <li><a href="#抽象出的问题">抽象出的问题</a></li>
+    <li><a href="#kimi的回答">Kimi的回答</a>
+      <ul>
+        <li><a href="#问题设定">问题设定</a></li>
+        <li><a href="#步骤-1计算某一列在操作-1-后至少有一个-1的概率">步骤 1：计算某一列在操作 1 后<strong>至少有一个 1</strong>的概率</a></li>
+        <li><a href="#步骤-2操作-2-后每一列要么全为-1要么全为-0">步骤 2：操作 2 后，每一列要么全为 1，要么全为 0</a></li>
+        <li><a href="#步骤-3计算期望的-1-的总数">步骤 3：计算期望的 1 的总数</a></li>
+        <li><a href="#步骤-4计算">步骤 4：计算 </a></li>
+        <li><a href="#最终答案">最终答案</a></li>
+      </ul>
+    </li>
+    <li><a href="#计算我们所需的结果">计算我们所需的结果</a></li>
+    <li><a href="#极限">极限</a>
+      <ul>
+        <li><a href="#问题">问题</a></li>
+        <li><a href="#kimi的回答-1">Kimi的回答</a></li>
+      </ul>
+    </li>
+    <li><a href="#感悟">感悟</a></li>
+  </ul>
+</nav></aside></div>
+  </div>
+</body>
+
+</html>

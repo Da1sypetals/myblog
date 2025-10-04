@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+
+<head>
+  
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+    MathJax = {
+        tex: {
+            displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+            inlineMath: [['$', '$']]                  
+        },
+        loader: {
+            load: ['ui/safe']
+        },
+    };
+</script>
+  
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>SnapViewer: 更快的PyTorch显存分配可视化 | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sy-petals.vercel.app/posts/snapviewer-zh/">
+  <meta property="og:site_name" content="Da1sypetals">
+  <meta property="og:title" content="SnapViewer: 更快的PyTorch显存分配可视化">
+  <meta property="og:description" content="背景 在使用 PyTorch 训练模型时，内存不足（OOM）错误是很常见的，因此需要对 GPU 内存进行优化。当简单的方法（如减少batch size）不再有效时，就需要分析模型本身的内存占用情况。
+此时，你可能会看到这份文档，它教你如何记录内存快照并在网站上进行可视化。
+但是这里存在一个严重的问题：这个网站性能比较差。
+如果你的模型较小，快照只有几 MB，性能还可以接受。 但是如果你的模型很大，快照达到几十甚至上百 MB，网站就会变得极慢，帧率可能低至每分钟 2-3 帧（非笔误）。 我研究了网站的 JavaScript 代码，其主要功能是：
+手动加载 Python 的 pickle 文件； 每次视口发生变化时重新解析原始数据为图形表示，然后将其渲染到屏幕上。 这些解析逻辑用 JavaScript 编写，你可以想象一下每帧执行这些操作，处理上百 MB 数据要多久.
+灵感 我当前的工作包括优化一个非LLM的深度学习模型。在处理数十亿参数的模型所导出的显存snapshot时，我遇到了这个问题。
+为什么不用现有的 LLM 基础设施而选择手动优化？简单地说，这个模型是研究人员自定义设计的，其中包含许多与标准 LLM 完全不同的模块。现在似乎每个人都认为深度学习就只是关于 LLM——以至于一些技术负责人也认为 LLM 的基础设施可以很容易地适配到其他模型上……不过我有点跑题了。
+最初，我写了一个简单的脚本来解析快照内容，希望能发现模型中的内存分配问题。但是在一个月的工作中，我发现我还是需要一个带有GUI的可视化器, 于是我开发了 SnapViewer.
+简而言之：内存快照的图形数据被解析并呈现为一个巨大的三角形mesh，利用现有的渲染库来高效处理网格渲染。
+下面是一个 100 MB 以上的快照在我的集成显卡上流畅运行的截图：
+实现 参考实现 快照格式在 record_memory_history 函数的docstring中有部分记录。但这份文档并不完整, 可能是后续commit的人懒得更新docstring了.
+实际将快照解析为字典的过程发生在这里：
+该脚本将分配器跟踪转换为内存时间线，然后传递给网页查看器的 JS 代码。 JS 代码进一步将其转换为多边形（表示分配），用于可视化。每个多边形对应一个分配，存储大小和调用栈等细节。 实现：快照 (反)序列化 初始实现 我用 Python 实现这一部分，因为我需要处理 Python 原生数据结构。我只是简单地将字典转换为 JSON 文件。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-06-06T00:00:00+00:00">
+    <meta property="article:modified_time" content="2025-06-06T00:00:00+00:00">
+    <meta property="article:tag" content="Torch">
+    <meta property="article:tag" content="Deep-Learning">
+    <meta property="article:tag" content="Rust">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="SnapViewer: 更快的PyTorch显存分配可视化">
+  <meta name="twitter:description" content="背景 在使用 PyTorch 训练模型时，内存不足（OOM）错误是很常见的，因此需要对 GPU 内存进行优化。当简单的方法（如减少batch size）不再有效时，就需要分析模型本身的内存占用情况。
+此时，你可能会看到这份文档，它教你如何记录内存快照并在网站上进行可视化。
+但是这里存在一个严重的问题：这个网站性能比较差。
+如果你的模型较小，快照只有几 MB，性能还可以接受。 但是如果你的模型很大，快照达到几十甚至上百 MB，网站就会变得极慢，帧率可能低至每分钟 2-3 帧（非笔误）。 我研究了网站的 JavaScript 代码，其主要功能是：
+手动加载 Python 的 pickle 文件； 每次视口发生变化时重新解析原始数据为图形表示，然后将其渲染到屏幕上。 这些解析逻辑用 JavaScript 编写，你可以想象一下每帧执行这些操作，处理上百 MB 数据要多久.
+灵感 我当前的工作包括优化一个非LLM的深度学习模型。在处理数十亿参数的模型所导出的显存snapshot时，我遇到了这个问题。
+为什么不用现有的 LLM 基础设施而选择手动优化？简单地说，这个模型是研究人员自定义设计的，其中包含许多与标准 LLM 完全不同的模块。现在似乎每个人都认为深度学习就只是关于 LLM——以至于一些技术负责人也认为 LLM 的基础设施可以很容易地适配到其他模型上……不过我有点跑题了。
+最初，我写了一个简单的脚本来解析快照内容，希望能发现模型中的内存分配问题。但是在一个月的工作中，我发现我还是需要一个带有GUI的可视化器, 于是我开发了 SnapViewer.
+简而言之：内存快照的图形数据被解析并呈现为一个巨大的三角形mesh，利用现有的渲染库来高效处理网格渲染。
+下面是一个 100 MB 以上的快照在我的集成显卡上流畅运行的截图：
+实现 参考实现 快照格式在 record_memory_history 函数的docstring中有部分记录。但这份文档并不完整, 可能是后续commit的人懒得更新docstring了.
+实际将快照解析为字典的过程发生在这里：
+该脚本将分配器跟踪转换为内存时间线，然后传递给网页查看器的 JS 代码。 JS 代码进一步将其转换为多边形（表示分配），用于可视化。每个多边形对应一个分配，存储大小和调用栈等细节。 实现：快照 (反)序列化 初始实现 我用 Python 实现这一部分，因为我需要处理 Python 原生数据结构。我只是简单地将字典转换为 JSON 文件。">
+
+      <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
+
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+<script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="notransition">
+  <div id="container">
+    <header id="main-header"><div role="navigation" aria-label="Main">
+  <div class="nav-left">
+    <a href="https://da1sy-petals.vercel.app/" style="color: inherit;">Da1sypetals</a>
+  </div>
+  <div class="nav-right">
+    <div style="position:absolute;width:0px;height:0px;">
+      <div id="nav-dropdown-menu" class="hidden" href="#">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    </div>
+    <a id="nav-dropdown-button" href="#"><svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+    <div id="nav-menu">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    <a id="theme-switcher" href="#">
+<svg class="light-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5001M17.6859 17.69L18.5 18.5001M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+<svg class="dark-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.32031 11.6835C3.32031 16.6541 7.34975 20.6835 12.3203 20.6835C16.1075 20.6835 19.3483 18.3443 20.6768 15.032C19.6402 15.4486 18.5059 15.6834 17.3203 15.6834C12.3497 15.6834 8.32031 11.654 8.32031 6.68342C8.32031 5.50338 8.55165 4.36259 8.96453 3.32996C5.65605 4.66028 3.32031 7.89912 3.32031 11.6835Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+  </div>
+</div></header>
+    <div class="flex grow">
+      <div id="main-pane">
+        <main id="main-content"><div class="single-header">
+<ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/">
+        <span itemprop="name">Home</span>
+      </a>
+      <meta itemprop="position" content='1' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/posts/">
+        <span itemprop="name">Posts</span>
+      </a>
+      <meta itemprop="position" content='2' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+</ol>
+<h1>SnapViewer: 更快的PyTorch显存分配可视化</h1><time class="dim" datetime="2025-06-06T00:00:00&#43;00:00">June 6, 2025</time><div class="term-container"><div class="tag">
+        <a href="https://da1sy-petals.vercel.app/tags/torch/">#torch</a>
+      </div><div class="tag">
+        <a href="https://da1sy-petals.vercel.app/tags/deep-learning/">#deep-learning</a>
+      </div><div class="tag">
+        <a href="https://da1sy-petals.vercel.app/tags/rust/">#rust</a>
+      </div></ol></div>
+  <section class="page-section"><h2 id="背景">背景</h2>
+<p>在使用 PyTorch 训练模型时，内存不足（OOM）错误是很常见的，因此需要对 GPU 内存进行优化。当简单的方法（如减少batch size）不再有效时，就需要分析模型本身的内存占用情况。</p>
+<p>此时，你可能会看到这份<a href="https://docs.pytorch.org/docs/stable/torch_cuda_memory.html">文档</a>，它教你如何记录内存快照并在网站上进行可视化。</p>
+<p>但是这里存在一个严重的问题：这个网站性能比较差。</p>
+<ul>
+<li>如果你的模型较小，快照只有几 MB，性能还可以接受。</li>
+<li>但是如果你的模型很大，快照达到几十甚至上百 MB，网站就会变得极慢，帧率可能低至每分钟 2-3 帧（非笔误）。</li>
+</ul>
+<p>我研究了网站的 JavaScript 代码，其主要功能是：</p>
+<ol>
+<li>手动加载 Python 的 pickle 文件；</li>
+<li>每次视口发生变化时重新解析原始数据为图形表示，然后将其渲染到屏幕上。</li>
+</ol>
+<p>这些解析逻辑用 JavaScript 编写，你可以想象一下每帧执行这些操作，处理上百 MB 数据要多久.</p>
+<h2 id="灵感">灵感</h2>
+<p>我当前的工作包括优化一个非LLM的深度学习模型。在处理数十亿参数的模型所导出的显存snapshot时，我遇到了这个问题。</p>
+<p>为什么不用现有的 LLM 基础设施而选择手动优化？简单地说，这个模型是研究人员自定义设计的，其中包含许多与标准 LLM 完全不同的模块。现在似乎每个人都认为深度学习就只是关于 LLM——以至于一些技术负责人也认为 LLM 的基础设施可以很容易地适配到其他模型上……不过我有点跑题了。</p>
+<p>最初，我写了一个简单的脚本来解析快照内容，希望能发现模型中的内存分配问题。但是在一个月的工作中，我发现我还是需要一个带有GUI的可视化器, 于是我开发了 SnapViewer.</p>
+<p>简而言之：内存快照的图形数据被解析并呈现为一个巨大的三角形mesh，利用现有的渲染库来高效处理网格渲染。</p>
+<p>下面是一个 100 MB 以上的快照在我的集成显卡上流畅运行的截图：</p>
+<p><img src="../images/snapviewer.gif" alt="snapviewer"></p>
+<h2 id="实现">实现</h2>
+<h3 id="参考实现">参考实现</h3>
+<p>快照格式在 <code>record_memory_history</code> 函数的<a href="https://github.com/pytorch/pytorch/blob/main/torch/cuda/memory.py">docstring</a>中有部分记录。但这份文档并不完整, 可能是后续commit的人懒得更新docstring了.</p>
+<p>实际将快照解析为字典的过程发生在<a href="https://github.com/pytorch/pytorch/blob/main/torch/cuda/_memory_viz.py">这里</a>：</p>
+<ol>
+<li>该脚本将分配器跟踪转换为内存时间线，然后传递给网页查看器的 JS 代码。</li>
+<li>JS 代码进一步将其转换为多边形（表示分配），用于可视化。每个多边形对应一个分配，存储大小和调用栈等细节。</li>
+</ol>
+<h3 id="实现快照-反序列化">实现：快照 (反)序列化</h3>
+<h4 id="初始实现">初始实现</h4>
+<p>我用 Python 实现这一部分，因为我需要处理 Python 原生数据结构。我只是简单地将字典转换为 JSON 文件。</p>
+<h4 id="优化">优化</h4>
+<ol>
+<li>原始 JSON 文件太大 → 在写入前进行内存压缩（Python zipfile）。</li>
+<li>在可视化过程中，从磁盘读取 ZIP 文件（Rust zip crate），并在内存中解压缩。</li>
+</ol>
+<h5 id="权衡">权衡</h5>
+<ul>
+<li>这种方式在 JSON 解析过程中会导致短暂的内存峰值，但避免了持续的高内存使用。</li>
+<li>利用 Rust 的 serde-json（因为 Rust 的 serde-pickle 功能不全，不能处理递归结构）。</li>
+</ul>
+<h3 id="实现渲染与交互">实现：渲染与交互</h3>
+<p>这部分用 Rust 实现。</p>
+<h4 id="渲染">渲染</h4>
+<ul>
+<li>
+<p>由于分配数据在可视化过程中是静态的，所有分配被合并成一个大的三角形mesh，并一次性发送到 GPU。</p>
+</li>
+<li>
+<p>使用的库：three-d</p>
+<ul>
+<li>提供良好的网格抽象。</li>
+<li>支持一次性上传到 GPU（无需每帧进行 CPU→GPU 传输）。</li>
+<li>处理鼠标/键盘事件。</li>
+</ul>
+</li>
+</ul>
+<h4 id="窗口到世界坐标转换">窗口到世界坐标转换</h4>
+<ol>
+<li>步骤 1：将窗口坐标转换为世界坐标（缩放 + 窗口中心偏移）。</li>
+<li>步骤 2：将世界坐标转换为内存位置（预定义的缩放）。</li>
+</ol>
+<h4 id="ui--交互功能">UI &amp; 交互功能</h4>
+<h5 id="内存刻度标记">内存刻度标记</h5>
+<ul>
+<li>根据屏幕可见性动态调整标记的数量和精度。</li>
+<li>保持标记在屏幕上的固定位置，即使移动或缩放。</li>
+</ul>
+<h5 id="移动--缩放">移动 &amp; 缩放</h5>
+<ol>
+<li>跟踪原始缩放比例（1/zoom）。</li>
+<li>更新到新的缩放级别，并计算新旧比例之间的比值。</li>
+<li>根据鼠标不变的世界位置，调整屏幕中心位置。</li>
+</ol>
+<h3 id="实现查询">实现：查询</h3>
+<p>在工作中使用这个工具一周后，我发现自己经常需要搜索内存快照，尤其是：</p>
+<ul>
+<li>找到特定时间戳内所有存活的分配</li>
+<li>找到调用栈中包含特定子字符串的所有分配</li>
+<li>最好按照分配大小降序排列分配</li>
+</ul>
+<p>我最初的想法是构建一个简单的 REPL 和一个简单的命令解析器，将每个命令映射到特定的查询函数。</p>
+<p>然而，在列出所有需要的功能后，我发现这其实是数据库查询的子集，尤其是 SQL。</p>
+<p>因此我决定不再造轮子：我只是连接到一个内存中的 SQLite 数据库。用户交互非常简单：读取用户输入，让 SQLite 执行，并将输出格式化为人可读的格式。</p>
+<hr>
+<p>如果你在使用 PyTorch 内存快照时遇到过困难，<a href="https://github.com/Da1sypetals/SnapViewer">来看看吧</a>！欢迎贡献和反馈。 ⭐</p>
+</section></main>
+        <footer id="main-footer"><div class="footer">
+  <a href="#">Scroll to Top</a>
+  <div class="footer-copyright">
+    <div class="dim">© 2025 Da1sypetals</div>
+    <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
+  </div>
+</div>
+</footer>
+      </div><aside id="side-pane" class="side-sticky"><div class="side-details">
+    <span>145 words</span>
+    <span>4 - 6 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
+  <ul>
+    <li><a href="#背景">背景</a></li>
+    <li><a href="#灵感">灵感</a></li>
+    <li><a href="#实现">实现</a>
+      <ul>
+        <li><a href="#参考实现">参考实现</a></li>
+        <li><a href="#实现快照-反序列化">实现：快照 (反)序列化</a></li>
+        <li><a href="#实现渲染与交互">实现：渲染与交互</a></li>
+        <li><a href="#实现查询">实现：查询</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav><h3>Related</h3>
+    <ul><li><a href="/posts/lsm/">Lsm Tree 实现备注</a></li></ul></aside></div>
+  </div>
+</body>
+
+</html>
