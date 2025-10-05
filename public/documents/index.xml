@@ -6,8 +6,15 @@
     <description>Recent content in Documents on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Sat, 04 Oct 2025 14:20:22 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 05 Oct 2025 21:07:06 +0800</lastBuildDate>
     <atom:link href="https://da1sy-petals.vercel.app/documents/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>全民K歌如何下载歌曲</title>
+      <link>https://da1sy-petals.vercel.app/documents/quanmin-download/</link>
+      <pubDate>Sun, 05 Oct 2025 21:07:06 +0800</pubDate>
+      <guid>https://da1sy-petals.vercel.app/documents/quanmin-download/</guid>
+      <description>&lt;h2 id=&#34;1-用默认浏览器打开&#34;&gt;1. 用默认浏览器打开&lt;/h2&gt;&#xA;&lt;p&gt;&lt;img src=&#34;../images/2025-10-05-21-08-03.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;&#xA;&lt;h2 id=&#34;2-按f12然后把focus放在html&#34;&gt;2. 按F12，然后把Focus放在html&lt;/h2&gt;&#xA;&lt;p&gt;先按F12，然后按下面的步骤操作&lt;/p&gt;&#xA;&lt;p&gt;&lt;img src=&#34;../images/2025-10-05-21-10-32.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;&#xA;&lt;h2 id=&#34;3-搜索音频扩展名&#34;&gt;3. 搜索音频扩展名&lt;/h2&gt;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;&#xA;&lt;p&gt;先随便点一下里面的代码，然后 Ctrl-F&lt;/p&gt;&#xA;&lt;/li&gt;&#xA;&lt;li&gt;&#xA;&lt;p&gt;搜索&lt;code&gt;.m4a&lt;/code&gt;&lt;/p&gt;&#xA;&lt;/li&gt;&#xA;&lt;/ol&gt;&#xA;&lt;p&gt;&lt;img src=&#34;../images/2025-10-05-21-13-53.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;&#xA;&lt;ol start=&#34;3&#34;&gt;&#xA;&lt;li&gt;找到一个含有&lt;code&gt;.m4a&lt;/code&gt; 的链接，&lt;strong&gt;然后双击，复制到新的标签页打开&lt;/strong&gt;。很长一串&lt;/li&gt;&#xA;&lt;/ol&gt;&#xA;&lt;h2 id=&#34;4-下载&#34;&gt;4. 下载&lt;/h2&gt;&#xA;&lt;p&gt;&lt;img src=&#34;../2025-10-05-21-15-16.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;</description>
+    </item>
     <item>
       <title>Pedalboard 文档</title>
       <link>https://da1sy-petals.vercel.app/documents/pedalboard/</link>
