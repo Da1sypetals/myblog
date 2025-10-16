@@ -6,8 +6,15 @@
     <description>Recent content in Documents on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Sun, 12 Oct 2025 15:29:58 +0800</lastBuildDate>
+    <lastBuildDate>Thu, 16 Oct 2025 14:57:00 +0800</lastBuildDate>
     <atom:link href="https://da1sy-petals.vercel.app/documents/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>PyG Batching</title>
+      <link>https://da1sy-petals.vercel.app/documents/pyg-batching/</link>
+      <pubDate>Thu, 16 Oct 2025 14:57:00 +0800</pubDate>
+      <guid>https://da1sy-petals.vercel.app/documents/pyg-batching/</guid>
+      <description>&lt;p&gt;内容来自&lt;a href=&#34;https://pytorch-geometric.readthedocs.io/en/latest/advanced/batching.html&#34;&gt;这里&lt;/a&gt;.&lt;/p&gt;&#xA;&lt;p&gt;高级 Mini-Batching（Mini-Batching）&lt;/p&gt;&#xA;&lt;p&gt;创建 mini-batching 对于让深度学习模型的训练扩展到海量数据至关重要。mini-batch 不会一个接一个地处理样本，而是将一组样本分组到一个统一的表示中，从而可以高效地并行处理。在图像或语言领域，这个过程通常是通过将每个样本重新缩放或 padding 到一组等大小的形状来实现的，然后将样本分组到一个额外的维度中。这个维度的长度等于分组在一个 mini-batch 中的样本数量，通常称为 batch_size。&lt;/p&gt;&#xA;&lt;p&gt;由于图是一种最通用的数据结构，可以包含任意数量的节点（nodes）或边（edges），因此上述两种方法要么不可行，要么可能导致大量不必要的内存消耗。在 PyG 中，我们采用另一种方法来实现对大量样本的并行化。在这里，adjacency matrices 以对角线方式堆叠（创建一个包含多个孤立子图的巨大图），并且节点和目标特征（features）简单地沿节点维度进行拼接，即：&lt;/p&gt;&#xA;$$&#xA;A = \begin{bmatrix} A_1 &amp; &amp; \\ &amp; \ddots &amp; \\ &amp; &amp; A_n \end{bmatrix}, \quad&#xA;X = \begin{bmatrix} X_1 \\ \vdots \\ X_n \end{bmatrix}, \quad&#xA;Y = \begin{bmatrix} Y_1 \\ \vdots \\ Y_n \end{bmatrix}.&#xA;$$&lt;p&gt;与其他 batching 过程相比，此过程具有一些关键优势：&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;依赖于 message passing scheme 的 GNN operators 不需要修改，因为属于不同图的两个节点之间仍然不能交换消息。&lt;/li&gt;&#xA;&lt;li&gt;没有计算或内存开销。例如，此 batching 过程完全不需要对节点或边的特征进行任何 padding。请注意，adjacency matrices 没有额外的内存开销，因为它们以稀疏（sparse）方式保存，只包含非零项，即边。&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;PyG 借助 &lt;code&gt;torch_geometric.loader.DataLoader&lt;/code&gt; 类自动将多个图 batch 成一个巨大的图。在内部，&lt;code&gt;DataLoader&lt;/code&gt; 只是一个常规的 PyTorch torch.utils.data.DataLoader，它重写了其 &lt;code&gt;collate()&lt;/code&gt; 功能，即定义如何将样本列表分组在一起。因此，所有可以传递给 PyTorch DataLoader 的参数也可以传递给 PyG &lt;code&gt;DataLoader&lt;/code&gt;，例如 worker 数量 &lt;code&gt;num_workers&lt;/code&gt;。&lt;/p&gt;</description>
+    </item>
     <item>
       <title>我的萝卜头像</title>
       <link>https://da1sy-petals.vercel.app/documents/carrot/</link>

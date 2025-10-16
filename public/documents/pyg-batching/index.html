@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+
+<head>
+  
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+    MathJax = {
+        tex: {
+            displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+            inlineMath: [['$', '$']]                  
+        },
+        loader: {
+            load: ['ui/safe']
+        },
+    };
+</script>
+  
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>PyG Batching | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sy-petals.vercel.app/documents/pyg-batching/">
+  <meta property="og:site_name" content="Da1sypetals">
+  <meta property="og:title" content="PyG Batching">
+  <meta property="og:description" content="内容来自这里.
+高级 Mini-Batching（Mini-Batching）
+创建 mini-batching 对于让深度学习模型的训练扩展到海量数据至关重要。mini-batch 不会一个接一个地处理样本，而是将一组样本分组到一个统一的表示中，从而可以高效地并行处理。在图像或语言领域，这个过程通常是通过将每个样本重新缩放或 padding 到一组等大小的形状来实现的，然后将样本分组到一个额外的维度中。这个维度的长度等于分组在一个 mini-batch 中的样本数量，通常称为 batch_size。
+由于图是一种最通用的数据结构，可以包含任意数量的节点（nodes）或边（edges），因此上述两种方法要么不可行，要么可能导致大量不必要的内存消耗。在 PyG 中，我们采用另一种方法来实现对大量样本的并行化。在这里，adjacency matrices 以对角线方式堆叠（创建一个包含多个孤立子图的巨大图），并且节点和目标特征（features）简单地沿节点维度进行拼接，即：
+$$ A = \begin{bmatrix} A_1 &amp; &amp; \\ &amp; \ddots &amp; \\ &amp; &amp; A_n \end{bmatrix}, \quad X = \begin{bmatrix} X_1 \\ \vdots \\ X_n \end{bmatrix}, \quad Y = \begin{bmatrix} Y_1 \\ \vdots \\ Y_n \end{bmatrix}. $$与其他 batching 过程相比，此过程具有一些关键优势：
+依赖于 message passing scheme 的 GNN operators 不需要修改，因为属于不同图的两个节点之间仍然不能交换消息。 没有计算或内存开销。例如，此 batching 过程完全不需要对节点或边的特征进行任何 padding。请注意，adjacency matrices 没有额外的内存开销，因为它们以稀疏（sparse）方式保存，只包含非零项，即边。 PyG 借助 torch_geometric.loader.DataLoader 类自动将多个图 batch 成一个巨大的图。在内部，DataLoader 只是一个常规的 PyTorch torch.utils.data.DataLoader，它重写了其 collate() 功能，即定义如何将样本列表分组在一起。因此，所有可以传递给 PyTorch DataLoader 的参数也可以传递给 PyG DataLoader，例如 worker 数量 num_workers。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="documents">
+    <meta property="article:published_time" content="2025-10-16T14:57:00+08:00">
+    <meta property="article:modified_time" content="2025-10-16T14:57:00+08:00">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="PyG Batching">
+  <meta name="twitter:description" content="内容来自这里.
+高级 Mini-Batching（Mini-Batching）
+创建 mini-batching 对于让深度学习模型的训练扩展到海量数据至关重要。mini-batch 不会一个接一个地处理样本，而是将一组样本分组到一个统一的表示中，从而可以高效地并行处理。在图像或语言领域，这个过程通常是通过将每个样本重新缩放或 padding 到一组等大小的形状来实现的，然后将样本分组到一个额外的维度中。这个维度的长度等于分组在一个 mini-batch 中的样本数量，通常称为 batch_size。
+由于图是一种最通用的数据结构，可以包含任意数量的节点（nodes）或边（edges），因此上述两种方法要么不可行，要么可能导致大量不必要的内存消耗。在 PyG 中，我们采用另一种方法来实现对大量样本的并行化。在这里，adjacency matrices 以对角线方式堆叠（创建一个包含多个孤立子图的巨大图），并且节点和目标特征（features）简单地沿节点维度进行拼接，即：
+$$ A = \begin{bmatrix} A_1 &amp; &amp; \\ &amp; \ddots &amp; \\ &amp; &amp; A_n \end{bmatrix}, \quad X = \begin{bmatrix} X_1 \\ \vdots \\ X_n \end{bmatrix}, \quad Y = \begin{bmatrix} Y_1 \\ \vdots \\ Y_n \end{bmatrix}. $$与其他 batching 过程相比，此过程具有一些关键优势：
+依赖于 message passing scheme 的 GNN operators 不需要修改，因为属于不同图的两个节点之间仍然不能交换消息。 没有计算或内存开销。例如，此 batching 过程完全不需要对节点或边的特征进行任何 padding。请注意，adjacency matrices 没有额外的内存开销，因为它们以稀疏（sparse）方式保存，只包含非零项，即边。 PyG 借助 torch_geometric.loader.DataLoader 类自动将多个图 batch 成一个巨大的图。在内部，DataLoader 只是一个常规的 PyTorch torch.utils.data.DataLoader，它重写了其 collate() 功能，即定义如何将样本列表分组在一起。因此，所有可以传递给 PyTorch DataLoader 的参数也可以传递给 PyG DataLoader，例如 worker 数量 num_workers。">
+
+      <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
+
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+<script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="notransition">
+  <div id="container">
+    <header id="main-header"><div role="navigation" aria-label="Main">
+  <div class="nav-left">
+    <a href="https://da1sy-petals.vercel.app/" style="color: inherit;">Da1sypetals</a>
+  </div>
+  <div class="nav-right">
+    <div style="position:absolute;width:0px;height:0px;">
+      <div id="nav-dropdown-menu" class="hidden" href="#">
+    <div class="nav-item">
+      <a href="/posts/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    </div>
+    <a id="nav-dropdown-button" href="#"><svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+    <div id="nav-menu">
+    <div class="nav-item">
+      <a href="/posts/"
+      >文章</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    <a id="theme-switcher" href="#">
+<svg class="light-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5001M17.6859 17.69L18.5 18.5001M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+<svg class="dark-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.32031 11.6835C3.32031 16.6541 7.34975 20.6835 12.3203 20.6835C16.1075 20.6835 19.3483 18.3443 20.6768 15.032C19.6402 15.4486 18.5059 15.6834 17.3203 15.6834C12.3497 15.6834 8.32031 11.654 8.32031 6.68342C8.32031 5.50338 8.55165 4.36259 8.96453 3.32996C5.65605 4.66028 3.32031 7.89912 3.32031 11.6835Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+  </div>
+</div></header>
+    <div class="flex grow">
+      <div id="main-pane">
+        <main id="main-content"><div class="single-header">
+<ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/">
+        <span itemprop="name">Home</span>
+      </a>
+      <meta itemprop="position" content='1' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/documents/">
+        <span itemprop="name">Documents</span>
+      </a>
+      <meta itemprop="position" content='2' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+</ol>
+<h1>PyG Batching</h1><time class="dim" datetime="2025-10-16T14:57:00&#43;08:00">October 16, 2025</time></div>
+  <section class="page-section"><p>内容来自<a href="https://pytorch-geometric.readthedocs.io/en/latest/advanced/batching.html">这里</a>.</p>
+<p>高级 Mini-Batching（Mini-Batching）</p>
+<p>创建 mini-batching 对于让深度学习模型的训练扩展到海量数据至关重要。mini-batch 不会一个接一个地处理样本，而是将一组样本分组到一个统一的表示中，从而可以高效地并行处理。在图像或语言领域，这个过程通常是通过将每个样本重新缩放或 padding 到一组等大小的形状来实现的，然后将样本分组到一个额外的维度中。这个维度的长度等于分组在一个 mini-batch 中的样本数量，通常称为 batch_size。</p>
+<p>由于图是一种最通用的数据结构，可以包含任意数量的节点（nodes）或边（edges），因此上述两种方法要么不可行，要么可能导致大量不必要的内存消耗。在 PyG 中，我们采用另一种方法来实现对大量样本的并行化。在这里，adjacency matrices 以对角线方式堆叠（创建一个包含多个孤立子图的巨大图），并且节点和目标特征（features）简单地沿节点维度进行拼接，即：</p>
+$$
+A = \begin{bmatrix} A_1 & & \\ & \ddots & \\ & & A_n \end{bmatrix}, \quad
+X = \begin{bmatrix} X_1 \\ \vdots \\ X_n \end{bmatrix}, \quad
+Y = \begin{bmatrix} Y_1 \\ \vdots \\ Y_n \end{bmatrix}.
+$$<p>与其他 batching 过程相比，此过程具有一些关键优势：</p>
+<ul>
+<li>依赖于 message passing scheme 的 GNN operators 不需要修改，因为属于不同图的两个节点之间仍然不能交换消息。</li>
+<li>没有计算或内存开销。例如，此 batching 过程完全不需要对节点或边的特征进行任何 padding。请注意，adjacency matrices 没有额外的内存开销，因为它们以稀疏（sparse）方式保存，只包含非零项，即边。</li>
+</ul>
+<p>PyG 借助 <code>torch_geometric.loader.DataLoader</code> 类自动将多个图 batch 成一个巨大的图。在内部，<code>DataLoader</code> 只是一个常规的 PyTorch torch.utils.data.DataLoader，它重写了其 <code>collate()</code> 功能，即定义如何将样本列表分组在一起。因此，所有可以传递给 PyTorch DataLoader 的参数也可以传递给 PyG <code>DataLoader</code>，例如 worker 数量 <code>num_workers</code>。</p>
+<p>在其最一般的形式中，PyG <code>DataLoader</code> 会自动将 <code>edge_index</code> tensor 增加到当前处理图之前已聚合（collated）的所有图的累积节点数，并将 <code>edge_index</code> tensors（形状为 <code>[2, num_edges]</code>）在第二个维度上进行拼接。<code>face</code> tensors，即 mesh 中的 face 索引，也是如此。所有其他 tensors 将仅在第一个维度上进行拼接，而不会进一步增加其值。</p>
+<p>然而，存在一些特殊用例（如下所述），用户需要根据自己的需求主动修改此行为。PyG 允许通过重写 <code>torch_geometric.data.Data.__inc__()</code> 和 <code>torch_geometric.data.Data.__cat_dim__()</code> 功能来修改底层的 batching 过程。在没有任何修改的情况下，它们在 <code>Data</code> 类中定义如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">__inc__</span>(self, key, value, <span style="color:#f92672">*</span>args, kwargs):
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#39;index&#39;</span> <span style="color:#f92672">in</span> key:
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> self<span style="color:#f92672">.</span>num_nodes
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">else</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">__cat_dim__</span>(self, key, value, <span style="color:#f92672">*</span>args, kwargs):
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#39;index&#39;</span> <span style="color:#f92672">in</span> key:
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">else</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>
+</span></span></code></pre></div><p>我们可以看到 <code>__inc__()</code> 定义了两个连续图属性之间的增量计数。默认情况下，只要属性名称包含子字符串 <code>index</code>（出于历史原因），PyG 就会将属性增加节点数量 <code>num_nodes</code>，这对于 <code>edge_index</code> 或 <code>node_index</code> 等属性非常方便。但是请注意，这可能会导致属性名称包含子字符串 <code>index</code> 但不应增加的属性出现意外行为。为确保正确，最佳实践是始终仔细检查 batching 的输出。此外，<code>__cat_dim__()</code> 定义了相同属性的图 tensors 应在哪个维度上进行拼接。这两个函数都会为存储在 <code>Data</code> 类中的每个属性调用，并将它们的特定 <code>key</code> 和 <code>value</code> 项作为参数传递。</p>
+<p>接下来，我们将介绍一些可能绝对需要修改 <code>__inc__()</code> 和 <code>__cat_dim__()</code> 的用例。</p>
+<h3 id="图对pairs-of-graphs">图对（Pairs of Graphs）</h3>
+<p>如果您想在单个 <code>Data</code> object 中存储多个图，例如用于图匹配（graph matching）等应用，则需要确保所有这些图的 batching 行为正确。例如，考虑在 <code>Data</code> 中存储两个图：一个源图 $G_s$ 和一个目标图 $G_t$，例如：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> torch_geometric.data <span style="color:#f92672">import</span> Data
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">PairData</span>(Data):
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">pass</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>data <span style="color:#f92672">=</span> PairData(x_s<span style="color:#f92672">=</span>x_s, edge_index_s<span style="color:#f92672">=</span>edge_index_s,  <span style="color:#75715e"># Source graph.</span>
+</span></span><span style="display:flex;"><span>                x_t<span style="color:#f92672">=</span>x_t, edge_index_t<span style="color:#f92672">=</span>edge_index_t)  <span style="color:#75715e"># Target graph.</span>
+</span></span></code></pre></div><p>在这种情况下，<code>edge_index_s</code> 应该增加源图 $G_s$ 中的节点数，例如 <code>x_s.size(0)</code>，而 <code>edge_index_t</code> 应该增加目标图 $G_t$ 中的节点数，例如 <code>x_t.size(0)</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">PairData</span>(Data):
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">__inc__</span>(self, key, value, <span style="color:#f92672">*</span>args, kwargs):
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> key <span style="color:#f92672">==</span> <span style="color:#e6db74">&#39;edge_index_s&#39;</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> self<span style="color:#f92672">.</span>x_s<span style="color:#f92672">.</span>size(<span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> key <span style="color:#f92672">==</span> <span style="color:#e6db74">&#39;edge_index_t&#39;</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> self<span style="color:#f92672">.</span>x_t<span style="color:#f92672">.</span>size(<span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> super()<span style="color:#f92672">.</span>__inc__(key, value, <span style="color:#f92672">*</span>args, kwargs)
+</span></span></code></pre></div><p>我们可以通过设置一个简单的测试脚本来测试我们的 <code>PairData</code> batching 行为：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> torch_geometric.loader <span style="color:#f92672">import</span> DataLoader
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> torch
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>x_s <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>randn(<span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">16</span>)  <span style="color:#75715e"># 5 nodes.</span>
+</span></span><span style="display:flex;"><span>edge_index_s <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>tensor([
+</span></span><span style="display:flex;"><span>    [<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>],
+</span></span><span style="display:flex;"><span>    [<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>],
+</span></span><span style="display:flex;"><span>])
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>x_t <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>randn(<span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">16</span>)  <span style="color:#75715e"># 4 nodes.</span>
+</span></span><span style="display:flex;"><span>edge_index_t <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>tensor([
+</span></span><span style="display:flex;"><span>    [<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>],
+</span></span><span style="display:flex;"><span>    [<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>],
+</span></span><span style="display:flex;"><span>])
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>data <span style="color:#f92672">=</span> PairData(x_s<span style="color:#f92672">=</span>x_s, edge_index_s<span style="color:#f92672">=</span>edge_index_s,
+</span></span><span style="display:flex;"><span>                x_t<span style="color:#f92672">=</span>x_t, edge_index_t<span style="color:#f92672">=</span>edge_index_t)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>data_list <span style="color:#f92672">=</span> [data, data]
+</span></span><span style="display:flex;"><span>loader <span style="color:#f92672">=</span> DataLoader(data_list, batch_size<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span>)
+</span></span><span style="display:flex;"><span>batch <span style="color:#f92672">=</span> next(iter(loader))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>print(batch)
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># &gt;&gt;&gt; PairDataBatch(x_s=[10, 16], edge_index_s=[2, 8], x_t=[8, 16], edge_index_t=[2, 6])</span>
+</span></span><span style="display:flex;"><span>print(batch<span style="color:#f92672">.</span>edge_index_s)
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># &gt;&gt;&gt; tensor([[0, 0, 0, 0, 5, 5, 5, 5],</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#             [1, 2, 3, 4, 6, 7, 8, 9]])</span>
+</span></span><span style="display:flex;"><span>print(batch<span style="color:#f92672">.</span>edge_index_t)
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># &gt;&gt;&gt; tensor([[0, 0, 0, 4, 4, 4],</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#             [1, 2, 3, 5, 6, 7]])</span>
+</span></span></code></pre></div><p>到目前为止一切顺利！即使 $G_s$ 和 $G_t$ 使用不同数量的节点，<code>edge_index_s</code> 和 <code>edge_index_t</code> 也能正确地 batch 到一起。然而，<code>batch</code> 属性（将每个节点映射到其各自的图）丢失了，因为 PyG 无法识别 <code>PairData</code> object 中的实际图。这就是 <code>DataLoader</code> 的 <code>follow_batch</code> 参数发挥作用的地方。在这里，我们可以指定要为哪些属性维护 batch 信息：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>loader <span style="color:#f92672">=</span> DataLoader(data_list, batch_size<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span>, follow_batch<span style="color:#f92672">=</span>[<span style="color:#e6db74">&#39;x_s&#39;</span>, <span style="color:#e6db74">&#39;x_t&#39;</span>])
+</span></span><span style="display:flex;"><span>batch <span style="color:#f92672">=</span> next(iter(loader))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>print(batch)
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># &gt;&gt;&gt; PairDataBatch(x_s=[10, 16], edge_index_s=[2, 8], x_s_batch=[10], x_t=[8, 16], edge_index_t=[2, 6], x_t_batch=[8])</span>
+</span></span><span style="display:flex;"><span>print(batch<span style="color:#f92672">.</span>x_s_batch)
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># &gt;&gt;&gt; tensor([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])</span>
+</span></span><span style="display:flex;"><span>print(batch<span style="color:#f92672">.</span>x_t_batch)
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># &gt;&gt;&gt; tensor([0, 0, 0, 0, 1, 1, 1, 1])</span>
+</span></span></code></pre></div><p>正如所见，<code>follow_batch=['x_s', 'x_t']</code> 现在成功地为节点特征 <code>x_s</code> 和 <code>x_t</code> 分别创建了分配向量 <code>x_s_batch</code> 和 <code>x_t_batch</code>。现在可以使用这些信息在单个 <code>Batch</code> object 中对多个图执行 reduce 操作，例如 global pooling。</p>
+<h3 id="二分图bipartite-graphs">二分图（Bipartite Graphs）</h3>
+<p>bipartite graph 的 adjacency matrix 定义了两种不同节点类型之间的关系。通常，每种节点类型的节点数量不必匹配，从而导致一个形状为 $A \in \{0, 1\}^{N \times M}$ 且可能 $N \ne M$ 的非方阵 adjacency matrix。在 bipartite graphs 的 mini-batching 过程中，<code>edge_index</code> 中边的源节点应以不同于 <code>edge_index</code> 中边的目标节点的方式增加。为了实现这一点，考虑一个介于两种节点类型之间的 bipartite graph，分别具有相应的节点特征 <code>x_s</code> 和 <code>x_t</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> torch_geometric.data <span style="color:#f92672">import</span> Data
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">BipartiteData</span>(Data):
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">pass</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>data <span style="color:#f92672">=</span> BipartiteData(x_s<span style="color:#f92672">=</span>x_s, x_t<span style="color:#f92672">=</span>x_t, edge_index<span style="color:#f92672">=</span>edge_index)
+</span></span></code></pre></div><p>对于 bipartite graphs 中正确的 mini-batching 过程，我们需要告诉 PyG 它应该独立地增加 <code>edge_index</code> 中边的源节点和目标节点：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">BipartiteData</span>(Data):
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">__inc__</span>(self, key, value, <span style="color:#f92672">*</span>args, kwargs):
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> key <span style="color:#f92672">==</span> <span style="color:#e6db74">&#39;edge_index&#39;</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> torch<span style="color:#f92672">.</span>tensor([[self<span style="color:#f92672">.</span>x_s<span style="color:#f92672">.</span>size(<span style="color:#ae81ff">0</span>)], [self<span style="color:#f92672">.</span>x_t<span style="color:#f92672">.</span>size(<span style="color:#ae81ff">0</span>)]])
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> super()<span style="color:#f92672">.</span>__inc__(key, value, <span style="color:#f92672">*</span>args, kwargs)
+</span></span></code></pre></div><p>在这里，<code>edge_index[0]</code>（边的源节点）增加了 <code>x_s.size(0)</code>，而 <code>edge_index[1]</code>（边的目标节点）增加了 <code>x_t.size(0)</code>。我们可以再次通过运行一个简单的测试脚本来测试我们的实现：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> torch_geometric.loader <span style="color:#f92672">import</span> DataLoader
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> torch
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>x_s <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>randn(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">16</span>)  <span style="color:#75715e"># 2 nodes.</span>
+</span></span><span style="display:flex;"><span>x_t <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>randn(<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">16</span>)  <span style="color:#75715e"># 3 nodes.</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>edge_index <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>tensor([
+</span></span><span style="display:flex;"><span>    [<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span>],
+</span></span><span style="display:flex;"><span>    [<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>],
+</span></span><span style="display:flex;"><span>])
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>data <span style="color:#f92672">=</span> BipartiteData(x_s<span style="color:#f92672">=</span>x_s, x_t<span style="color:#f92672">=</span>x_t, edge_index<span style="color:#f92672">=</span>edge_index)
+</span></span><span style="display:flex;"><span>data_list <span style="color:#f92672">=</span> [data, data]
+</span></span><span style="display:flex;"><span>loader <span style="color:#f92672">=</span> DataLoader(data_list, batch_size<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span>)
+</span></span><span style="display:flex;"><span>batch <span style="color:#f92672">=</span> next(iter(loader))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>print(batch)
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># &gt;&gt;&gt; BipartiteDataBatch(x_s=[4, 16], x_t=[6, 16], edge_index=[2, 8])</span>
+</span></span><span style="display:flex;"><span>print(batch<span style="color:#f92672">.</span>edge_index)
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># &gt;&gt;&gt; tensor([[0, 0, 1, 1, 2, 2, 3, 3],</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#             [0, 1, 1, 2, 3, 4, 4, 5]])</span>
+</span></span></code></pre></div><p>再次，这正是我们想要的行为！</p>
+<h3 id="沿新维度进行-batchingbatching-along-new-dimensions">沿新维度进行 Batching（Batching Along New Dimensions）</h3>
+<p>有时，<code>Data object</code> 的属性应该通过获得一个新的 batch dimension 来进行 batching（如经典 mini-batching 中那样），例如对于图级别的属性或目标。具体来说，形状为 <code>[num_features]</code> 的属性列表应作为 <code>[num_examples, num_features]</code> 返回，而不是 <code>[num_examples * num_features]</code>。PyG 通过在 <code>__cat_dim__()</code> 中返回一个 <code>None</code> 的拼接维度来实现这一点：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> torch_geometric.data <span style="color:#f92672">import</span> Data
+</span></span><span style="display:flex;"><span><span style="color:#f92672">from</span> torch_geometric.loader <span style="color:#f92672">import</span> DataLoader
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MyData</span>(Data):
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">__cat_dim__</span>(self, key, value, <span style="color:#f92672">*</span>args, kwargs):
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> key <span style="color:#f92672">==</span> <span style="color:#e6db74">&#39;foo&#39;</span>:
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">None</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> super()<span style="color:#f92672">.</span>__cat_dim__(key, value, <span style="color:#f92672">*</span>args, kwargs)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>edge_index <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>tensor([
+</span></span><span style="display:flex;"><span>    [<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>],
+</span></span><span style="display:flex;"><span>    [<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>],
+</span></span><span style="display:flex;"><span>])
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>foo <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>randn(<span style="color:#ae81ff">16</span>)
+</span></span><span style="display:flex;"><span>data <span style="color:#f92672">=</span> MyData(num_nodes<span style="color:#f92672">=</span><span style="color:#ae81ff">3</span>, edge_index<span style="color:#f92672">=</span>edge_index, foo<span style="color:#f92672">=</span>foo)
+</span></span><span style="display:flex;"><span>data_list <span style="color:#f92672">=</span> [data, data]
+</span></span><span style="display:flex;"><span>loader <span style="color:#f92672">=</span> DataLoader(data_list, batch_size<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span>)
+</span></span><span style="display:flex;"><span>batch <span style="color:#f92672">=</span> next(iter(loader))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>print(batch)
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># &gt;&gt;&gt; MyDataBatch(num_nodes=6, edge_index=[2, 8], foo=[2, 16])</span>
+</span></span></code></pre></div><p>如预期，<code>batch.foo</code> 现在由两个维度描述：batch dimension 和 feature dimension。</p>
+</section></main>
+        <footer id="main-footer"><div class="footer">
+  <a href="#">Scroll to Top</a>
+  <div class="footer-copyright">
+    <div class="dim">© 2025 Da1sypetals</div>
+    <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
+  </div>
+</div>
+</footer>
+      </div><aside id="side-pane" class="side-sticky"><div class="side-details">
+    <span>695 words</span>
+    <span>9 - 11 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#图对pairs-of-graphs">图对（Pairs of Graphs）</a></li>
+        <li><a href="#二分图bipartite-graphs">二分图（Bipartite Graphs）</a></li>
+        <li><a href="#沿新维度进行-batchingbatching-along-new-dimensions">沿新维度进行 Batching（Batching Along New Dimensions）</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></aside></div>
+  </div>
+</body>
+
+</html>
