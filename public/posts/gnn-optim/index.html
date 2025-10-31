@@ -26,9 +26,9 @@
   <meta property="og:description" content="注：本文用LLM辅助写作的地方主要在：我认为LLM比我理解的更好的地方，会用LLM的表述代替。
 问题设定 需要计算Graph Transformer中的Attention。在此我们忽略multihead-attention，考虑基本的single-head attention.
 此外，我们的attention mask(邻接矩阵A)是非结构化稀疏的。如果你的attention mask是结构化稀疏的，比如blockwise等可以被代码表示的稀疏pattern，你应该使用flash attention的varlen变体, 或者flex attention等attention编译器。
-Notation n: 图节点数，规模为 1k~1Mnnz: 图边数（稀疏矩阵非零元素数，Num NonZero）规模为10n~1000nq, k, v: (n, d)A: (n, n), binary, 高度稀疏 计算公式 softmax((q @ k.transpose()) * A) @ V 其中，@ 表示矩阵乘法，*表示element-wise乘法。
+Notation n: 图节点数，规模为 1k~1M nnz: 图边数（稀疏矩阵非零元素数，Num NonZero） 规模为10n~1000n q, k, v: (n, d) A: (n, n), binary, 高度稀疏 计算公式 softmax((q @ k.transpose()) * A) @ V 其中，@ 表示矩阵乘法，*表示element-wise乘法。
 实现：naive version 最简单的就是把A给materialize出来，然后用作attention_mask。问题是A是$n^2$的，显存不够用。 A用COO方式存储，大小(2,nnz)，然后先把每条边的qk-pair取出来得到(nnz,d)，然后再做reduce和scatter, 和V相乘。 Reformulate 我们引入三个算子:
-SDDMM (Sampled Dense-Dense MatMul) A (m, k), B (k, n), 稠密 M (n, n)， 稀疏 SDDMM(A, B, M) 定义为： for i, j in product(range(n), range(n)):if M[i, j] != 0:out[i, j] = dot(A[i,:], B[:,j])else:out[i, j] = 0 Sparse Softmax: 在稀疏矩阵上按行softmax SpMM：sparse A @ dense B 此时我们的计算公式就可以重新写成:">
+SDDMM (Sampled Dense-Dense MatMul) A (m, k), B (k, n), 稠密 M (n, n)， 稀疏 SDDMM(A, B, M) 定义为： for i, j in product(range(n), range(n)): if M[i, j] != 0: out[i, j] = dot(A[i,:], B[:,j]) else: out[i, j] = 0 Sparse Softmax: 在稀疏矩阵上按行softmax SpMM：sparse A @ dense B 此时我们的计算公式就可以重新写成:">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:type" content="article">
     <meta property="article:section" content="posts">
@@ -42,14 +42,14 @@ SDDMM (Sampled Dense-Dense MatMul) A (m, k), B (k, n), 稠密 M (n, n)， 稀疏
   <meta name="twitter:description" content="注：本文用LLM辅助写作的地方主要在：我认为LLM比我理解的更好的地方，会用LLM的表述代替。
 问题设定 需要计算Graph Transformer中的Attention。在此我们忽略multihead-attention，考虑基本的single-head attention.
 此外，我们的attention mask(邻接矩阵A)是非结构化稀疏的。如果你的attention mask是结构化稀疏的，比如blockwise等可以被代码表示的稀疏pattern，你应该使用flash attention的varlen变体, 或者flex attention等attention编译器。
-Notation n: 图节点数，规模为 1k~1Mnnz: 图边数（稀疏矩阵非零元素数，Num NonZero）规模为10n~1000nq, k, v: (n, d)A: (n, n), binary, 高度稀疏 计算公式 softmax((q @ k.transpose()) * A) @ V 其中，@ 表示矩阵乘法，*表示element-wise乘法。
+Notation n: 图节点数，规模为 1k~1M nnz: 图边数（稀疏矩阵非零元素数，Num NonZero） 规模为10n~1000n q, k, v: (n, d) A: (n, n), binary, 高度稀疏 计算公式 softmax((q @ k.transpose()) * A) @ V 其中，@ 表示矩阵乘法，*表示element-wise乘法。
 实现：naive version 最简单的就是把A给materialize出来，然后用作attention_mask。问题是A是$n^2$的，显存不够用。 A用COO方式存储，大小(2,nnz)，然后先把每条边的qk-pair取出来得到(nnz,d)，然后再做reduce和scatter, 和V相乘。 Reformulate 我们引入三个算子:
-SDDMM (Sampled Dense-Dense MatMul) A (m, k), B (k, n), 稠密 M (n, n)， 稀疏 SDDMM(A, B, M) 定义为： for i, j in product(range(n), range(n)):if M[i, j] != 0:out[i, j] = dot(A[i,:], B[:,j])else:out[i, j] = 0 Sparse Softmax: 在稀疏矩阵上按行softmax SpMM：sparse A @ dense B 此时我们的计算公式就可以重新写成:">
+SDDMM (Sampled Dense-Dense MatMul) A (m, k), B (k, n), 稠密 M (n, n)， 稀疏 SDDMM(A, B, M) 定义为： for i, j in product(range(n), range(n)): if M[i, j] != 0: out[i, j] = dot(A[i,:], B[:,j]) else: out[i, j] = 0 Sparse Softmax: 在稀疏矩阵上按行softmax SpMM：sparse A @ dense B 此时我们的计算公式就可以重新写成:">
 
       <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
-      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.d95a325399a05b50fe47dcf35b8229b8a2a014fcee5435cfb28204c6ac335fc5.css" integrity="sha256-2VoyU5mgW1D&#43;R9zzW4IpuKKgFPzuVDXPsoIExqwzX8U=" crossorigin="anonymous">
 
-      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.64594b125f7b78bdf4fa8316955922bbebb1cd6baef3f16654bfca20309f18f8.js" integrity="sha256-ZFlLEl97eL30&#43;oMWlVkiu&#43;uxzWuu8/FmVL/KIDCfGPg="></script>
 <script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
