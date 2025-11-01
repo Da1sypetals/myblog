@@ -62,6 +62,8 @@ desc.store([moffset, noffset], tl.abs(value))
 
 ## 例子
 
+### 例1
+
 请一行代码一行代码读过去，你一定能看懂的。
 
 ```python
@@ -87,3 +89,5 @@ M_BLOCK, N_BLOCK = 32, 32
 grid = (M / M_BLOCK, N / N_BLOCK)
 inplace_abs[grid](x, M, N, M_BLOCK, N_BLOCK)
 ```
+
+### [例2：Flash Attention](https://github.com/Da1sypetals/Triton-TD-Examples/blob/main/attention/td_flash.py)
