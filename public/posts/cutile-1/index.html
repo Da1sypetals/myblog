@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+
+<head>
+  
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+    MathJax = {
+        tex: {
+            displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+            inlineMath: [['$', '$']]                  
+        },
+        loader: {
+            load: ['ui/safe']
+        },
+    };
+</script>
+  
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>cuTile 历险记，第1集：编译 | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sy-petals.vercel.app/posts/cutile-1/">
+  <meta property="og:site_name" content="Da1sypetals">
+  <meta property="og:title" content="cuTile 历险记，第1集：编译">
+  <meta property="og:description" content="原本第一集应该是语法和随便找个bmm，flash-attn2的kernel来实现一下并且进行benchmark的，因为所以gpu编程博客都是这样的。
+Disclaimer: 我不了解编译器，以下所有内容基于自己的理解，和编译器术语出现偏差乃至出错之处敬请指出
+nv官网提示我们，需要cuda driver一个较高的版本，cuda toolkit 13.1（tileiras汇编器），以及blackwell以上的GPU（目前）才能使用cutile。但是我没有b200或者50系（cc12）的游戏卡，我手上能碰到的机器刚好截至hopper，所以我并没有办法编译执行cutile程序，失去了尝鲜的机会。
+但是有了cutile-python这个python端，下降到mlir之前的中间代码还是可以了解一下的。
+探索过程 屏蔽C库 我们发现报错发生在src/cuda/tile/_cext.pyi，提示驱动版本过低。vibe coding启动，我们让LLM把_cext这个cpp库用一个mock进行替代，骗过编译器；然后包装了一个CutileIrDump类，通过cuda.tile._compile._get_final_ir函数可以获取到cuTile IR （不是TileIR）。有两种格式，人类可读的和binary的。
+了解编译流程，我们主要从cuda.tile._compile._get_final_ir入手。
+def _get_final_ir(pyfunc, args, tile_context) -&gt; ir.Function: ir_ctx = ir.IRContext() func_ir: ir.Function = get_function_ir(pyfunc, ir_ctx, call_site=None) ir_args = func_ir.bind_arguments(args, get_constant_annotations(pyfunc)) func_ir = infer_types_pass(func_ir, ir_args, pyfunc, tile_context) # -------- 上方：语法、类型检查 ---------- # -------- 下方：（部分）机器无关优化 ---------- eliminate_assign_ops(func_ir) # &lt;-- breakpoint here dead_code_elimination_pass(func_ir) if not CUDA_TILE_TESTING_DISABLE_TOKEN_ORDER: alias_result = alias_analysis_pass(func_ir) token_order_pass(func_ir, alias_result) rewrite_patterns(func_ir) # Loop invariant code motion needs to run after the token order pass. # Otherwise, it may incorrectly hoist load operations out of the loop. hoist_loop_invariants(func_ir) split_loops(func_ir.root_block) dead_code_elimination_pass(func_ir) return func_ir 大概看一下代码：">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-12-06T16:30:12+08:00">
+    <meta property="article:modified_time" content="2025-12-06T16:30:12+08:00">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="cuTile 历险记，第1集：编译">
+  <meta name="twitter:description" content="原本第一集应该是语法和随便找个bmm，flash-attn2的kernel来实现一下并且进行benchmark的，因为所以gpu编程博客都是这样的。
+Disclaimer: 我不了解编译器，以下所有内容基于自己的理解，和编译器术语出现偏差乃至出错之处敬请指出
+nv官网提示我们，需要cuda driver一个较高的版本，cuda toolkit 13.1（tileiras汇编器），以及blackwell以上的GPU（目前）才能使用cutile。但是我没有b200或者50系（cc12）的游戏卡，我手上能碰到的机器刚好截至hopper，所以我并没有办法编译执行cutile程序，失去了尝鲜的机会。
+但是有了cutile-python这个python端，下降到mlir之前的中间代码还是可以了解一下的。
+探索过程 屏蔽C库 我们发现报错发生在src/cuda/tile/_cext.pyi，提示驱动版本过低。vibe coding启动，我们让LLM把_cext这个cpp库用一个mock进行替代，骗过编译器；然后包装了一个CutileIrDump类，通过cuda.tile._compile._get_final_ir函数可以获取到cuTile IR （不是TileIR）。有两种格式，人类可读的和binary的。
+了解编译流程，我们主要从cuda.tile._compile._get_final_ir入手。
+def _get_final_ir(pyfunc, args, tile_context) -&gt; ir.Function: ir_ctx = ir.IRContext() func_ir: ir.Function = get_function_ir(pyfunc, ir_ctx, call_site=None) ir_args = func_ir.bind_arguments(args, get_constant_annotations(pyfunc)) func_ir = infer_types_pass(func_ir, ir_args, pyfunc, tile_context) # -------- 上方：语法、类型检查 ---------- # -------- 下方：（部分）机器无关优化 ---------- eliminate_assign_ops(func_ir) # &lt;-- breakpoint here dead_code_elimination_pass(func_ir) if not CUDA_TILE_TESTING_DISABLE_TOKEN_ORDER: alias_result = alias_analysis_pass(func_ir) token_order_pass(func_ir, alias_result) rewrite_patterns(func_ir) # Loop invariant code motion needs to run after the token order pass. # Otherwise, it may incorrectly hoist load operations out of the loop. hoist_loop_invariants(func_ir) split_loops(func_ir.root_block) dead_code_elimination_pass(func_ir) return func_ir 大概看一下代码：">
+
+      <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.d95a325399a05b50fe47dcf35b8229b8a2a014fcee5435cfb28204c6ac335fc5.css" integrity="sha256-2VoyU5mgW1D&#43;R9zzW4IpuKKgFPzuVDXPsoIExqwzX8U=" crossorigin="anonymous">
+
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.64594b125f7b78bdf4fa8316955922bbebb1cd6baef3f16654bfca20309f18f8.js" integrity="sha256-ZFlLEl97eL30&#43;oMWlVkiu&#43;uxzWuu8/FmVL/KIDCfGPg="></script>
+<script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="notransition">
+  <div id="container">
+    <header id="main-header"><div role="navigation" aria-label="Main">
+  <div class="nav-left">
+    <a href="https://da1sy-petals.vercel.app/" style="color: inherit;">Da1sypetals</a>
+  </div>
+  <div class="nav-right">
+    <div style="position:absolute;width:0px;height:0px;">
+      <div id="nav-dropdown-menu" class="hidden" href="#">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >知识</a>
+    </div>
+    <div class="nav-item">
+      <a href="/art/"
+      >文化</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    </div>
+    <a id="nav-dropdown-button" href="#"><svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+    <div id="nav-menu">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >知识</a>
+    </div>
+    <div class="nav-item">
+      <a href="/art/"
+      >文化</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    <a id="theme-switcher" href="#">
+<svg class="light-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5001M17.6859 17.69L18.5 18.5001M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+<svg class="dark-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.32031 11.6835C3.32031 16.6541 7.34975 20.6835 12.3203 20.6835C16.1075 20.6835 19.3483 18.3443 20.6768 15.032C19.6402 15.4486 18.5059 15.6834 17.3203 15.6834C12.3497 15.6834 8.32031 11.654 8.32031 6.68342C8.32031 5.50338 8.55165 4.36259 8.96453 3.32996C5.65605 4.66028 3.32031 7.89912 3.32031 11.6835Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+  </div>
+</div></header>
+    <div class="flex grow">
+      <div id="main-pane">
+        <main id="main-content"><div class="single-header">
+<ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/">
+        <span itemprop="name">Home</span>
+      </a>
+      <meta itemprop="position" content='1' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/posts/">
+        <span itemprop="name">Posts</span>
+      </a>
+      <meta itemprop="position" content='2' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+</ol>
+<h1>cuTile 历险记，第1集：编译</h1><time class="dim" datetime="2025-12-06T16:30:12&#43;08:00">December 6, 2025</time></div>
+  <section class="page-section"><p>原本第一集应该是语法和随便找个bmm，flash-attn2的kernel来实现一下并且进行benchmark的，因为所以gpu编程博客都是这样的。</p>
+<p><em>Disclaimer: 我不了解编译器，以下所有内容基于自己的理解，和编译器术语出现偏差乃至出错之处敬请指出</em></p>
+<p>nv官网提示我们，需要cuda driver一个较高的版本，cuda toolkit 13.1（tileiras汇编器），以及blackwell以上的GPU（目前）才能使用cutile。但是我没有b200或者50系（cc12）的游戏卡，我手上能碰到的机器刚好截至hopper，所以我并没有办法编译执行cutile程序，失去了尝鲜的机会。</p>
+<p>但是有了cutile-python这个python端，下降到mlir之前的中间代码还是可以了解一下的。</p>
+<h2 id="探索过程">探索过程</h2>
+<h3 id="屏蔽c库">屏蔽C库</h3>
+<p>我们发现报错发生在<code>src/cuda/tile/_cext.pyi</code>，提示驱动版本过低。vibe coding启动，我们让LLM把_cext这个cpp库用一个<a href="https://github.com/Da1sypetals/cutile-python/blob/typecheck/src/cuda/tile/_cext.py">mock</a>进行替代，骗过编译器；然后包装了一个CutileIrDump类，通过<code>cuda.tile._compile._get_final_ir</code>函数可以获取到cuTile IR （不是TileIR）。有两种格式，人类可读的和binary的。</p>
+<p><img src="../images/cutileir.png" alt=""></p>
+<p>了解编译流程，我们主要从<code>cuda.tile._compile._get_final_ir</code>入手。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">_get_final_ir</span>(pyfunc, args, tile_context) <span style="color:#f92672">-&gt;</span> ir<span style="color:#f92672">.</span>Function:
+</span></span><span style="display:flex;"><span>    ir_ctx <span style="color:#f92672">=</span> ir<span style="color:#f92672">.</span>IRContext()
+</span></span><span style="display:flex;"><span>    func_ir: ir<span style="color:#f92672">.</span>Function <span style="color:#f92672">=</span> get_function_ir(pyfunc, ir_ctx, call_site<span style="color:#f92672">=</span><span style="color:#66d9ef">None</span>)
+</span></span><span style="display:flex;"><span>    ir_args <span style="color:#f92672">=</span> func_ir<span style="color:#f92672">.</span>bind_arguments(args, get_constant_annotations(pyfunc))
+</span></span><span style="display:flex;"><span>    func_ir <span style="color:#f92672">=</span> infer_types_pass(func_ir, ir_args, pyfunc, tile_context)
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># -------- 上方：语法、类型检查 ----------</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># -------- 下方：（部分）机器无关优化 ----------</span>
+</span></span><span style="display:flex;"><span>    eliminate_assign_ops(func_ir) <span style="color:#75715e"># &lt;-- breakpoint here</span>
+</span></span><span style="display:flex;"><span>    dead_code_elimination_pass(func_ir)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#f92672">not</span> CUDA_TILE_TESTING_DISABLE_TOKEN_ORDER:
+</span></span><span style="display:flex;"><span>        alias_result <span style="color:#f92672">=</span> alias_analysis_pass(func_ir)
+</span></span><span style="display:flex;"><span>        token_order_pass(func_ir, alias_result)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    rewrite_patterns(func_ir)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># Loop invariant code motion needs to run after the token order pass.</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># Otherwise, it may incorrectly hoist load operations out of the loop.</span>
+</span></span><span style="display:flex;"><span>    hoist_loop_invariants(func_ir)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    split_loops(func_ir<span style="color:#f92672">.</span>root_block)
+</span></span><span style="display:flex;"><span>    dead_code_elimination_pass(func_ir)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> func_ir
+</span></span></code></pre></div><p>大概看一下代码：</p>
+<ul>
+<li>
+<p><code>get_function_ir</code> 将Python函数转换为第一层中间表示</p>
+<ul>
+<li>创建符号表：收集函数的全局变量、闭包变量等环境信息</li>
+<li>AST到IR转换：通过 _ast2ir 函数将抽象语法树转换为IR表示, 处理变量作用域和版本管理</li>
+<li>通过 _eliminate_load_store_pass 消除Load/Store操作</li>
+</ul>
+</li>
+<li>
+<p><code>bind_arguments</code> 将实际参数绑定到函数的形式参数，验证参数类型是否支持，并确定参数类型和常量属性</p>
+</li>
+<li>
+<p><code>infer_types_pass</code> 函数的作用</p>
+<ul>
+<li>创建类型映射表和常量映射表</li>
+<li>将输入参数的类型信息绑定到函数的参数变量</li>
+<li>处理常量参数，将其替换为常量值</li>
+<li>操作类型推断：遍历IR中的每个操作，推断其结果类型</li>
+<li>控制流优化：
+<ul>
+<li>如果条件表达式是常量，直接展开if-else分支</li>
+<li>简化没有break/continue的简单循环</li>
+<li>函数调用内联</li>
+<li>类型传播：在控制流合并点（如if-else结束）处理类型合并</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="类型-tile-metadata">类型 （tile metadata）</h3>
+<p>可以从函数名称猜到在分割线之前的部分，都是语法、类型检查，在分割线之后的部分，是机器无关的优化。于是猜测，如果需要获取tile的metadata，最接近源代码的位置可能就是<code>infer_types_pass</code>的返回值了。</p>
+<p>在此处打上断点，进行分析：
+<img src="../images/cutile-debug-0.png" alt=""></p>
+<p>可以看到<code>func_ir.root_block._operations</code> 里面就是我们代码经过最基本的翻译，并经过shape检查之后形成的中间表示。这里<code>infer_types_pass</code>这个pass已经执行完了，所以我们应当可以看到所有的tile的shape都是什么。此处（断点处）调用 <code>func_ir.to_string()</code> 即可将中间表示输出为文本形式。</p>
+<p>以下列这个kernel为例，</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">import</span> cuda.tile <span style="color:#66d9ef">as</span> ct
+</span></span><span style="display:flex;"><span>ConstInt <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>Constant[int]
+</span></span><span style="display:flex;"><span>PAD_ZERO <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>PaddingMode<span style="color:#f92672">.</span>ZERO
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">zfunc</span>(a, b):
+</span></span><span style="display:flex;"><span>    sum <span style="color:#f92672">=</span> a <span style="color:#f92672">+</span> b
+</span></span><span style="display:flex;"><span>    res <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>cos(sum)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> res
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">apply_mod</span>(mod, c_tile, i_m, i_n, tm, tn):
+</span></span><span style="display:flex;"><span>    mod_tile <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>load(mod, index<span style="color:#f92672">=</span>(i_m, i_n), shape<span style="color:#f92672">=</span>(tm, tn), padding_mode<span style="color:#f92672">=</span>PAD_ZERO)
+</span></span><span style="display:flex;"><span>    zval <span style="color:#f92672">=</span> zfunc(mod_tile, c_tile)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> ct<span style="color:#f92672">.</span>sin(zval)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@ct.kernel</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">my_kernel</span>(a, b, c, mod, tm: ConstInt, tn: ConstInt, tk: ConstInt):
+</span></span><span style="display:flex;"><span>    i_m <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>bid(<span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>    i_n <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>bid(<span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>    acc <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>zeros((tm, tn), dtype<span style="color:#f92672">=</span>ct<span style="color:#f92672">.</span>float32)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> i_k <span style="color:#f92672">in</span> range(tk):
+</span></span><span style="display:flex;"><span>        t_a <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>load(a, index<span style="color:#f92672">=</span>(i_m, i_k), shape<span style="color:#f92672">=</span>(tm, tk), padding_mode<span style="color:#f92672">=</span>PAD_ZERO)
+</span></span><span style="display:flex;"><span>        t_b <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>load(b, index<span style="color:#f92672">=</span>(i_k, i_n), shape<span style="color:#f92672">=</span>(tk, tn), padding_mode<span style="color:#f92672">=</span>PAD_ZERO)
+</span></span><span style="display:flex;"><span>        acc <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>mma(t_a, t_b, acc)
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># c_tile = apply_mod(mod, acc, i_m, i_n, tm, tn).astype(ct.float16)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    tile1 <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>full((<span style="color:#ae81ff">32</span>, <span style="color:#ae81ff">16</span>), <span style="color:#ae81ff">0.0</span>, ct<span style="color:#f92672">.</span>float32)
+</span></span><span style="display:flex;"><span>    tile2 <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>full((<span style="color:#ae81ff">32</span>, <span style="color:#ae81ff">16</span>), <span style="color:#ae81ff">0.0</span>, ct<span style="color:#f92672">.</span>float32)
+</span></span><span style="display:flex;"><span>    tile3 <span style="color:#f92672">=</span> zfunc(tile1, tile2)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    tile4 <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>full((<span style="color:#ae81ff">16</span>, <span style="color:#ae81ff">64</span>), <span style="color:#ae81ff">2.0</span>, ct<span style="color:#f92672">.</span>bfloat16)
+</span></span><span style="display:flex;"><span>    tile5 <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>full((<span style="color:#ae81ff">16</span>, <span style="color:#ae81ff">64</span>), <span style="color:#ae81ff">2.0</span>, ct<span style="color:#f92672">.</span>bfloat16)
+</span></span><span style="display:flex;"><span>    tile6 <span style="color:#f92672">=</span> zfunc(tile4, tile5)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    c_tile <span style="color:#f92672">=</span> apply_mod(mod, acc, i_m, i_n, tm, tn)<span style="color:#f92672">.</span>astype(ct<span style="color:#f92672">.</span>float16)
+</span></span><span style="display:flex;"><span>    ct<span style="color:#f92672">.</span>store(c, index<span style="color:#f92672">=</span>(i_m, i_n), tile<span style="color:#f92672">=</span>c_tile)
+</span></span></code></pre></div><p>截取一小段中间表示的文本形式，可以看到比如tile4和tile5的dtype和shape都已经确定了。</p>
+<blockquote>
+<p>torch.Tensor的metadata是dtype, shape, strides.</p>
+<p>在cuTile的tile里面，为了硬件效率最大化，tile的存储不一定是某（行or列）主序，甚至可能任何一个维度的相邻两个元素在内存中都不连续，因此stride（其实是layout）是<code>tileiras</code>需要去figure out的东西，cuTile程序员无法操作。</p>
+</blockquote>
+<p><img src="../images/py-cutile-ir.png" alt=""></p>
+<h3 id="cutile-python-bytecode-和后续">cuTile Python Bytecode 和后续</h3>
+<p>如果直接获取<code>_get_final_ir</code>函数的输出并且调用<code>to_string()</code>，就会得到cuTile Python IR （不是TileIR）。因为已经执行过了一些简单的优化，所以原始代码中的变量名信息已经丢失掉了(这也是我们之前要在优化之前就获取中间产物的原因)。</p>
+<p>在<code>src/cuda/tile/_compile.py</code>的<code>compile_tile</code>函数中，可以看到这种代码会先转换为cuTile Python Bytecode，然后被C++扩展库编译为TileIR，最后调用黑箱<code>tileiras</code>编译成cubin.</p>
+<p><img src="../images/compile-bytecode.png" alt="alt text"></p>
+<p><em><del>因为我没有能力往下分析，且我没有老黄最新的卡，所以后续略。</del></em></p>
+</section></main>
+        <footer id="main-footer"><div class="footer">
+  <a href="#">Scroll to Top</a>
+  <div class="footer-copyright">
+    <div class="dim">© 2025 Da1sypetals</div>
+    <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
+  </div>
+</div>
+</footer>
+      </div><aside id="side-pane" class="side-sticky"><div class="side-details">
+    <span>290 words</span>
+    <span>5 - 7 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
+  <ul>
+    <li><a href="#探索过程">探索过程</a>
+      <ul>
+        <li><a href="#屏蔽c库">屏蔽C库</a></li>
+        <li><a href="#类型-tile-metadata">类型 （tile metadata）</a></li>
+        <li><a href="#cutile-python-bytecode-和后续">cuTile Python Bytecode 和后续</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></aside></div>
+  </div>
+</body>
+
+</html>
