@@ -53,6 +53,9 @@ DSL（Domain-Specific Language，领域特定语言）是一种专为特定问�
 
 ## 实现
 
+还好目前cuTile的编译器python侧代码还比较清晰, 趁还没有太多更新先研究个大概
+> 也有一种可能, 机器相关的特性会完全放到`tileiras`里面做, python侧永远都不会变得太复杂了
+
 ### 大致结构
 - 查看infer type pass生成的IR（下面称为IR）可以发现：
     - 大致结构是这样的递归定义：
