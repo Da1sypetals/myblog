@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+
+<head>
+  
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+    MathJax = {
+        tex: {
+            displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+            inlineMath: [['$', '$']]                  
+        },
+        loader: {
+            load: ['ui/safe']
+        },
+    };
+</script>
+  
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>cuTile 历险记，第2集：DX &amp; LSP | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sy-petals.vercel.app/posts/cutile-2/">
+  <meta property="og:site_name" content="Da1sypetals">
+  <meta property="og:title" content="cuTile 历险记，第2集：DX & LSP">
+  <meta property="og:description" content="eDSL，开发难度，以及DX DSL（Domain-Specific Language，领域特定语言）是一种专为特定问题领域设计的编程语言。
+GPT老师:
+DSL 可分为两类：
+外部 DSL（External DSL） 是一种独立的语言，通常需要专门的编译器或解释器。 优点：语法可以完全为领域定制，表达力强。 缺点：需要开发parser。 示例：SQL（用于数据库查询）、正则表达式、Makefile、LaTeX。 内嵌 DSL（embedded DSL，eDSL） 并非独立语言，而是利用宿主通用语言的语法和特性，在其内部“模拟”出一种贴近领域的表达方式。 依赖宿主语言的lexer/parser，无需额外实现。 优点：开发便捷。 缺点：受限于宿主语言的语法和表达能力；IDE往往无法提供针对DSL的insight（内部类型信息等）。 示例：被@torch.compile作用的torch代码，triton，以及我们的主角cuTile。 听某写了很多个triton kernel的大佬同事说，主要的debug triton代码的方式是：
+跑一遍看报错 triton提供的print 读IR 并没有能够提供良好的IDE功能的软件可以用，导致许多可以静态知道（并让IDE提供诊断）的类型信息需要靠运行时报错来修复，造成了（个人认为的）DX在这方面的欠缺。
+找回静态的信息 编译器的一半的一半的一半 先把cuTile的整个编译流程切一切。
+上半：开源部分
+上半：python -&gt; cutile-python-ir (python实现)
+上半（*）：参数检查，语法检查（不合法的python对象等），类型检查（tile shape/dtype mismatch） 下半：基本优化，eliminate_assign_ops, hoist_loop_invariants, dead_code_elimination_pass 等 下半：cutile-python-ir -&gt; TileIR (C&#43;&#43;实现)
+下半：tileiras
+需求 尝试写一个软件，找回这些静态的信息，并显示到编辑器上。 我对这个软件的需求是：把（*）的检查所确定的尽可能多的信息显示在源代码上。
+实现 大致结构 查看infer type pass生成的IR（下面称为IR）可以发现：
+大致结构是这样的递归定义： Program = list[Stmt] Stmt = Block | Assign Block = for &#43; list[Stmt] | if &#43; list[Stmt] &#43; else &#43; list[Stmt] 标识符：">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-12-11T10:19:34+08:00">
+    <meta property="article:modified_time" content="2025-12-11T10:19:34+08:00">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="cuTile 历险记，第2集：DX & LSP">
+  <meta name="twitter:description" content="eDSL，开发难度，以及DX DSL（Domain-Specific Language，领域特定语言）是一种专为特定问题领域设计的编程语言。
+GPT老师:
+DSL 可分为两类：
+外部 DSL（External DSL） 是一种独立的语言，通常需要专门的编译器或解释器。 优点：语法可以完全为领域定制，表达力强。 缺点：需要开发parser。 示例：SQL（用于数据库查询）、正则表达式、Makefile、LaTeX。 内嵌 DSL（embedded DSL，eDSL） 并非独立语言，而是利用宿主通用语言的语法和特性，在其内部“模拟”出一种贴近领域的表达方式。 依赖宿主语言的lexer/parser，无需额外实现。 优点：开发便捷。 缺点：受限于宿主语言的语法和表达能力；IDE往往无法提供针对DSL的insight（内部类型信息等）。 示例：被@torch.compile作用的torch代码，triton，以及我们的主角cuTile。 听某写了很多个triton kernel的大佬同事说，主要的debug triton代码的方式是：
+跑一遍看报错 triton提供的print 读IR 并没有能够提供良好的IDE功能的软件可以用，导致许多可以静态知道（并让IDE提供诊断）的类型信息需要靠运行时报错来修复，造成了（个人认为的）DX在这方面的欠缺。
+找回静态的信息 编译器的一半的一半的一半 先把cuTile的整个编译流程切一切。
+上半：开源部分
+上半：python -&gt; cutile-python-ir (python实现)
+上半（*）：参数检查，语法检查（不合法的python对象等），类型检查（tile shape/dtype mismatch） 下半：基本优化，eliminate_assign_ops, hoist_loop_invariants, dead_code_elimination_pass 等 下半：cutile-python-ir -&gt; TileIR (C&#43;&#43;实现)
+下半：tileiras
+需求 尝试写一个软件，找回这些静态的信息，并显示到编辑器上。 我对这个软件的需求是：把（*）的检查所确定的尽可能多的信息显示在源代码上。
+实现 大致结构 查看infer type pass生成的IR（下面称为IR）可以发现：
+大致结构是这样的递归定义： Program = list[Stmt] Stmt = Block | Assign Block = for &#43; list[Stmt] | if &#43; list[Stmt] &#43; else &#43; list[Stmt] 标识符：">
+
+      <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
+
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+<script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="notransition">
+  <div id="container">
+    <header id="main-header"><div role="navigation" aria-label="Main">
+  <div class="nav-left">
+    <a href="https://da1sy-petals.vercel.app/" style="color: inherit;">Da1sypetals</a>
+  </div>
+  <div class="nav-right">
+    <div style="position:absolute;width:0px;height:0px;">
+      <div id="nav-dropdown-menu" class="hidden" href="#">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >知识</a>
+    </div>
+    <div class="nav-item">
+      <a href="/art/"
+      >文化</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    </div>
+    <a id="nav-dropdown-button" href="#"><svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+    <div id="nav-menu">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >知识</a>
+    </div>
+    <div class="nav-item">
+      <a href="/art/"
+      >文化</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    <a id="theme-switcher" href="#">
+<svg class="light-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5001M17.6859 17.69L18.5 18.5001M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+<svg class="dark-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.32031 11.6835C3.32031 16.6541 7.34975 20.6835 12.3203 20.6835C16.1075 20.6835 19.3483 18.3443 20.6768 15.032C19.6402 15.4486 18.5059 15.6834 17.3203 15.6834C12.3497 15.6834 8.32031 11.654 8.32031 6.68342C8.32031 5.50338 8.55165 4.36259 8.96453 3.32996C5.65605 4.66028 3.32031 7.89912 3.32031 11.6835Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+  </div>
+</div></header>
+    <div class="flex grow">
+      <div id="main-pane">
+        <main id="main-content"><div class="single-header">
+<ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/">
+        <span itemprop="name">Home</span>
+      </a>
+      <meta itemprop="position" content='1' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/posts/">
+        <span itemprop="name">Posts</span>
+      </a>
+      <meta itemprop="position" content='2' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+</ol>
+<h1>cuTile 历险记，第2集：DX &amp; LSP</h1><time class="dim" datetime="2025-12-11T10:19:34&#43;08:00">December 11, 2025</time></div>
+  <section class="page-section"><h2 id="edsl开发难度以及dx">eDSL，开发难度，以及DX</h2>
+<p>DSL（Domain-Specific Language，领域特定语言）是一种专为特定问题领域设计的编程语言。</p>
+<blockquote>
+<p>GPT老师:</p>
+<p>DSL 可分为两类：</p>
+<ol>
+<li>外部 DSL（External DSL）
+<ul>
+<li>是一种独立的语言，通常需要专门的编译器或解释器。</li>
+<li>优点：语法可以完全为领域定制，表达力强。</li>
+<li>缺点：需要开发parser。</li>
+<li>示例：SQL（用于数据库查询）、正则表达式、Makefile、LaTeX。</li>
+</ul>
+</li>
+<li>内嵌 DSL（embedded DSL，eDSL）
+<ul>
+<li>并非独立语言，而是利用宿主通用语言的语法和特性，在其内部“模拟”出一种贴近领域的表达方式。</li>
+<li>依赖宿主语言的lexer/parser，无需额外实现。</li>
+<li>优点：开发便捷。</li>
+<li>缺点：受限于宿主语言的语法和表达能力；IDE往往无法提供针对DSL的insight（内部类型信息等）。</li>
+<li>示例：被<code>@torch.compile</code>作用的torch代码，triton，以及我们的主角cuTile。</li>
+</ul>
+</li>
+</ol></blockquote>
+<p>听某写了很多个triton kernel的大佬同事说，主要的debug triton代码的方式是：</p>
+<ul>
+<li>跑一遍看报错</li>
+<li>triton提供的print</li>
+<li>读IR</li>
+</ul>
+<p>并没有能够提供良好的IDE功能的软件可以用，导致许多可以静态知道（并让IDE提供诊断）的类型信息需要靠运行时报错来修复，造成了（个人认为的）DX在这方面的欠缺。</p>
+<h2 id="找回静态的信息">找回静态的信息</h2>
+<h3 id="编译器的一半的一半的一半">编译器的一半的一半的一半</h3>
+<p>先把cuTile的整个编译流程切一切。</p>
+<ul>
+<li>
+<p>上半：开源部分</p>
+<ul>
+<li>
+<p>上半：python -&gt; cutile-python-ir (python实现)</p>
+<ul>
+<li><em>上半（*）：参数检查，语法检查（不合法的python对象等），类型检查（tile shape/dtype mismatch）</em></li>
+<li>下半：基本优化，<code>eliminate_assign_ops</code>, <code>hoist_loop_invariants</code>, <code>dead_code_elimination_pass</code> 等</li>
+</ul>
+</li>
+<li>
+<p>下半：cutile-python-ir -&gt; TileIR (C++实现)</p>
+</li>
+</ul>
+</li>
+<li>
+<p>下半：<code>tileiras</code></p>
+</li>
+</ul>
+<h3 id="需求">需求</h3>
+<p>尝试写一个软件，找回这些静态的信息，并显示到编辑器上。
+我对这个软件的需求是：把（*）的检查所确定的尽可能多的信息显示在源代码上。</p>
+<h2 id="实现">实现</h2>
+<h3 id="大致结构">大致结构</h3>
+<ul>
+<li>
+<p>查看infer type pass生成的IR（下面称为IR）可以发现：</p>
+<ul>
+<li>大致结构是这样的递归定义：
+<pre tabindex="0"><code>Program = list[Stmt]
+Stmt = Block | Assign
+Block = for + list[Stmt] | if + list[Stmt] + else + list[Stmt]
+</code></pre></li>
+</ul>
+</li>
+<li>
+<p>标识符：</p>
+<ul>
+<li>$开头的标识符是编译器生成的变量($number 用于中间变量, $ret 用于函数展开时传递返回值等)</li>
+<li>没有$开头的标识符是代码原有的变量；</li>
+</ul>
+</li>
+<li>
+<p>循环里面carry的变量要求（和triton一样）不能改变类型。</p>
+</li>
+<li>
+<p>在python层面的每个assign操作，要么只出现在IR中一次，且携带被推断出来的类型信息；或者在for中被carry的是多次，但是type信息是相同的</p>
+</li>
+<li>
+<p>函数会被完全展开，但是变量名只会添加一个后缀，不会做mangle。</p>
+</li>
+</ul>
+<h3 id="类型检查">类型检查</h3>
+<p><em>我尝试通过如下方式确定每一次assign等号左边的类型:</em></p>
+<ul>
+<li>通过每次assign的IR，检查等号左边标识符如果不是$开头的，那么就把这一次assign对应的type信息添加到所需的type信息里面。</li>
+<li>如果同一次assign的type信息只出现了一次，或者出现了多次且没有冲突，那么就可以得到这一次assign对应的type信息。然后显示在源代码的等号左边即可。</li>
+<li>一些代码细节:
+<ul>
+<li>要把带有control flow的block递归展开</li>
+<li>进入control flow的时候会把需要在里面的block使用的变量通过<code>Block.make_temp_var</code>通过Assign给绑定到新的名称上, 这部分不会改变变量的类型, 在类型检查的时候可以忽略.
+<ul>
+<li><code>src/cutile_typeviz/cutile_utils/cuda/tile/_ast2ir.py</code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="输入参数">输入参数</h3>
+<p>需要输入的类型才能推断出中间变量的类型,这包括</p>
+<ul>
+<li>tensor: dtype, ndim</li>
+<li>scalar: dtype, 是否在编译期确认(constant)</li>
+</ul>
+<p>并且可能需要考虑:</p>
+<ul>
+<li>目前原生支持的只有torch, 但是我不希望只为了创建一个tensor的metadata就<code>import torch</code>, 否则一次import就要两秒, 其他步骤加起来都没有0.5秒.</li>
+<li>不希望用户去引入新的库, 希望能不添加任何<em><strong>代码</strong></em>就能使用.</li>
+</ul>
+<p>我认为一个比较简单的解决方法是:</p>
+<ul>
+<li>添加一个MockTensor的实现, 只创建metadata不创建数据, 并且在编译器处添加一个MockTensor的接口, 能够接收MockTensor携带的metadata.</li>
+<li>参考<a href="https://www.bilibili.com/video/BV1sjqvYzEwg">码农高天用来标识CI测试类型</a> 的做法, 让用户在docstring通过某种特定的语法标识输入参数, 并在LSP server端对docstring进行解析, 生成输入参数的构造代码. 大致形态是 (注意<code>&lt;typecheck&gt;</code>标识):</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#a6e22e">@ct.kernel</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">layer_norm_bwd_dwdb</span>(DW, DB, FINAL_DW, FINAL_DB, TILE_M: ConstInt, TILE_N: ConstInt):
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;&#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    &lt;typecheck&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    MockTensor((64, 2048), dtype=&#34;float32&#34;)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    MockTensor((64, 2048), dtype=&#34;float32&#34;)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    MockTensor((2048,), dtype=&#34;float16&#34;)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    MockTensor((2048,), dtype=&#34;float16&#34;)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    32
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    1024
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    &lt;/typecheck&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    Backward pass part 2: Final reduction for dW and dB.
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    Args:
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        DW: Partial gradient with respect to W (TILE_M, N).
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        DB: Partial gradient with respect to B (TILE_M, N).
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        FINAL_DW: Final gradient with respect to W (N,).
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        FINAL_DB: Final gradient with respect to B (N,).
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        TILE_M: Number of partial gradients to reduce.
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        TILE_N: Tile size along N dimension.
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>    bid_n <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>bid(<span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>    num_tiles <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>num_tiles(DW, axis<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>, shape<span style="color:#f92672">=</span>(TILE_M, TILE_N))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    dw <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>zeros((TILE_M, TILE_N), dtype<span style="color:#f92672">=</span>ct<span style="color:#f92672">.</span>float32)
+</span></span><span style="display:flex;"><span>    db <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>zeros((TILE_M, TILE_N), dtype<span style="color:#f92672">=</span>ct<span style="color:#f92672">.</span>float32)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(num_tiles):
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># Sum partial gradients</span>
+</span></span><span style="display:flex;"><span>        dw <span style="color:#f92672">+=</span> ct<span style="color:#f92672">.</span>load(DW, index<span style="color:#f92672">=</span>(i, bid_n), shape<span style="color:#f92672">=</span>(TILE_M, TILE_N), padding_mode<span style="color:#f92672">=</span>PAD_ZERO)
+</span></span><span style="display:flex;"><span>        db <span style="color:#f92672">+=</span> ct<span style="color:#f92672">.</span>load(DB, index<span style="color:#f92672">=</span>(i, bid_n), shape<span style="color:#f92672">=</span>(TILE_M, TILE_N), padding_mode<span style="color:#f92672">=</span>PAD_ZERO)
+</span></span><span style="display:flex;"><span>    sum_dw <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>sum(dw, axis<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>    sum_db <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>sum(db, axis<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    ct<span style="color:#f92672">.</span>store(FINAL_DW, index<span style="color:#f92672">=</span>(bid_n,), tile<span style="color:#f92672">=</span>sum_dw<span style="color:#f92672">.</span>astype(FINAL_DW<span style="color:#f92672">.</span>dtype))
+</span></span><span style="display:flex;"><span>    ct<span style="color:#f92672">.</span>store(FINAL_DB, index<span style="color:#f92672">=</span>(bid_n,), tile<span style="color:#f92672">=</span>sum_db<span style="color:#f92672">.</span>astype(FINAL_DB<span style="color:#f92672">.</span>dtype))
+</span></span></code></pre></div><h3 id="lsp-server">LSP server</h3>
+<blockquote>
+<p>vibe coding, 启动!</p></blockquote>
+<p>我完全没有实现LSP server的经验, 但是LLM已经十足强大了! 我的vibe code路径是这样的:</p>
+<h4 id="1-minimal-demo">1. minimal demo</h4>
+<ul>
+<li>
+<p>使用<code>pygls</code>库实现LSP server</p>
+<ul>
+<li>我发现目前LLM只记得<code>pygls v1</code>的API. 解决方法是把<a href="https://pygls.readthedocs.io/en/latest/pygls/howto/migrate-to-v2.html">Migrate to v2</a> 文档整个塞进LLM的context里面即可.</li>
+</ul>
+</li>
+<li>
+<p>在文档(打开, 关闭, 保存, 变更) 的时候都触发更新.</p>
+</li>
+<li>
+<p>先实现一个<em>统计每行有多少字符</em>的LSP server, 然后就有一个server的骨架可以在上面自己修改了.</p>
+</li>
+</ul>
+<h4 id="2-tile-type-hints">2. Tile type hints</h4>
+<ul>
+<li>将原代码和输入参数组装成运行脚本, 然后通过PYTHONPATH捕获import路径, 使用我的MockTensor, 将python侧编译的流程进行到 <code>infer_types_pass</code>, 得到这一层的输出IR</li>
+<li>按照上述流程检查每次assign的源代码位置loc和结果type, 提供inlay hints.</li>
+</ul>
+<h4 id="3-diagnostics">3. Diagnostics</h4>
+<ul>
+<li>有一点我一开始没有想到, 但是后来试用了发现需要加上: 要尝试parse源代码, 如果源代码有语法错误, 就不要继续了, 否则后面大片爆红会让使用者很难受</li>
+<li>如果可以运行, 那么运行组装的脚本并且捕获所有<code>TileError</code> (所有cuTile报错的基类), 然后在对应位置显示红色diagnostics</li>
+</ul>
+</section></main>
+        <footer id="main-footer"><div class="footer">
+  <a href="#">Scroll to Top</a>
+  <div class="footer-copyright">
+    <div class="dim">© 2025 Da1sypetals</div>
+    <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
+  </div>
+</div>
+</footer>
+      </div><aside id="side-pane" class="side-sticky"><div class="side-details">
+    <span>323 words</span>
+    <span>6 - 8 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
+  <ul>
+    <li><a href="#edsl开发难度以及dx">eDSL，开发难度，以及DX</a></li>
+    <li><a href="#找回静态的信息">找回静态的信息</a>
+      <ul>
+        <li><a href="#编译器的一半的一半的一半">编译器的一半的一半的一半</a></li>
+        <li><a href="#需求">需求</a></li>
+      </ul>
+    </li>
+    <li><a href="#实现">实现</a>
+      <ul>
+        <li><a href="#大致结构">大致结构</a></li>
+        <li><a href="#类型检查">类型检查</a></li>
+        <li><a href="#输入参数">输入参数</a></li>
+        <li><a href="#lsp-server">LSP server</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></aside></div>
+  </div>
+</body>
+
+</html>
