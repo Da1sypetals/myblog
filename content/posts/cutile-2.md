@@ -9,20 +9,20 @@ featured = true
 
 DSL（Domain-Specific Language，领域特定语言）是一种专为特定问题领域设计的编程语言。
 
->GPT老师: 
->
->DSL 可分为两类：
-> 1. 外部 DSL（External DSL）
->    - 是一种独立的语言，通常需要专门的编译器或解释器。
->    - 优点：语法可以完全为领域定制，表达力强。
->    - 缺点：需要开发parser。
->    - 示例：SQL（用于数据库查询）、正则表达式、Makefile、LaTeX。
-> 2. 内嵌 DSL（embedded DSL，eDSL）
->    - 并非独立语言，而是利用宿主通用语言的语法和特性，在其内部“模拟”出一种贴近领域的表达方式。
->    - 依赖宿主语言的lexer/parser，无需额外实现。
->    - 优点：开发便捷。
->    - 缺点：受限于宿主语言的语法和表达能力；IDE往往无法提供针对DSL的insight（内部类型信息等）。
->    - 示例：被`@torch.compile`作用的torch代码，triton，以及我们的主角cuTile。
+>GPT老师: <br> 
+>DSL 可分为两类： <br> <br>
+> 外部 DSL（External DSL）
+> <br>.  是一种独立的语言，通常需要专门的编译器或解释器。
+> <br>.  优点：语法可以完全为领域定制，表达力强。
+> <br>.  缺点：需要开发parser。
+> <br>.  示例：SQL（用于数据库查询）、正则表达式、Makefile、LaTeX。
+> <br><br>
+>内嵌 DSL（embedded DSL，eDSL）
+> <br>.  并非独立语言，而是利用宿主通用语言的语法和特性，在其内部“模拟”出一种贴近领域的表达方式。
+> <br>.  依赖宿主语言的lexer/parser，无需额外实现。
+> <br>.  优点：开发便捷。
+> <br>.  缺点：受限于宿主语言的语法和表达能力；IDE往往无法提供针对DSL的insight（内部类型信息等）。
+> <br>.  示例：被`@torch.compile`作用的torch代码，triton，以及我们的主角cuTile。
 
 
 听某写了很多个triton kernel的大佬同事说，主要的debug triton代码的方式是：
