@@ -74,6 +74,8 @@ def delete_unreferenced_images(img_base_dir, full_md_content):
     image_dirs = find_all_image_dirs(img_base_dir)
     print(f"找到 {len(image_dirs)} 个 {IMAGE_DIR_NAME} 目录")
 
+    total_removed = 0
+
     for image_dir in image_dirs:
         print(f"扫描目录: {image_dir}")
         for ext in IMAGE_EXTENSIONS:
@@ -88,10 +90,13 @@ def delete_unreferenced_images(img_base_dir, full_md_content):
                     try:
                         os.remove(img_path)  # 删除文件
                         print(f"已删除未引用的图片: {img_path}")
+                        total_removed += 1
                     except Exception as e:
                         print(f"警告: 无法删除 {img_path}, 错误: {e}")
                 else:
                     print(f"保留图片 (已引用): {img_path}")
+
+    print(f"已删除 {total_removed} 张未引用的图片。")
 
 
 def main():

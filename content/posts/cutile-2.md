@@ -1,6 +1,7 @@
 +++
 date = '2025-12-11T10:19:34+08:00'
 title = 'cuTile 历险记，第2集：DX & LSP'
+featured = true
 +++
 
 
@@ -157,3 +158,7 @@ def layer_norm_bwd_dwdb(DW, DB, FINAL_DW, FINAL_DB, TILE_M: ConstInt, TILE_N: Co
 
 - 有一点我一开始没有想到, 但是后来试用了发现需要加上: 要尝试parse源代码, 如果源代码有语法错误, 就不要继续了, 否则后面大片爆红会让使用者很难受
 - 如果可以运行, 那么运行组装的脚本并且捕获所有`TileError` (所有cuTile报错的基类), 然后在对应位置显示红色diagnostics
+
+## （半）成品
+
+![](../images/typehint.png)
