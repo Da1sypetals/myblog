@@ -1,6 +1,6 @@
 +++
 date = '2025-12-11T10:19:34+08:00'
-title = 'cuTile 历险记，第2集：DX & LSP'
+title = 'cuTile 历险记，第2集：eDSL, DX & LSP'
 featured = true
 +++
 

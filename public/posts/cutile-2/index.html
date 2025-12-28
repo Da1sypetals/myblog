@@ -19,10 +19,10 @@
   <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>cuTile 历险记，第2集：DX &amp; LSP | Da1sypetals</title>
+<title>cuTile 历险记，第2集：eDSL, DX &amp; LSP | Da1sypetals</title>
 <link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sy-petals.vercel.app/posts/cutile-2/">
   <meta property="og:site_name" content="Da1sypetals">
-  <meta property="og:title" content="cuTile 历险记，第2集：DX & LSP">
+  <meta property="og:title" content="cuTile 历险记，第2集：eDSL, DX & LSP">
   <meta property="og:description" content="eDSL，开发难度，以及DX DSL（Domain-Specific Language，领域特定语言）是一种专为特定问题领域设计的编程语言。
 GPT老师: DSL 可分为两类： 外部 DSL（External DSL） . 是一种独立的语言，通常需要专门的编译器或解释器。 . 优点：语法可以完全为领域定制，表达力强。 . 缺点：需要开发parser。 . 示例：SQL（用于数据库查询）、正则表达式、Makefile、LaTeX。 内嵌 DSL（embedded DSL，eDSL） . 并非独立语言，而是利用宿主通用语言的语法和特性，在其内部“模拟”出一种贴近领域的表达方式。 . 依赖宿主语言的lexer/parser，无需额外实现。 . 优点：开发便捷。 . 缺点：受限于宿主语言的语法和表达能力；IDE往往无法提供针对DSL的insight（内部类型信息等）。 . 示例：被@torch.compile作用的torch代码，triton，以及我们的主角cuTile。
 听某写了很多个triton kernel的大佬同事说，主要的debug triton代码的方式是：
@@ -43,7 +43,7 @@ GPT老师: DSL 可分为两类： 外部 DSL（External DSL） . 是一种独立
     <meta property="article:modified_time" content="2025-12-11T10:19:34+08:00">
 
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="cuTile 历险记，第2集：DX & LSP">
+  <meta name="twitter:title" content="cuTile 历险记，第2集：eDSL, DX & LSP">
   <meta name="twitter:description" content="eDSL，开发难度，以及DX DSL（Domain-Specific Language，领域特定语言）是一种专为特定问题领域设计的编程语言。
 GPT老师: DSL 可分为两类： 外部 DSL（External DSL） . 是一种独立的语言，通常需要专门的编译器或解释器。 . 优点：语法可以完全为领域定制，表达力强。 . 缺点：需要开发parser。 . 示例：SQL（用于数据库查询）、正则表达式、Makefile、LaTeX。 内嵌 DSL（embedded DSL，eDSL） . 并非独立语言，而是利用宿主通用语言的语法和特性，在其内部“模拟”出一种贴近领域的表达方式。 . 依赖宿主语言的lexer/parser，无需额外实现。 . 优点：开发便捷。 . 缺点：受限于宿主语言的语法和表达能力；IDE往往无法提供针对DSL的insight（内部类型信息等）。 . 示例：被@torch.compile作用的torch代码，triton，以及我们的主角cuTile。
 听某写了很多个triton kernel的大佬同事说，主要的debug triton代码的方式是：
@@ -166,7 +166,7 @@ GPT老师: DSL 可分为两类： 外部 DSL（External DSL） . 是一种独立
     </li>
     <span>&nbsp»&nbsp</span>
 </ol>
-<h1>cuTile 历险记，第2集：DX &amp; LSP</h1><time class="dim" datetime="2025-12-11T10:19:34&#43;08:00">December 11, 2025</time></div>
+<h1>cuTile 历险记，第2集：eDSL, DX &amp; LSP</h1><time class="dim" datetime="2025-12-11T10:19:34&#43;08:00">December 11, 2025</time></div>
   <section class="page-section"><h2 id="edsl开发难度以及dx">eDSL，开发难度，以及DX</h2>
 <p>DSL（Domain-Specific Language，领域特定语言）是一种专为特定问题领域设计的编程语言。</p>
 <blockquote>
