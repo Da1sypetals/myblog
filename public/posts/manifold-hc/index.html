@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+
+<head>
+  
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+    MathJax = {
+        tex: {
+            displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+            inlineMath: [['$', '$']]                  
+        },
+        loader: {
+            load: ['ui/safe']
+        },
+    };
+</script>
+  
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>DeepSeek mHC的简单演示（可能有错误） | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sy-petals.vercel.app/posts/manifold-hc/">
+  <meta property="og:site_name" content="Da1sypetals">
+  <meta property="og:title" content="DeepSeek mHC的简单演示（可能有错误）">
+  <meta property="og:description" content="DeepSeek发布了最新的魔改版Residual Connection：Manifold Constrained Hyper-Connection.
+其基本思路是把旁路residual限制在某个集合上（文中用更“几何”的manifold一词显示，退化的例子就是Kaiming的原版Residual Connection，约束是residual = x），使其在正反向传播的时候具有某种不易爆炸/崩溃的数学性质。
+类似的思路还可以在比如物理模拟中看到：
+通过将物体的transformation matrix约束在$SE(3)$，禁止物体形变，从而模拟刚体。 进一步，在Affine body dynamics中，通过一个惩罚项惩罚transformation matrix偏离$SE(3)$的部分，将物体的transformation映射到尽可能近的$SE(3)$，从而在物体的行为尽可能接近刚体的同时，解决系统难以求解（有约束 $\rightarrow$无约束）的问题。 HC的基本思路应该是：
+原本就有n个stream 在主线forward的时候，把n个stream合并为一个（pre-proj），通过这一层网络（$f$），然后再打散回n个stream（post-proj） 即 $y=\text{post-proj} \circ f \circ \text{pre-proj}(x)$ 支线复制输入x，通过一个res-proj进行信息混合之后，加回主线的输出 mHC对这个res-proj进行约束：
+要求其为doubly stochastic matrix. 具体做法就是通过sinkhorn迭代直接将其映射到最接近的doubly stochastic matrix上。 我自己写的，可能有错误的简单的代码实现在这里：
+# Reference: https://www.arxiv.org/abs/2512.24880 import torch import torch.nn as nn import torch.nn.functional as F import einops as ein from icecream import ic N_ITER = 20 def sinkhorn_knopp(mat: torch.Tensor) -&gt; torch.Tensor: &#34;&#34;&#34; mat: (..., n, n) Sidenote: IMO this technique should be subject to frequent change if mHC is proved to be effective &#34;&#34;&#34; for _ in range(N_ITER): mat = mat / mat.sum(-2, keepdim=True) # column normalize mat = mat / mat.sum(-1, keepdim=True) # row normalize return mat n = 4 # stream width C = 256 # embedding dim norm = nn.RMSNorm((n * C,)) phi_pre = nn.Parameter(torch.randn(n * C, n)) phi_post = nn.Parameter(torch.randn(n * C, n)) phi_res = nn.Parameter(torch.randn(n * C, n * n)) b_pre = nn.Parameter(torch.randn(1, n)) b_post = nn.Parameter(torch.randn(1, n)) b_res = nn.Parameter(torch.randn(n, n)) alpha_pre = nn.Parameter(torch.tensor(0.1)) # for dimension illustration purposes alpha_post = nn.Parameter(torch.tensor(0.1)) # for dimension illustration purposes alpha_res = nn.Parameter(torch.tensor(1.0)) # for dimension illustration purposes def broadcast_to_n_stream(xl: torch.Tensor) -&gt; torch.Tensor: return ein.repeat(xl, &#34;... C -&gt; ... n C&#34;, n=n) def reduce_to_one_stream(xl: torch.Tensor) -&gt; torch.Tensor: return ein.reduce(xl, &#34;... n C -&gt; ... C&#34;, &#34;mean&#34;) def manifold_constrained_hyperconnection(xl: torch.Tensor, layer: nn.Module) -&gt; torch.Tensor: # x: (..., n, C) # ===== residual ===== xl_vec = ein.rearrange(xl, &#34;... n C -&gt; ... (n C)&#34;) xl_vec_prime = norm(xl_vec) # (..., n*C) # data dependent mapping construction h_tilde_pre = alpha_pre * (xl_vec_prime @ phi_pre) &#43; b_pre # (..., n) h_tilde_post = alpha_post * (xl_vec_prime @ phi_post) &#43; b_post # (..., n) h_tilde_res = ( alpha_res * ein.rearrange( (xl_vec_prime @ phi_res), &#34;... (m n) -&gt; ... m n&#34;, n=n, ) &#43; b_res ) # (..., n, n) h_pre = F.sigmoid(h_tilde_pre) # (..., n) h_post = 2 * F.sigmoid(h_tilde_post) # (..., n) h_res = sinkhorn_knopp(h_tilde_res.exp()) # (..., n, n) ic(h_pre.shape) ic(h_post.shape) ic(h_res.shape) # data dependent mapping application residual = ein.einsum(h_res, xl, &#34;... m n, ... n C -&gt; ... m C&#34;) # m=n ic(residual.shape) # ===== mainstream ===== x_pre = ein.einsum(h_pre, xl, &#34;... n, ... n C -&gt; ... C&#34;) ic(x_pre.shape) layer_out = layer(x_pre) # (..., C) ic(layer_out.shape) x_post = ein.einsum(h_post, layer_out, &#34;... n, ... C -&gt; ... n C&#34;) ic(x_post.shape) out = x_post &#43; residual # (..., n, C) return out batch_dims = (2, 100) layers = [nn.Identity() for _ in range(3)] # for illustration purpose if __name__ == &#34;__main__&#34;: x = torch.randn(*batch_dims, C) xl = broadcast_to_n_stream(x) # simulate 3 layers print(&#34;===== layer 1 =====&#34;) xl = manifold_constrained_hyperconnection(xl, layers[0]) print(&#34;===== layer 2 =====&#34;) xl = manifold_constrained_hyperconnection(xl, layers[1]) print(&#34;===== layer 3 =====&#34;) xl = manifold_constrained_hyperconnection(xl, layers[2]) out = reduce_to_one_stream(xl) print(&#34;===== output =====&#34;) ic(out.shape)">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-01-04T19:55:33+08:00">
+    <meta property="article:modified_time" content="2026-01-04T19:55:33+08:00">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="DeepSeek mHC的简单演示（可能有错误）">
+  <meta name="twitter:description" content="DeepSeek发布了最新的魔改版Residual Connection：Manifold Constrained Hyper-Connection.
+其基本思路是把旁路residual限制在某个集合上（文中用更“几何”的manifold一词显示，退化的例子就是Kaiming的原版Residual Connection，约束是residual = x），使其在正反向传播的时候具有某种不易爆炸/崩溃的数学性质。
+类似的思路还可以在比如物理模拟中看到：
+通过将物体的transformation matrix约束在$SE(3)$，禁止物体形变，从而模拟刚体。 进一步，在Affine body dynamics中，通过一个惩罚项惩罚transformation matrix偏离$SE(3)$的部分，将物体的transformation映射到尽可能近的$SE(3)$，从而在物体的行为尽可能接近刚体的同时，解决系统难以求解（有约束 $\rightarrow$无约束）的问题。 HC的基本思路应该是：
+原本就有n个stream 在主线forward的时候，把n个stream合并为一个（pre-proj），通过这一层网络（$f$），然后再打散回n个stream（post-proj） 即 $y=\text{post-proj} \circ f \circ \text{pre-proj}(x)$ 支线复制输入x，通过一个res-proj进行信息混合之后，加回主线的输出 mHC对这个res-proj进行约束：
+要求其为doubly stochastic matrix. 具体做法就是通过sinkhorn迭代直接将其映射到最接近的doubly stochastic matrix上。 我自己写的，可能有错误的简单的代码实现在这里：
+# Reference: https://www.arxiv.org/abs/2512.24880 import torch import torch.nn as nn import torch.nn.functional as F import einops as ein from icecream import ic N_ITER = 20 def sinkhorn_knopp(mat: torch.Tensor) -&gt; torch.Tensor: &#34;&#34;&#34; mat: (..., n, n) Sidenote: IMO this technique should be subject to frequent change if mHC is proved to be effective &#34;&#34;&#34; for _ in range(N_ITER): mat = mat / mat.sum(-2, keepdim=True) # column normalize mat = mat / mat.sum(-1, keepdim=True) # row normalize return mat n = 4 # stream width C = 256 # embedding dim norm = nn.RMSNorm((n * C,)) phi_pre = nn.Parameter(torch.randn(n * C, n)) phi_post = nn.Parameter(torch.randn(n * C, n)) phi_res = nn.Parameter(torch.randn(n * C, n * n)) b_pre = nn.Parameter(torch.randn(1, n)) b_post = nn.Parameter(torch.randn(1, n)) b_res = nn.Parameter(torch.randn(n, n)) alpha_pre = nn.Parameter(torch.tensor(0.1)) # for dimension illustration purposes alpha_post = nn.Parameter(torch.tensor(0.1)) # for dimension illustration purposes alpha_res = nn.Parameter(torch.tensor(1.0)) # for dimension illustration purposes def broadcast_to_n_stream(xl: torch.Tensor) -&gt; torch.Tensor: return ein.repeat(xl, &#34;... C -&gt; ... n C&#34;, n=n) def reduce_to_one_stream(xl: torch.Tensor) -&gt; torch.Tensor: return ein.reduce(xl, &#34;... n C -&gt; ... C&#34;, &#34;mean&#34;) def manifold_constrained_hyperconnection(xl: torch.Tensor, layer: nn.Module) -&gt; torch.Tensor: # x: (..., n, C) # ===== residual ===== xl_vec = ein.rearrange(xl, &#34;... n C -&gt; ... (n C)&#34;) xl_vec_prime = norm(xl_vec) # (..., n*C) # data dependent mapping construction h_tilde_pre = alpha_pre * (xl_vec_prime @ phi_pre) &#43; b_pre # (..., n) h_tilde_post = alpha_post * (xl_vec_prime @ phi_post) &#43; b_post # (..., n) h_tilde_res = ( alpha_res * ein.rearrange( (xl_vec_prime @ phi_res), &#34;... (m n) -&gt; ... m n&#34;, n=n, ) &#43; b_res ) # (..., n, n) h_pre = F.sigmoid(h_tilde_pre) # (..., n) h_post = 2 * F.sigmoid(h_tilde_post) # (..., n) h_res = sinkhorn_knopp(h_tilde_res.exp()) # (..., n, n) ic(h_pre.shape) ic(h_post.shape) ic(h_res.shape) # data dependent mapping application residual = ein.einsum(h_res, xl, &#34;... m n, ... n C -&gt; ... m C&#34;) # m=n ic(residual.shape) # ===== mainstream ===== x_pre = ein.einsum(h_pre, xl, &#34;... n, ... n C -&gt; ... C&#34;) ic(x_pre.shape) layer_out = layer(x_pre) # (..., C) ic(layer_out.shape) x_post = ein.einsum(h_post, layer_out, &#34;... n, ... C -&gt; ... n C&#34;) ic(x_post.shape) out = x_post &#43; residual # (..., n, C) return out batch_dims = (2, 100) layers = [nn.Identity() for _ in range(3)] # for illustration purpose if __name__ == &#34;__main__&#34;: x = torch.randn(*batch_dims, C) xl = broadcast_to_n_stream(x) # simulate 3 layers print(&#34;===== layer 1 =====&#34;) xl = manifold_constrained_hyperconnection(xl, layers[0]) print(&#34;===== layer 2 =====&#34;) xl = manifold_constrained_hyperconnection(xl, layers[1]) print(&#34;===== layer 3 =====&#34;) xl = manifold_constrained_hyperconnection(xl, layers[2]) out = reduce_to_one_stream(xl) print(&#34;===== output =====&#34;) ic(out.shape)">
+
+      <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
+
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+<script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="notransition">
+  <div id="container">
+    <header id="main-header"><div role="navigation" aria-label="Main">
+  <div class="nav-left">
+    <a href="https://da1sy-petals.vercel.app/" style="color: inherit;">Da1sypetals</a>
+  </div>
+  <div class="nav-right">
+    <div style="position:absolute;width:0px;height:0px;">
+      <div id="nav-dropdown-menu" class="hidden" href="#">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >知识</a>
+    </div>
+    <div class="nav-item">
+      <a href="/art/"
+      >文化</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    </div>
+    <a id="nav-dropdown-button" href="#"><svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+    <div id="nav-menu">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >知识</a>
+    </div>
+    <div class="nav-item">
+      <a href="/art/"
+      >文化</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    <a id="theme-switcher" href="#">
+<svg class="light-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5001M17.6859 17.69L18.5 18.5001M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+<svg class="dark-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.32031 11.6835C3.32031 16.6541 7.34975 20.6835 12.3203 20.6835C16.1075 20.6835 19.3483 18.3443 20.6768 15.032C19.6402 15.4486 18.5059 15.6834 17.3203 15.6834C12.3497 15.6834 8.32031 11.654 8.32031 6.68342C8.32031 5.50338 8.55165 4.36259 8.96453 3.32996C5.65605 4.66028 3.32031 7.89912 3.32031 11.6835Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+  </div>
+</div></header>
+    <div class="flex grow">
+      <div id="main-pane">
+        <main id="main-content"><div class="single-header">
+<ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/">
+        <span itemprop="name">Home</span>
+      </a>
+      <meta itemprop="position" content='1' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/posts/">
+        <span itemprop="name">Posts</span>
+      </a>
+      <meta itemprop="position" content='2' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+</ol>
+<h1>DeepSeek mHC的简单演示（可能有错误）</h1><time class="dim" datetime="2026-01-04T19:55:33&#43;08:00">January 4, 2026</time></div>
+  <section class="page-section"><p>DeepSeek发布了最新的魔改版Residual Connection：Manifold Constrained Hyper-Connection.</p>
+<p>其基本思路是把旁路residual限制在某个集合上（文中用更“几何”的manifold一词显示，退化的例子就是Kaiming的原版Residual Connection，约束是<code>residual = x</code>），使其在正反向传播的时候具有某种不易爆炸/崩溃的数学性质。</p>
+<p>类似的思路还可以在比如物理模拟中看到：</p>
+<ul>
+<li>通过将物体的transformation matrix约束在$SE(3)$，禁止物体形变，从而模拟刚体。</li>
+<li>进一步，在Affine body dynamics中，通过一个惩罚项惩罚transformation matrix偏离$SE(3)$的部分，将物体的transformation映射到尽可能近的$SE(3)$，从而在物体的行为尽可能接近刚体的同时，解决系统难以求解（有约束 $\rightarrow$无约束）的问题。</li>
+</ul>
+<p>HC的基本思路应该是：</p>
+<ul>
+<li>原本就有n个stream</li>
+<li>在主线forward的时候，把n个stream合并为一个（pre-proj），通过这一层网络（$f$），然后再打散回n个stream（post-proj）
+<ul>
+<li>即 $y=\text{post-proj} \circ f \circ \text{pre-proj}(x)$</li>
+</ul>
+</li>
+<li>支线复制输入x，通过一个res-proj进行信息混合之后，加回主线的输出</li>
+</ul>
+<p>mHC对这个res-proj进行约束：</p>
+<ul>
+<li>要求其为doubly stochastic matrix.</li>
+<li>具体做法就是通过sinkhorn迭代直接将其映射到最接近的doubly stochastic matrix上。</li>
+</ul>
+<p>我自己写的，可能有错误的简单的代码实现<a href="https://gist.github.com/Da1sypetals/0a7f70bf6b4ca7d46f0a1c5910e1a8b6">在这里</a>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-py" data-lang="py"><span style="display:flex;"><span><span style="color:#75715e"># Reference: https://www.arxiv.org/abs/2512.24880</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> torch
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> torch.nn <span style="color:#66d9ef">as</span> nn
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> torch.nn.functional <span style="color:#66d9ef">as</span> F
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> einops <span style="color:#66d9ef">as</span> ein
+</span></span><span style="display:flex;"><span><span style="color:#f92672">from</span> icecream <span style="color:#f92672">import</span> ic
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>N_ITER <span style="color:#f92672">=</span> <span style="color:#ae81ff">20</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">sinkhorn_knopp</span>(mat: torch<span style="color:#f92672">.</span>Tensor) <span style="color:#f92672">-&gt;</span> torch<span style="color:#f92672">.</span>Tensor:
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;&#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    mat: (..., n, n)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    Sidenote: IMO this technique should be subject to frequent change if mHC is proved to be effective
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> _ <span style="color:#f92672">in</span> range(N_ITER):
+</span></span><span style="display:flex;"><span>        mat <span style="color:#f92672">=</span> mat <span style="color:#f92672">/</span> mat<span style="color:#f92672">.</span>sum(<span style="color:#f92672">-</span><span style="color:#ae81ff">2</span>, keepdim<span style="color:#f92672">=</span><span style="color:#66d9ef">True</span>)  <span style="color:#75715e"># column normalize</span>
+</span></span><span style="display:flex;"><span>        mat <span style="color:#f92672">=</span> mat <span style="color:#f92672">/</span> mat<span style="color:#f92672">.</span>sum(<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, keepdim<span style="color:#f92672">=</span><span style="color:#66d9ef">True</span>)  <span style="color:#75715e"># row normalize</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> mat
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>n <span style="color:#f92672">=</span> <span style="color:#ae81ff">4</span>  <span style="color:#75715e"># stream width</span>
+</span></span><span style="display:flex;"><span>C <span style="color:#f92672">=</span> <span style="color:#ae81ff">256</span>  <span style="color:#75715e"># embedding dim</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>norm <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>RMSNorm((n <span style="color:#f92672">*</span> C,))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>phi_pre <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Parameter(torch<span style="color:#f92672">.</span>randn(n <span style="color:#f92672">*</span> C, n))
+</span></span><span style="display:flex;"><span>phi_post <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Parameter(torch<span style="color:#f92672">.</span>randn(n <span style="color:#f92672">*</span> C, n))
+</span></span><span style="display:flex;"><span>phi_res <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Parameter(torch<span style="color:#f92672">.</span>randn(n <span style="color:#f92672">*</span> C, n <span style="color:#f92672">*</span> n))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>b_pre <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Parameter(torch<span style="color:#f92672">.</span>randn(<span style="color:#ae81ff">1</span>, n))
+</span></span><span style="display:flex;"><span>b_post <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Parameter(torch<span style="color:#f92672">.</span>randn(<span style="color:#ae81ff">1</span>, n))
+</span></span><span style="display:flex;"><span>b_res <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Parameter(torch<span style="color:#f92672">.</span>randn(n, n))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>alpha_pre <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Parameter(torch<span style="color:#f92672">.</span>tensor(<span style="color:#ae81ff">0.1</span>))  <span style="color:#75715e"># for dimension illustration purposes</span>
+</span></span><span style="display:flex;"><span>alpha_post <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Parameter(torch<span style="color:#f92672">.</span>tensor(<span style="color:#ae81ff">0.1</span>))  <span style="color:#75715e"># for dimension illustration purposes</span>
+</span></span><span style="display:flex;"><span>alpha_res <span style="color:#f92672">=</span> nn<span style="color:#f92672">.</span>Parameter(torch<span style="color:#f92672">.</span>tensor(<span style="color:#ae81ff">1.0</span>))  <span style="color:#75715e"># for dimension illustration purposes</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">broadcast_to_n_stream</span>(xl: torch<span style="color:#f92672">.</span>Tensor) <span style="color:#f92672">-&gt;</span> torch<span style="color:#f92672">.</span>Tensor:
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> ein<span style="color:#f92672">.</span>repeat(xl, <span style="color:#e6db74">&#34;... C -&gt; ... n C&#34;</span>, n<span style="color:#f92672">=</span>n)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">reduce_to_one_stream</span>(xl: torch<span style="color:#f92672">.</span>Tensor) <span style="color:#f92672">-&gt;</span> torch<span style="color:#f92672">.</span>Tensor:
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> ein<span style="color:#f92672">.</span>reduce(xl, <span style="color:#e6db74">&#34;... n C -&gt; ... C&#34;</span>, <span style="color:#e6db74">&#34;mean&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">manifold_constrained_hyperconnection</span>(xl: torch<span style="color:#f92672">.</span>Tensor, layer: nn<span style="color:#f92672">.</span>Module) <span style="color:#f92672">-&gt;</span> torch<span style="color:#f92672">.</span>Tensor:
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># x: (..., n, C)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># ===== residual =====</span>
+</span></span><span style="display:flex;"><span>    xl_vec <span style="color:#f92672">=</span> ein<span style="color:#f92672">.</span>rearrange(xl, <span style="color:#e6db74">&#34;... n C -&gt; ... (n C)&#34;</span>)
+</span></span><span style="display:flex;"><span>    xl_vec_prime <span style="color:#f92672">=</span> norm(xl_vec)  <span style="color:#75715e"># (..., n*C)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># data dependent mapping construction</span>
+</span></span><span style="display:flex;"><span>    h_tilde_pre <span style="color:#f92672">=</span> alpha_pre <span style="color:#f92672">*</span> (xl_vec_prime <span style="color:#f92672">@</span> phi_pre) <span style="color:#f92672">+</span> b_pre  <span style="color:#75715e"># (..., n)</span>
+</span></span><span style="display:flex;"><span>    h_tilde_post <span style="color:#f92672">=</span> alpha_post <span style="color:#f92672">*</span> (xl_vec_prime <span style="color:#f92672">@</span> phi_post) <span style="color:#f92672">+</span> b_post  <span style="color:#75715e"># (..., n)</span>
+</span></span><span style="display:flex;"><span>    h_tilde_res <span style="color:#f92672">=</span> (
+</span></span><span style="display:flex;"><span>        alpha_res
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">*</span> ein<span style="color:#f92672">.</span>rearrange(
+</span></span><span style="display:flex;"><span>            (xl_vec_prime <span style="color:#f92672">@</span> phi_res),
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">&#34;... (m n) -&gt; ... m n&#34;</span>,
+</span></span><span style="display:flex;"><span>            n<span style="color:#f92672">=</span>n,
+</span></span><span style="display:flex;"><span>        )
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">+</span> b_res
+</span></span><span style="display:flex;"><span>    )  <span style="color:#75715e"># (..., n, n)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    h_pre <span style="color:#f92672">=</span> F<span style="color:#f92672">.</span>sigmoid(h_tilde_pre)  <span style="color:#75715e"># (..., n)</span>
+</span></span><span style="display:flex;"><span>    h_post <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">*</span> F<span style="color:#f92672">.</span>sigmoid(h_tilde_post)  <span style="color:#75715e"># (..., n)</span>
+</span></span><span style="display:flex;"><span>    h_res <span style="color:#f92672">=</span> sinkhorn_knopp(h_tilde_res<span style="color:#f92672">.</span>exp())  <span style="color:#75715e"># (..., n, n)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    ic(h_pre<span style="color:#f92672">.</span>shape)
+</span></span><span style="display:flex;"><span>    ic(h_post<span style="color:#f92672">.</span>shape)
+</span></span><span style="display:flex;"><span>    ic(h_res<span style="color:#f92672">.</span>shape)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># data dependent mapping application</span>
+</span></span><span style="display:flex;"><span>    residual <span style="color:#f92672">=</span> ein<span style="color:#f92672">.</span>einsum(h_res, xl, <span style="color:#e6db74">&#34;... m n, ... n C -&gt; ... m C&#34;</span>)  <span style="color:#75715e"># m=n</span>
+</span></span><span style="display:flex;"><span>    ic(residual<span style="color:#f92672">.</span>shape)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># ===== mainstream =====</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    x_pre <span style="color:#f92672">=</span> ein<span style="color:#f92672">.</span>einsum(h_pre, xl, <span style="color:#e6db74">&#34;... n, ... n C -&gt; ... C&#34;</span>)
+</span></span><span style="display:flex;"><span>    ic(x_pre<span style="color:#f92672">.</span>shape)
+</span></span><span style="display:flex;"><span>    layer_out <span style="color:#f92672">=</span> layer(x_pre)  <span style="color:#75715e"># (..., C)</span>
+</span></span><span style="display:flex;"><span>    ic(layer_out<span style="color:#f92672">.</span>shape)
+</span></span><span style="display:flex;"><span>    x_post <span style="color:#f92672">=</span> ein<span style="color:#f92672">.</span>einsum(h_post, layer_out, <span style="color:#e6db74">&#34;... n, ... C -&gt; ... n C&#34;</span>)
+</span></span><span style="display:flex;"><span>    ic(x_post<span style="color:#f92672">.</span>shape)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    out <span style="color:#f92672">=</span> x_post <span style="color:#f92672">+</span> residual  <span style="color:#75715e"># (..., n, C)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> out
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>batch_dims <span style="color:#f92672">=</span> (<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">100</span>)
+</span></span><span style="display:flex;"><span>layers <span style="color:#f92672">=</span> [nn<span style="color:#f92672">.</span>Identity() <span style="color:#66d9ef">for</span> _ <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">3</span>)]  <span style="color:#75715e"># for illustration purpose</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> __name__ <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;__main__&#34;</span>:
+</span></span><span style="display:flex;"><span>    x <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>randn(<span style="color:#f92672">*</span>batch_dims, C)
+</span></span><span style="display:flex;"><span>    xl <span style="color:#f92672">=</span> broadcast_to_n_stream(x)
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># simulate 3 layers</span>
+</span></span><span style="display:flex;"><span>    print(<span style="color:#e6db74">&#34;===== layer 1 =====&#34;</span>)
+</span></span><span style="display:flex;"><span>    xl <span style="color:#f92672">=</span> manifold_constrained_hyperconnection(xl, layers[<span style="color:#ae81ff">0</span>])
+</span></span><span style="display:flex;"><span>    print(<span style="color:#e6db74">&#34;===== layer 2 =====&#34;</span>)
+</span></span><span style="display:flex;"><span>    xl <span style="color:#f92672">=</span> manifold_constrained_hyperconnection(xl, layers[<span style="color:#ae81ff">1</span>])
+</span></span><span style="display:flex;"><span>    print(<span style="color:#e6db74">&#34;===== layer 3 =====&#34;</span>)
+</span></span><span style="display:flex;"><span>    xl <span style="color:#f92672">=</span> manifold_constrained_hyperconnection(xl, layers[<span style="color:#ae81ff">2</span>])
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    out <span style="color:#f92672">=</span> reduce_to_one_stream(xl)
+</span></span><span style="display:flex;"><span>    print(<span style="color:#e6db74">&#34;===== output =====&#34;</span>)
+</span></span><span style="display:flex;"><span>    ic(out<span style="color:#f92672">.</span>shape)
+</span></span></code></pre></div></section></main>
+        <footer id="main-footer"><div class="footer">
+  <a href="#">Scroll to Top</a>
+  <div class="footer-copyright">
+    <div class="dim">© 2026 Da1sypetals</div>
+    <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
+  </div>
+</div>
+</footer>
+      </div><aside id="side-pane" class="side-sticky"><div class="side-details">
+    <span>452 words</span>
+    <span>4 - 5 minutes read</span></div></aside></div>
+  </div>
+</body>
+
+</html>

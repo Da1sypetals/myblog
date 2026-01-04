@@ -47,9 +47,9 @@ nv官网提示我们，需要cuda driver一个较高的版本，cuda toolkit 13.
 def _get_final_ir(pyfunc, args, tile_context) -&gt; ir.Function: ir_ctx = ir.IRContext() func_ir: ir.Function = get_function_ir(pyfunc, ir_ctx, call_site=None) ir_args = func_ir.bind_arguments(args, get_constant_annotations(pyfunc)) func_ir = infer_types_pass(func_ir, ir_args, pyfunc, tile_context) # -------- 上方：语法、类型检查 ---------- # -------- 下方：（部分）机器无关优化 ---------- eliminate_assign_ops(func_ir) # &lt;-- breakpoint here dead_code_elimination_pass(func_ir) if not CUDA_TILE_TESTING_DISABLE_TOKEN_ORDER: alias_result = alias_analysis_pass(func_ir) token_order_pass(func_ir, alias_result) rewrite_patterns(func_ir) # Loop invariant code motion needs to run after the token order pass. # Otherwise, it may incorrectly hoist load operations out of the loop. hoist_loop_invariants(func_ir) split_loops(func_ir.root_block) dead_code_elimination_pass(func_ir) return func_ir 大概看一下代码：">
 
       <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
-      <link rel="stylesheet" href="/css/bundle.min.d95a325399a05b50fe47dcf35b8229b8a2a014fcee5435cfb28204c6ac335fc5.css" integrity="sha256-2VoyU5mgW1D&#43;R9zzW4IpuKKgFPzuVDXPsoIExqwzX8U=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
 
-      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.64594b125f7b78bdf4fa8316955922bbebb1cd6baef3f16654bfca20309f18f8.js" integrity="sha256-ZFlLEl97eL30&#43;oMWlVkiu&#43;uxzWuu8/FmVL/KIDCfGPg="></script>
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
 <script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -263,8 +263,7 @@ def _get_final_ir(pyfunc, args, tile_context) -&gt; ir.Function: ir_ctx = ir.IRC
 </span></span></code></pre></div><p>截取一小段中间表示的文本形式，可以看到比如tile4和tile5的dtype和shape都已经确定了。</p>
 <blockquote>
 <p>torch.Tensor的metadata是dtype, shape, strides.</p>
-<p>在cuTile的tile里面，为了硬件效率最大化，tile的存储不一定是某（行or列）主序，甚至可能任何一个维度的相邻两个元素在内存中都不连续，因此stride（其实是layout）是<code>tileiras</code>需要去figure out的东西，cuTile程序员无法操作。</p>
-</blockquote>
+<p>在cuTile的tile里面，为了硬件效率最大化，tile的存储不一定是某（行or列）主序，甚至可能任何一个维度的相邻两个元素在内存中都不连续，因此stride（其实是layout）是<code>tileiras</code>需要去figure out的东西，cuTile程序员无法操作。</p></blockquote>
 <p><img src="../images/py-cutile-ir.png" alt=""></p>
 <h3 id="cutile-python-bytecode-和后续">cuTile Python Bytecode 和后续</h3>
 <p>如果直接获取<code>_get_final_ir</code>函数的输出并且调用<code>to_string()</code>，就会得到cuTile Python IR （不是TileIR）。因为已经执行过了一些简单的优化，所以原始代码中的变量名信息已经丢失掉了(这也是我们之前要在优化之前就获取中间产物的原因)。</p>
@@ -275,14 +274,14 @@ def _get_final_ir(pyfunc, args, tile_context) -&gt; ir.Function: ir_ctx = ir.IRC
         <footer id="main-footer"><div class="footer">
   <a href="#">Scroll to Top</a>
   <div class="footer-copyright">
-    <div class="dim">© 2025 Da1sypetals</div>
+    <div class="dim">© 2026 Da1sypetals</div>
     <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
   </div>
 </div>
 </footer>
       </div><aside id="side-pane" class="side-sticky"><div class="side-details">
     <span>290 words</span>
-    <span>5 - 7 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
+    <span>6 - 7 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
   <ul>
     <li><a href="#探索过程">探索过程</a>
       <ul>

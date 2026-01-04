@@ -43,9 +43,9 @@ Note: For audio I/O functionality (i.e.: reading and writing audio files), see t
 The pedalboard module is named after the concept of a guitar pedalboard, in which musicians will chain various effects pedals together to give them complete control over their sound. The pedalboard module implements this concept with its main Pedalboard class:">
 
       <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
-      <link rel="stylesheet" href="/css/bundle.min.d95a325399a05b50fe47dcf35b8229b8a2a014fcee5435cfb28204c6ac335fc5.css" integrity="sha256-2VoyU5mgW1D&#43;R9zzW4IpuKKgFPzuVDXPsoIExqwzX8U=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
 
-      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.64594b125f7b78bdf4fa8316955922bbebb1cd6baef3f16654bfca20309f18f8.js" integrity="sha256-ZFlLEl97eL30&#43;oMWlVkiu&#43;uxzWuu8/FmVL/KIDCfGPg="></script>
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
 <script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -156,8 +156,7 @@ The pedalboard module is named after the concept of a guitar pedalboard, in whic
 <h1 id="pedalboard-api-documentation">Pedalboard API Documentation</h1>
 <p>The <code>pedalboard</code> module provides classes and functions for adding effects to audio. Most classes in this module are subclasses of <code>Plugin</code>, each of which allows applying effects to an audio buffer or stream.</p>
 <blockquote>
-<p><strong>Note:</strong> For audio I/O functionality (i.e.: reading and writing audio files), see the <code>pedalboard.io</code> module.</p>
-</blockquote>
+<p><strong>Note:</strong> For audio I/O functionality (i.e.: reading and writing audio files), see the <code>pedalboard.io</code> module.</p></blockquote>
 <p>The <code>pedalboard</code> module is named after the concept of a guitar pedalboard, in which musicians will chain various effects pedals together to give them complete control over their sound. The <code>pedalboard</code> module implements this concept with its main <code>Pedalboard</code> class:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> pedalboard <span style="color:#f92672">import</span> Pedalboard, Chorus, Distortion, Reverb
 </span></span><span style="display:flex;"><span>
@@ -185,8 +184,7 @@ The pedalboard module is named after the concept of a guitar pedalboard, in whic
 </span></span><span style="display:flex;"><span>my_plugin<span style="color:#f92672">.</span>mix <span style="color:#f92672">=</span> <span style="color:#ae81ff">0.5</span>
 </span></span><span style="display:flex;"><span>my_plugin<span style="color:#f92672">.</span>delay_time_ms <span style="color:#f92672">=</span> <span style="color:#ae81ff">400</span>
 </span></span></code></pre></div><blockquote>
-<p><strong>Note:</strong> <code>AudioProcessorParameter</code> tries to guess the range of valid parameter values, as well as the type/unit of the parameter, when instantiated. This guess may not always be accurate. Raw control over the underlying parameter’s value can be had by accessing the <code>raw_value</code> attribute, which is always bounded on [0, 1] and is passed directly to the underlying plugin object.</p>
-</blockquote>
+<p><strong>Note:</strong> <code>AudioProcessorParameter</code> tries to guess the range of valid parameter values, as well as the type/unit of the parameter, when instantiated. This guess may not always be accurate. Raw control over the underlying parameter’s value can be had by accessing the <code>raw_value</code> attribute, which is always bounded on [0, 1] and is passed directly to the underlying plugin object.</p></blockquote>
 <h4 id="properties">Properties</h4>
 <ul>
 <li><code>label: Optional[str]</code> – The units used by this parameter (Hz, dB, etc). May be <code>None</code> if the plugin does not expose units for this parameter or if automatic unit detection fails.</li>
@@ -220,8 +218,7 @@ The pedalboard module is named after the concept of a guitar pedalboard, in whic
 </li>
 </ul>
 <blockquote>
-<p><strong>Note:</strong> The <code>process()</code> method can also be used via <code>__call__()</code>; i.e.: just calling this object like a function (<code>my_plugin(...)</code>) will automatically invoke <code>process()</code> with the same arguments.</p>
-</blockquote>
+<p><strong>Note:</strong> The <code>process()</code> method can also be used via <code>__call__()</code>; i.e.: just calling this object like a function (<code>my_plugin(...)</code>) will automatically invoke <code>process()</code> with the same arguments.</p></blockquote>
 <ul>
 <li><code>reset() -&gt; None</code> – Clear any internal state stored by this plugin (e.g.: reverb tails, delay lines, LFO state, etc). The values of plugin parameters will remain unchanged.</li>
 </ul>
@@ -233,8 +230,7 @@ The pedalboard module is named after the concept of a guitar pedalboard, in whic
 </span></span><span style="display:flex;"><span>my_pedalboard<span style="color:#f92672">.</span>append(Reverb())
 </span></span><span style="display:flex;"><span>output_audio <span style="color:#f92672">=</span> my_pedalboard(input_audio)
 </span></span></code></pre></div><blockquote>
-<p><strong>Warning:</strong> <code>Pedalboard</code> objects may only contain effects plugins (i.e.: those for which <code>is_effect</code> is <code>True</code>), and cannot contain instrument plugins (i.e.: those for which <code>is_instrument</code> is <code>True</code>).</p>
-</blockquote>
+<p><strong>Warning:</strong> <code>Pedalboard</code> objects may only contain effects plugins (i.e.: those for which <code>is_effect</code> is <code>True</code>), and cannot contain instrument plugins (i.e.: those for which <code>is_instrument</code> is <code>True</code>).</p></blockquote>
 <h4 id="methods-2">Methods</h4>
 <ul>
 <li><code>__call__(input_array: numpy.ndarray, sample_rate: float, buffer_size: int = 8192, reset: bool = True) -&gt; numpy.ndarray[numpy.float32]</code> – Run an audio buffer through this plugin. Alias for <code>process()</code>.</li>
@@ -312,8 +308,7 @@ The pedalboard module is named after the concept of a guitar pedalboard, in whic
 <p>A basic chorus effect.</p>
 <p>This audio effect can be controlled via the speed and depth of the LFO controlling the frequency response, a mix control, a feedback control, and the centre delay of the modulation.</p>
 <blockquote>
-<p><strong>Note:</strong> To get classic chorus sounds try to use a centre delay time around 7-8 ms with a low feedback volume and a low depth. This effect can also be used as a flanger with a lower centre delay time and a lot of feedback, and as a vibrato effect if the mix value is 1.</p>
-</blockquote>
+<p><strong>Note:</strong> To get classic chorus sounds try to use a centre delay time around 7-8 ms with a low feedback volume and a low depth. This effect can also be used as a flanger with a lower centre delay time and a lot of feedback, and as a vibrato effect if the mix value is 1.</p></blockquote>
 <h4 id="properties-6">Properties</h4>
 <ul>
 <li><code>rate_hz</code> – The speed of the chorus effect’s low-frequency oscillator (LFO), in Hertz. This value must be between 0 Hz and 100 Hz.</li>
@@ -779,8 +774,7 @@ The pedalboard module is named after the concept of a guitar pedalboard, in whic
 <p>A wrapper around third-party, audio effect or instrument plugins in Steinberg GmbH’s VST3® format.</p>
 <p>VST3® plugins are supported on macOS, Windows, and Linux. However, VST3® plugin files are not cross-compatible with different operating systems; a platform-specific build of each plugin is required to load that plugin on a given platform. (For example: a Windows VST3 plugin bundle will not load on Linux or macOS.)</p>
 <blockquote>
-<p><strong>Warning:</strong> Some VST3® plugins may throw errors, hang, generate incorrect output, or outright crash if called from background threads. If you find that a VST3® plugin is not working as expected, try calling it from the main thread instead and open a GitHub Issue to track the incompatibility.</p>
-</blockquote>
+<p><strong>Warning:</strong> Some VST3® plugins may throw errors, hang, generate incorrect output, or outright crash if called from background threads. If you find that a VST3® plugin is not working as expected, try calling it from the main thread instead and open a GitHub Issue to track the incompatibility.</p></blockquote>
 <p>Support for instrument plugins introduced in v0.7.4.<br>
 Support for running VST3® plugins on background threads introduced in v0.8.8.</p>
 <h4 id="methods-31">Methods</h4>
@@ -845,13 +839,11 @@ This method may only be called on the main thread, and will block the main threa
 <li><code>name</code> – The name of this plugin.</li>
 <li><code>preset_data</code> – Get or set the current plugin state as bytes in <code>.vstpreset</code> format.
 <blockquote>
-<p><strong>Warning:</strong> This property can be set to change the plugin’s internal state, but providing invalid data may cause the plugin to crash, taking the entire Python process down with it.</p>
-</blockquote>
+<p><strong>Warning:</strong> This property can be set to change the plugin’s internal state, but providing invalid data may cause the plugin to crash, taking the entire Python process down with it.</p></blockquote>
 </li>
 <li><code>raw_state</code> – A bytes object representing the plugin’s internal state. For the VST3 format, this is usually an XML-encoded string prefixed with an 8-byte header and suffixed with a single null byte.
 <blockquote>
-<p><strong>Warning:</strong> This property can be set to change the plugin’s internal state, but providing invalid data may cause the plugin to crash, taking the entire Python process down with it.</p>
-</blockquote>
+<p><strong>Warning:</strong> This property can be set to change the plugin’s internal state, but providing invalid data may cause the plugin to crash, taking the entire Python process down with it.</p></blockquote>
 </li>
 <li><code>reported_latency_samples</code> – The number of samples of latency (delay) that this plugin reports to introduce into the audio signal due to internal buffering and processing. Pedalboard automatically compensates for this latency during processing, so this property is present for informational purposes. Note that not all plugins correctly report the latency that they introduce, so this value may be inaccurate (especially if the plugin reports 0). Introduced in v0.9.12.</li>
 <li><code>version</code> – The version string for this plugin, as reported by the plugin itself. Introduced in v0.9.4.</li>
@@ -882,8 +874,7 @@ This method may only be called on the main thread, and will block the main threa
 <li>The length of each array must be the same as the length of the input audio.</li>
 <li>More frequent changes in the stretch factor or pitch shift will result in slower processing, as the audio will be processed in smaller chunks.</li>
 <li>Changes to the <code>stretch_factor</code> or <code>pitch_shift_in_semitones</code> more frequent than once every 1,024 samples (23 milliseconds at 44.1kHz) will not have any effect.</li>
-</ul>
-</blockquote>
+</ul></blockquote>
 <p>The additional arguments provided to this function allow for more fine-grained control over the behavior of the time stretcher:</p>
 <ul>
 <li><code>high_quality</code> (the default) enables a higher quality time stretching mode. Set this option to <code>False</code> to use less CPU power.</li>
@@ -895,16 +886,14 @@ This method may only be called on the main thread, and will block the main threa
 <li><code>preserve_formants</code> allows shifting the pitch of notes without substantially affecting the pitch profile (formants) of a voice or instrument.</li>
 </ul>
 <blockquote>
-<p><strong>Warning:</strong> This is a function, not a <code>Plugin</code> instance, and cannot be used in <code>Pedalboard</code> objects, as it changes the duration of the audio stream.</p>
-</blockquote>
+<p><strong>Warning:</strong> This is a function, not a <code>Plugin</code> instance, and cannot be used in <code>Pedalboard</code> objects, as it changes the duration of the audio stream.</p></blockquote>
 <blockquote>
-<p><strong>Note:</strong> The ability to pass a NumPy array for <code>stretch_factor</code> and <code>pitch_shift_in_semitones</code> was added in Pedalboard v0.9.8.</p>
-</blockquote>
+<p><strong>Note:</strong> The ability to pass a NumPy array for <code>stretch_factor</code> and <code>pitch_shift_in_semitones</code> was added in Pedalboard v0.9.8.</p></blockquote>
 </section></main>
         <footer id="main-footer"><div class="footer">
   <a href="#">Scroll to Top</a>
   <div class="footer-copyright">
-    <div class="dim">© 2025 Da1sypetals</div>
+    <div class="dim">© 2026 Da1sypetals</div>
     <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
   </div>
 </div>
