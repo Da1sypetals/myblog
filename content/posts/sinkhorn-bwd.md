@@ -10,9 +10,9 @@ title = '不通过反转正向传播的方式计算sinkhorn迭代的梯度'
 
 1. 输入矩阵: $X \in \mathbb{R}^{n \times n}$。
 2. 指数化: $P = \exp(X)$（逐元素指数）。
-3. Sinkhorn 结果: 得到bistochastic matrix $R = \text{diag}(u) P \text{diag}(v)$，其中 $u, v \in \mathbb{R}^n_{>0}$ 是缩放因子，满足：
-    - 行和约束：$R \mathbf{1} = \mathbf{1} \implies u \odot (Pv) = \mathbf{1}$
-    - 列和约束：$R^T \mathbf{1} = \mathbf{1} \implies v \odot (P^T u) = \mathbf{1}$
+3. Sinkhorn 结果: 得到bistochastic matrix $R = \text{diag}(\alpha) P \text{diag}(\beta)$，其中 $\alpha, \beta \in \mathbb{R}^n_{>0}$ 是缩放因子，满足：
+    - 行和约束：$R \mathbf{1} = \mathbf{1} \implies \alpha \odot (P\beta) = \mathbf{1}$
+    - 列和约束：$R^T \mathbf{1} = \mathbf{1} \implies \beta \odot (P^T \alpha) = \mathbf{1}$
 4. 损失函数: $L = f(R)$，令 $G = \nabla_R L = \frac{\partial L}{\partial R}$ 为已知梯度。
 
 
@@ -37,7 +37,7 @@ $$\begin{cases} u + R v = (G \odot R) \mathbf{1} \\ R^T u + v = (G \odot R)^T \m
 
 将上述方程改写成矩阵形式：
 
-$$\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} (G \odot R) \mathbf{1} \\ (G \odot R)^T \mathbf{1} \end{bmatrix}$$
+$$\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} (G \odot R) \mathbf{1} \\ (G \odot R)^T \mathbf{1} \end{bmatrix} = b$$
 
 求解上述线性系统，得到 $u$ 和 $v$。
 
@@ -52,19 +52,19 @@ $$\frac{\partial L}{\partial X_{ij}} = (G_{ij} - u_i - v_j) R_{ij} = (G_{ij} - (
 
 ## 问题
 
-记$A=\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix}$。
+记$A=\begin{bmatrix} I & R \\ R^T & I \end{bmatrix}$。
 
 ### 1. A是奇异矩阵，x 有多解
 证明：
 
-考虑非零向量 $v = \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$（其中 $\mathbf{1}$ 为全 1 的 $n$ 维列向量）。
-计算 $Av$：
+考虑非零向量 $w = \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$（其中 $\mathbf{1}$ 为全 1 的 $n$ 维列向量）。
+计算 $Aw$：
 
-$$Av = \begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \begin{bmatrix} I\mathbf{1} - R\mathbf{1} \\ R^T\mathbf{1} - I\mathbf{1} \end{bmatrix}$$
+$$Aw = \begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \begin{bmatrix} I\mathbf{1} - R\mathbf{1} \\ R^T\mathbf{1} - I\mathbf{1} \end{bmatrix}$$
 
 根据bistochastic matrix性质 $R\mathbf{1} = \mathbf{1}$ 和 $R^T\mathbf{1} = \mathbf{1}$：
 
-$$Av = \begin{bmatrix} \mathbf{1} - \mathbf{1} \\ \mathbf{1} - \mathbf{1} \end{bmatrix} = \mathbf{0}$$
+$$Aw = \begin{bmatrix} \mathbf{1} - \mathbf{1} \\ \mathbf{1} - \mathbf{1} \end{bmatrix} = \mathbf{0}$$
 
 由于存在非零向量在 $A$ 的零空间（Null space）中，故 $\det(A) = 0$。
 
@@ -96,7 +96,7 @@ $$M(k) = u_0\mathbf{1}^T + k(\mathbf{1}\mathbf{1}^T) + \mathbf{1}v_0^T - k(\math
 
 消去 $k$ 相关项：
 
-$$M(k) = u_0\mathbf{1}^T + \mathbf{1}v_0^T = M_{fixed}$$
+$$M(k) = u_0\mathbf{1}^T + \mathbf{1}v_0^T = M_{\text{fixed}}$$
 结论：
 对于 $Ax=b$ 的任何解 $x$，由它们计算得到的矩阵 $M$ 是确定的。即：
 
@@ -113,17 +113,17 @@ $M$ 是 $R$ 和 $b$ 的确定函数，不受具体解的影响；因此只要求
 
 若 $R$ 的奇异值为 $\sigma_1, \sigma_2, \dots, \sigma_n$，则 $A$ 的特征值为 $1 \pm \sigma_i$。
 
-证明：设 $\mu$ 是 $A$ 的特征值，对应的特征向量为 $\mathbf{x} = \begin{bmatrix} \mathbf{u} \\ \mathbf{v} \end{bmatrix}$，其中 $\mathbf{u}, \mathbf{v} \in \mathbb{R}^n$。
+证明：设 $\mu$ 是 $A$ 的特征值，对应的特征向量为 $z = \begin{bmatrix} p \\ q \end{bmatrix}$，其中 $p, q \in \mathbb{R}^n$。
 
 则有方程组：
 
-- $\mathbf{u} + R\mathbf{v} = \mu \mathbf{u} \implies R\mathbf{v} = (\mu - 1)\mathbf{u}$
+- $p + Rq = \mu p \implies Rq = (\mu - 1)p$
 
-- $R^T\mathbf{u} + \mathbf{v} = \mu \mathbf{v} \implies R^T\mathbf{u} = (\mu - 1)\mathbf{v}$
+- $R^Tp + q = \mu q \implies R^Tp = (\mu - 1)q$
 
 将 (2) 代入 (1) 可得：
 
-$$\dfrac{RR^T\mathbf{u}}{\mu - 1} = (\mu - 1)\mathbf{u} \implies RR^T \mathbf{u} = (\mu - 1)^2 \mathbf{u}$$
+$$\dfrac{RR^Tp}{\mu - 1} = (\mu - 1)p \implies RR^T p = (\mu - 1)^2 p$$
 
 这表明 $(\mu - 1)^2$ 是矩阵 $RR^T$ 的特征值。根据奇异值分解的定义，$RR^T$ 的特征值正是 $R$ 的奇异值的平方 $\sigma_i^2$。
 
