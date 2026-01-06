@@ -10,7 +10,7 @@ title = '不通过反转正向传播的方式计算sinkhorn迭代的梯度'
 
 1. 输入矩阵: $X \in \mathbb{R}^{n \times n}$。
 2. 指数化: $P = \exp(X)$（逐元素指数）。
-3. Sinkhorn 结果: 得到双随机矩阵 $R = \text{diag}(u) P \text{diag}(v)$，其中 $u, v \in \mathbb{R}^n_{>0}$ 是缩放因子，满足：
+3. Sinkhorn 结果: 得到bistochastic matrix $R = \text{diag}(u) P \text{diag}(v)$，其中 $u, v \in \mathbb{R}^n_{>0}$ 是缩放因子，满足：
     - 行和约束：$R \mathbf{1} = \mathbf{1} \implies u \odot (Pv) = \mathbf{1}$
     - 列和约束：$R^T \mathbf{1} = \mathbf{1} \implies v \odot (P^T u) = \mathbf{1}$
 4. 损失函数: $L = f(R)$，令 $G = \nabla_R L = \frac{\partial L}{\partial R}$ 为已知梯度。
@@ -22,15 +22,13 @@ title = '不通过反转正向传播的方式计算sinkhorn迭代的梯度'
 
 $$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial R} \cdot \frac{\partial R}{\partial P} \cdot \frac{\partial P}{\partial X}$$
 
-由于 $P_{ij} = e^{X_{ij}}$，我们知道 $\frac{\partial P_{ij}}{\partial X_{ij}} = P_{ij}$。因此，若能求出 $\frac{\partial L}{\partial P}$，最终结果就是 $\nabla_X L = \nabla_P L \odot P$。
+由于 $P_{ij} = e^{X_{ij}} \implies \frac{\partial P_{ij}}{\partial X_{ij}} = P_{ij}$, 若能求出 $\frac{\partial L}{\partial P}$，最终结果就是 $\nabla_X L = \nabla_P L \odot P$。
 
-通过对 Sinkhorn 的平衡条件进行隐函数求导，可以证明 $\nabla_X L$ 的计算公式如下：
-最终梯度公式：
-
+通过对 Sinkhorn 的平衡条件进行隐函数求导，可以证明得到 $\nabla_X L$ 的计算公式如下(过程略......):
 
 $$\nabla_X L = (G - u \mathbf{1}^T - \mathbf{1} v^T) \odot R$$
 
-其中 $u, v \in \mathbb{R}^n$ 是下列线性系统的解：
+其中 $u, v \in \mathbb{R}^n$ 是下列线性系统的解, 等号右边分别是$G \odot R$ 的*行和*和*列和*：
 
 $$\begin{cases} u + R v = (G \odot R) \mathbf{1} \\ R^T u + v = (G \odot R)^T \mathbf{1} \end{cases}$$
 
@@ -52,11 +50,11 @@ $$\frac{\partial L}{\partial X_{ij}} = (G_{ij} - u_i - v_j) R_{ij} = (G_{ij} - (
 对于每一个$i,j$，我们需要从上述方程中解得的就是$u_i + v_j$。
 
 
-## 问题：
+## 问题
 
 记$A=\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix}$。
 
-### 1. A是奇异矩阵，因此 x 有多解
+### 1. A是奇异矩阵，x 有多解
 证明：
 
 考虑非零向量 $v = \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$（其中 $\mathbf{1}$ 为全 1 的 $n$ 维列向量）。
@@ -64,15 +62,15 @@ $$\frac{\partial L}{\partial X_{ij}} = (G_{ij} - u_i - v_j) R_{ij} = (G_{ij} - (
 
 $$Av = \begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \begin{bmatrix} I\mathbf{1} - R\mathbf{1} \\ R^T\mathbf{1} - I\mathbf{1} \end{bmatrix}$$
 
-根据双随机矩阵性质 $R\mathbf{1} = \mathbf{1}$ 和 $R^T\mathbf{1} = \mathbf{1}$：
+根据bistochastic matrix性质 $R\mathbf{1} = \mathbf{1}$ 和 $R^T\mathbf{1} = \mathbf{1}$：
 
 $$Av = \begin{bmatrix} \mathbf{1} - \mathbf{1} \\ \mathbf{1} - \mathbf{1} \end{bmatrix} = \mathbf{0}$$
 
 由于存在非零向量在 $A$ 的零空间（Null space）中，故 $\det(A) = 0$。
 
-直观理解：双随机矩阵的行和列和存在冗余（例如，行和为1，因此每行其实只需知道前n-1个元素）。
+直观理解：bistochastic matrix的行和列和存在冗余（例如，行和为1，因此每行其实只需知道前n-1个元素）。
 
-### 2. 即使x有多解，我们的计算目标也是确定的
+### 2. 多解不影响计算目标
 
 #### 1) 线性方程组 $Ax = b$ 的解空间
 由于 $A$ 是奇异的，对于给定的向量 $b$，如果方程有解，则必有无穷多解。其通解形式为：
@@ -137,13 +135,13 @@ $$(\mu - 1)^2 = \sigma_i^2 \implies \mu - 1 = \pm \sigma_i \implies \mu = 1 \pm 
 
 $A$ 是对称半正定矩阵（Positive Semidefinite）。对称性是显然的。
 
-$A$ 的特征值为 $1 \pm \sigma_i$，因为 $R$ 是双随机矩阵，根据 Perron-Frobenius 定理或谱范数的性质，双随机矩阵的最大奇异值 $\sigma_{\max}(R) = 1$。
+$A$ 的特征值为 $1 \pm \sigma_i$，因为 $R$ 是bistochastic matrix，根据 Perron-Frobenius定理, 其最大奇异值 $\sigma_{\max}(R) = 1$。
 
 由于所有奇异值 $\sigma_i$ 满足 $0 \le \sigma_i \le 1$，则：
 
-最大特征值 $\mu_{\max} = 1 + \sigma_1 = 1 + 1 = 2$。
+- 最大特征值 $\mu_{\max} = 1 + \sigma_1 = 1 + 1 = 2$。
 
-最小特征值 $\mu_{\min} = 1 - \sigma_1 = 1 - 1 = 0$。
+- 最小特征值 $\mu_{\min} = 1 - \sigma_1 = 1 - 1 = 0$。
 
 因为所有特征值 $\mu_i \ge 0$，所以 $A$ 是半正定的。
 
@@ -157,7 +155,7 @@ $$b \in \mathcal{R}(A) \iff b \perp \mathcal{N}(A)$$
 
 针对该矩阵的相容性条件：
 
-由于 $R$ 是双随机矩阵，我们已知 $A \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \mathbf{0}$。这意味着 $\begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$ 在零空间内。
+由于 $R$ 是bistochastic matrix，我们已知 $A \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \mathbf{0}$。这意味着 $\begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$ 在零空间内。
 
 如果 $b = \begin{bmatrix} b_1 \\ b_2 \end{bmatrix}$（$b_1, b_2 \in \mathbb{R}^n$），则相容性要求：
 
@@ -266,10 +264,10 @@ rel_diff = abs_diff / (g1.abs() + 1e-12)
 
 print("Comparison of gradients dL/dA")
 print("--------------------------------")
-print("AAE           :", abs_diff.mean().item())
-print("Aax abs diff  :", abs_diff.max().item())
-print("Aean rel diff :", rel_diff.mean().item())
-print("Aax rel diff  :", rel_diff.max().item())
+print("MAE           :", abs_diff.mean().item())
+print("Max abs diff  :", abs_diff.max().item())
+print("Mean rel diff :", rel_diff.mean().item())
+print("Max rel diff  :", rel_diff.max().item())
 
 print("\nGrad (autograd) sample:\n", g1[:3, :3])
 print("\nGrad (implicit) sample:\n", g2[:3, :3])

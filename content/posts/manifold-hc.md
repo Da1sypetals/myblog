@@ -5,7 +5,10 @@ title = 'DeepSeek mHC的简单演示（可能有错误）'
 
 DeepSeek发布了最新的魔改版Residual Connection：Manifold Constrained Hyper-Connection.
 
-其基本思路是把旁路residual限制在某个集合上（文中用更“几何”的manifold一词显示，退化的例子就是Kaiming的原版Residual Connection，约束是`residual = x`），使其在正反向传播的时候具有某种不易爆炸/崩溃的数学性质。
+其基本思路是把旁路residual限制在某个集合上
+- 文中用更“几何”的manifold一词表述;
+- 退化的例子就是Kaiming的原版Residual Connection，约束是`residual = x`
+- 本文则将residual projection matrix的谱范数限制在 $\leq 1$, 使其在正反向传播的时候不易爆炸/崩溃.
 
 类似的思路还可以在比如物理模拟中看到：
 - 通过将物体的transformation matrix约束在$SE(3)$，禁止物体形变，从而模拟刚体。
@@ -19,8 +22,13 @@ HC的基本思路应该是：
 - 支线复制输入x，通过一个res-proj进行信息混合之后，加回主线的输出
 
 mHC对这个res-proj进行约束：
-- 要求其为doubly stochastic matrix. 
-- 具体做法就是通过sinkhorn迭代直接将其映射到最接近的doubly stochastic matrix上。
+- 要求其为bistochastic matrix. 
+    - 具体做法就是通过sinkhorn迭代直接将其映射到最接近的doubly stochastic matrix上。
+
+个人想法: 这里是不是也可以参考muon中的正交化方法, 将奇异值全部设置为1? 
+- 可能需要考察的点包括:
+    - muon中用的N-S迭代在较好的系数 $a,b,c$ 下是否能够收敛良好
+    - 如果不希望保留中间结果, 反向怎么算 (可能也需要回溯正向传播的迭代过程)
 
 我自己写的，可能有错误的简单的代码实现[在这里](https://gist.github.com/Da1sypetals/0a7f70bf6b4ca7d46f0a1c5910e1a8b6)：
 

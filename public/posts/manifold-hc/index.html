@@ -24,11 +24,12 @@
   <meta property="og:site_name" content="Da1sypetals">
   <meta property="og:title" content="DeepSeek mHC的简单演示（可能有错误）">
   <meta property="og:description" content="DeepSeek发布了最新的魔改版Residual Connection：Manifold Constrained Hyper-Connection.
-其基本思路是把旁路residual限制在某个集合上（文中用更“几何”的manifold一词显示，退化的例子就是Kaiming的原版Residual Connection，约束是residual = x），使其在正反向传播的时候具有某种不易爆炸/崩溃的数学性质。
-类似的思路还可以在比如物理模拟中看到：
+其基本思路是把旁路residual限制在某个集合上
+文中用更“几何”的manifold一词表述; 退化的例子就是Kaiming的原版Residual Connection，约束是residual = x 本文则将residual projection matrix的谱范数限制在 $\leq 1$, 使其在正反向传播的时候不易爆炸/崩溃. 类似的思路还可以在比如物理模拟中看到：
 通过将物体的transformation matrix约束在$SE(3)$，禁止物体形变，从而模拟刚体。 进一步，在Affine body dynamics中，通过一个惩罚项惩罚transformation matrix偏离$SE(3)$的部分，将物体的transformation映射到尽可能近的$SE(3)$，从而在物体的行为尽可能接近刚体的同时，解决系统难以求解（有约束 $\rightarrow$无约束）的问题。 HC的基本思路应该是：
 原本就有n个stream 在主线forward的时候，把n个stream合并为一个（pre-proj），通过这一层网络（$f$），然后再打散回n个stream（post-proj） 即 $y=\text{post-proj} \circ f \circ \text{pre-proj}(x)$ 支线复制输入x，通过一个res-proj进行信息混合之后，加回主线的输出 mHC对这个res-proj进行约束：
-要求其为doubly stochastic matrix. 具体做法就是通过sinkhorn迭代直接将其映射到最接近的doubly stochastic matrix上。 我自己写的，可能有错误的简单的代码实现在这里：
+要求其为bistochastic matrix. 具体做法就是通过sinkhorn迭代直接将其映射到最接近的doubly stochastic matrix上。 个人想法: 这里是不是也可以参考muon中的正交化方法, 将奇异值全部设置为1?
+可能需要考察的点包括: muon中用的N-S迭代在较好的系数 $a,b,c$ 下是否能够收敛良好 如果不希望保留中间结果, 反向怎么算 (可能也需要回溯正向传播的迭代过程) 我自己写的，可能有错误的简单的代码实现在这里：
 # Reference: https://www.arxiv.org/abs/2512.24880 import torch import torch.nn as nn import torch.nn.functional as F import einops as ein from icecream import ic N_ITER = 20 def sinkhorn_knopp(mat: torch.Tensor) -&gt; torch.Tensor: &#34;&#34;&#34; mat: (..., n, n) Sidenote: IMO this technique should be subject to frequent change if mHC is proved to be effective &#34;&#34;&#34; for _ in range(N_ITER): mat = mat / mat.sum(-2, keepdim=True) # column normalize mat = mat / mat.sum(-1, keepdim=True) # row normalize return mat n = 4 # stream width C = 256 # embedding dim norm = nn.RMSNorm((n * C,)) phi_pre = nn.Parameter(torch.randn(n * C, n)) phi_post = nn.Parameter(torch.randn(n * C, n)) phi_res = nn.Parameter(torch.randn(n * C, n * n)) b_pre = nn.Parameter(torch.randn(1, n)) b_post = nn.Parameter(torch.randn(1, n)) b_res = nn.Parameter(torch.randn(n, n)) alpha_pre = nn.Parameter(torch.tensor(0.1)) # for dimension illustration purposes alpha_post = nn.Parameter(torch.tensor(0.1)) # for dimension illustration purposes alpha_res = nn.Parameter(torch.tensor(1.0)) # for dimension illustration purposes def broadcast_to_n_stream(xl: torch.Tensor) -&gt; torch.Tensor: return ein.repeat(xl, &#34;... C -&gt; ... n C&#34;, n=n) def reduce_to_one_stream(xl: torch.Tensor) -&gt; torch.Tensor: return ein.reduce(xl, &#34;... n C -&gt; ... C&#34;, &#34;mean&#34;) def manifold_constrained_hyperconnection(xl: torch.Tensor, layer: nn.Module) -&gt; torch.Tensor: # x: (..., n, C) # ===== residual ===== xl_vec = ein.rearrange(xl, &#34;... n C -&gt; ... (n C)&#34;) xl_vec_prime = norm(xl_vec) # (..., n*C) # data dependent mapping construction h_tilde_pre = alpha_pre * (xl_vec_prime @ phi_pre) &#43; b_pre # (..., n) h_tilde_post = alpha_post * (xl_vec_prime @ phi_post) &#43; b_post # (..., n) h_tilde_res = ( alpha_res * ein.rearrange( (xl_vec_prime @ phi_res), &#34;... (m n) -&gt; ... m n&#34;, n=n, ) &#43; b_res ) # (..., n, n) h_pre = F.sigmoid(h_tilde_pre) # (..., n) h_post = 2 * F.sigmoid(h_tilde_post) # (..., n) h_res = sinkhorn_knopp(h_tilde_res.exp()) # (..., n, n) ic(h_pre.shape) ic(h_post.shape) ic(h_res.shape) # data dependent mapping application residual = ein.einsum(h_res, xl, &#34;... m n, ... n C -&gt; ... m C&#34;) # m=n ic(residual.shape) # ===== mainstream ===== x_pre = ein.einsum(h_pre, xl, &#34;... n, ... n C -&gt; ... C&#34;) ic(x_pre.shape) layer_out = layer(x_pre) # (..., C) ic(layer_out.shape) x_post = ein.einsum(h_post, layer_out, &#34;... n, ... C -&gt; ... n C&#34;) ic(x_post.shape) out = x_post &#43; residual # (..., n, C) return out batch_dims = (2, 100) layers = [nn.Identity() for _ in range(3)] # for illustration purpose if __name__ == &#34;__main__&#34;: x = torch.randn(*batch_dims, C) xl = broadcast_to_n_stream(x) # simulate 3 layers print(&#34;===== layer 1 =====&#34;) xl = manifold_constrained_hyperconnection(xl, layers[0]) print(&#34;===== layer 2 =====&#34;) xl = manifold_constrained_hyperconnection(xl, layers[1]) print(&#34;===== layer 3 =====&#34;) xl = manifold_constrained_hyperconnection(xl, layers[2]) out = reduce_to_one_stream(xl) print(&#34;===== output =====&#34;) ic(out.shape)">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:type" content="article">
@@ -39,17 +40,18 @@
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="DeepSeek mHC的简单演示（可能有错误）">
   <meta name="twitter:description" content="DeepSeek发布了最新的魔改版Residual Connection：Manifold Constrained Hyper-Connection.
-其基本思路是把旁路residual限制在某个集合上（文中用更“几何”的manifold一词显示，退化的例子就是Kaiming的原版Residual Connection，约束是residual = x），使其在正反向传播的时候具有某种不易爆炸/崩溃的数学性质。
-类似的思路还可以在比如物理模拟中看到：
+其基本思路是把旁路residual限制在某个集合上
+文中用更“几何”的manifold一词表述; 退化的例子就是Kaiming的原版Residual Connection，约束是residual = x 本文则将residual projection matrix的谱范数限制在 $\leq 1$, 使其在正反向传播的时候不易爆炸/崩溃. 类似的思路还可以在比如物理模拟中看到：
 通过将物体的transformation matrix约束在$SE(3)$，禁止物体形变，从而模拟刚体。 进一步，在Affine body dynamics中，通过一个惩罚项惩罚transformation matrix偏离$SE(3)$的部分，将物体的transformation映射到尽可能近的$SE(3)$，从而在物体的行为尽可能接近刚体的同时，解决系统难以求解（有约束 $\rightarrow$无约束）的问题。 HC的基本思路应该是：
 原本就有n个stream 在主线forward的时候，把n个stream合并为一个（pre-proj），通过这一层网络（$f$），然后再打散回n个stream（post-proj） 即 $y=\text{post-proj} \circ f \circ \text{pre-proj}(x)$ 支线复制输入x，通过一个res-proj进行信息混合之后，加回主线的输出 mHC对这个res-proj进行约束：
-要求其为doubly stochastic matrix. 具体做法就是通过sinkhorn迭代直接将其映射到最接近的doubly stochastic matrix上。 我自己写的，可能有错误的简单的代码实现在这里：
+要求其为bistochastic matrix. 具体做法就是通过sinkhorn迭代直接将其映射到最接近的doubly stochastic matrix上。 个人想法: 这里是不是也可以参考muon中的正交化方法, 将奇异值全部设置为1?
+可能需要考察的点包括: muon中用的N-S迭代在较好的系数 $a,b,c$ 下是否能够收敛良好 如果不希望保留中间结果, 反向怎么算 (可能也需要回溯正向传播的迭代过程) 我自己写的，可能有错误的简单的代码实现在这里：
 # Reference: https://www.arxiv.org/abs/2512.24880 import torch import torch.nn as nn import torch.nn.functional as F import einops as ein from icecream import ic N_ITER = 20 def sinkhorn_knopp(mat: torch.Tensor) -&gt; torch.Tensor: &#34;&#34;&#34; mat: (..., n, n) Sidenote: IMO this technique should be subject to frequent change if mHC is proved to be effective &#34;&#34;&#34; for _ in range(N_ITER): mat = mat / mat.sum(-2, keepdim=True) # column normalize mat = mat / mat.sum(-1, keepdim=True) # row normalize return mat n = 4 # stream width C = 256 # embedding dim norm = nn.RMSNorm((n * C,)) phi_pre = nn.Parameter(torch.randn(n * C, n)) phi_post = nn.Parameter(torch.randn(n * C, n)) phi_res = nn.Parameter(torch.randn(n * C, n * n)) b_pre = nn.Parameter(torch.randn(1, n)) b_post = nn.Parameter(torch.randn(1, n)) b_res = nn.Parameter(torch.randn(n, n)) alpha_pre = nn.Parameter(torch.tensor(0.1)) # for dimension illustration purposes alpha_post = nn.Parameter(torch.tensor(0.1)) # for dimension illustration purposes alpha_res = nn.Parameter(torch.tensor(1.0)) # for dimension illustration purposes def broadcast_to_n_stream(xl: torch.Tensor) -&gt; torch.Tensor: return ein.repeat(xl, &#34;... C -&gt; ... n C&#34;, n=n) def reduce_to_one_stream(xl: torch.Tensor) -&gt; torch.Tensor: return ein.reduce(xl, &#34;... n C -&gt; ... C&#34;, &#34;mean&#34;) def manifold_constrained_hyperconnection(xl: torch.Tensor, layer: nn.Module) -&gt; torch.Tensor: # x: (..., n, C) # ===== residual ===== xl_vec = ein.rearrange(xl, &#34;... n C -&gt; ... (n C)&#34;) xl_vec_prime = norm(xl_vec) # (..., n*C) # data dependent mapping construction h_tilde_pre = alpha_pre * (xl_vec_prime @ phi_pre) &#43; b_pre # (..., n) h_tilde_post = alpha_post * (xl_vec_prime @ phi_post) &#43; b_post # (..., n) h_tilde_res = ( alpha_res * ein.rearrange( (xl_vec_prime @ phi_res), &#34;... (m n) -&gt; ... m n&#34;, n=n, ) &#43; b_res ) # (..., n, n) h_pre = F.sigmoid(h_tilde_pre) # (..., n) h_post = 2 * F.sigmoid(h_tilde_post) # (..., n) h_res = sinkhorn_knopp(h_tilde_res.exp()) # (..., n, n) ic(h_pre.shape) ic(h_post.shape) ic(h_res.shape) # data dependent mapping application residual = ein.einsum(h_res, xl, &#34;... m n, ... n C -&gt; ... m C&#34;) # m=n ic(residual.shape) # ===== mainstream ===== x_pre = ein.einsum(h_pre, xl, &#34;... n, ... n C -&gt; ... C&#34;) ic(x_pre.shape) layer_out = layer(x_pre) # (..., C) ic(layer_out.shape) x_post = ein.einsum(h_post, layer_out, &#34;... n, ... C -&gt; ... n C&#34;) ic(x_post.shape) out = x_post &#43; residual # (..., n, C) return out batch_dims = (2, 100) layers = [nn.Identity() for _ in range(3)] # for illustration purpose if __name__ == &#34;__main__&#34;: x = torch.randn(*batch_dims, C) xl = broadcast_to_n_stream(x) # simulate 3 layers print(&#34;===== layer 1 =====&#34;) xl = manifold_constrained_hyperconnection(xl, layers[0]) print(&#34;===== layer 2 =====&#34;) xl = manifold_constrained_hyperconnection(xl, layers[1]) print(&#34;===== layer 3 =====&#34;) xl = manifold_constrained_hyperconnection(xl, layers[2]) out = reduce_to_one_stream(xl) print(&#34;===== output =====&#34;) ic(out.shape)">
 
       <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
-      <link rel="stylesheet" href="/css/bundle.min.d95a325399a05b50fe47dcf35b8229b8a2a014fcee5435cfb28204c6ac335fc5.css" integrity="sha256-2VoyU5mgW1D&#43;R9zzW4IpuKKgFPzuVDXPsoIExqwzX8U=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
 
-      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.64594b125f7b78bdf4fa8316955922bbebb1cd6baef3f16654bfca20309f18f8.js" integrity="sha256-ZFlLEl97eL30&#43;oMWlVkiu&#43;uxzWuu8/FmVL/KIDCfGPg="></script>
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
 <script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -156,7 +158,12 @@
 </ol>
 <h1>DeepSeek mHC的简单演示（可能有错误）</h1><time class="dim" datetime="2026-01-04T19:55:33&#43;08:00">January 4, 2026</time></div>
   <section class="page-section"><p>DeepSeek发布了最新的魔改版Residual Connection：Manifold Constrained Hyper-Connection.</p>
-<p>其基本思路是把旁路residual限制在某个集合上（文中用更“几何”的manifold一词显示，退化的例子就是Kaiming的原版Residual Connection，约束是<code>residual = x</code>），使其在正反向传播的时候具有某种不易爆炸/崩溃的数学性质。</p>
+<p>其基本思路是把旁路residual限制在某个集合上</p>
+<ul>
+<li>文中用更“几何”的manifold一词表述;</li>
+<li>退化的例子就是Kaiming的原版Residual Connection，约束是<code>residual = x</code></li>
+<li>本文则将residual projection matrix的谱范数限制在 $\leq 1$, 使其在正反向传播的时候不易爆炸/崩溃.</li>
+</ul>
 <p>类似的思路还可以在比如物理模拟中看到：</p>
 <ul>
 <li>通过将物体的transformation matrix约束在$SE(3)$，禁止物体形变，从而模拟刚体。</li>
@@ -174,8 +181,20 @@
 </ul>
 <p>mHC对这个res-proj进行约束：</p>
 <ul>
-<li>要求其为doubly stochastic matrix.</li>
+<li>要求其为bistochastic matrix.
+<ul>
 <li>具体做法就是通过sinkhorn迭代直接将其映射到最接近的doubly stochastic matrix上。</li>
+</ul>
+</li>
+</ul>
+<p>个人想法: 这里是不是也可以参考muon中的正交化方法, 将奇异值全部设置为1?</p>
+<ul>
+<li>可能需要考察的点包括:
+<ul>
+<li>muon中用的N-S迭代在较好的系数 $a,b,c$ 下是否能够收敛良好</li>
+<li>如果不希望保留中间结果, 反向怎么算 (可能也需要回溯正向传播的迭代过程)</li>
+</ul>
+</li>
 </ul>
 <p>我自己写的，可能有错误的简单的代码实现<a href="https://gist.github.com/Da1sypetals/0a7f70bf6b4ca7d46f0a1c5910e1a8b6">在这里</a>：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-py" data-lang="py"><span style="display:flex;"><span><span style="color:#75715e"># Reference: https://www.arxiv.org/abs/2512.24880</span>
@@ -300,8 +319,8 @@
 </div>
 </footer>
       </div><aside id="side-pane" class="side-sticky"><div class="side-details">
-    <span>452 words</span>
-    <span>4 - 5 minutes read</span></div></aside></div>
+    <span>469 words</span>
+    <span>4 - 6 minutes read</span></div></aside></div>
   </div>
 </body>
 

@@ -24,8 +24,8 @@
   <meta property="og:site_name" content="Da1sypetals">
   <meta property="og:title" content="不通过反转正向传播的方式计算sinkhorn迭代的梯度">
   <meta property="og:description" content="变量定义与前向过程 注：$\odot$ 代表逐元素乘法。
-输入矩阵: $X \in \mathbb{R}^{n \times n}$。 指数化: $P = \exp(X)$（逐元素指数）。 Sinkhorn 结果: 得到双随机矩阵 $R = \text{diag}(u) P \text{diag}(v)$，其中 $u, v \in \mathbb{R}^n_{&gt;0}$ 是缩放因子，满足： 行和约束：$R \mathbf{1} = \mathbf{1} \implies u \odot (Pv) = \mathbf{1}$ 列和约束：$R^T \mathbf{1} = \mathbf{1} \implies v \odot (P^T u) = \mathbf{1}$ 损失函数: $L = f(R)$，令 $G = \nabla_R L = \frac{\partial L}{\partial R}$ 为已知梯度。 隐函数微分推导 我们的目标是求 $\frac{\partial L}{\partial X}$。根据链式法则：
-$$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial R} \cdot \frac{\partial R}{\partial P} \cdot \frac{\partial P}{\partial X}$$由于 $P_{ij} = e^{X_{ij}}$，我们知道 $\frac{\partial P_{ij}}{\partial X_{ij}} = P_{ij}$。因此，若能求出 $\frac{\partial L}{\partial P}$，最终结果就是 $\nabla_X L = \nabla_P L \odot P$。">
+输入矩阵: $X \in \mathbb{R}^{n \times n}$。 指数化: $P = \exp(X)$（逐元素指数）。 Sinkhorn 结果: 得到bistochastic matrix $R = \text{diag}(u) P \text{diag}(v)$，其中 $u, v \in \mathbb{R}^n_{&gt;0}$ 是缩放因子，满足： 行和约束：$R \mathbf{1} = \mathbf{1} \implies u \odot (Pv) = \mathbf{1}$ 列和约束：$R^T \mathbf{1} = \mathbf{1} \implies v \odot (P^T u) = \mathbf{1}$ 损失函数: $L = f(R)$，令 $G = \nabla_R L = \frac{\partial L}{\partial R}$ 为已知梯度。 隐函数微分推导 我们的目标是求 $\frac{\partial L}{\partial X}$。根据链式法则：
+$$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial R} \cdot \frac{\partial R}{\partial P} \cdot \frac{\partial P}{\partial X}$$由于 $P_{ij} = e^{X_{ij}} \implies \frac{\partial P_{ij}}{\partial X_{ij}} = P_{ij}$, 若能求出 $\frac{\partial L}{\partial P}$，最终结果就是 $\nabla_X L = \nabla_P L \odot P$。">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:type" content="article">
     <meta property="article:section" content="posts">
@@ -35,13 +35,13 @@ $$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial R} \cdot \frac{\par
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="不通过反转正向传播的方式计算sinkhorn迭代的梯度">
   <meta name="twitter:description" content="变量定义与前向过程 注：$\odot$ 代表逐元素乘法。
-输入矩阵: $X \in \mathbb{R}^{n \times n}$。 指数化: $P = \exp(X)$（逐元素指数）。 Sinkhorn 结果: 得到双随机矩阵 $R = \text{diag}(u) P \text{diag}(v)$，其中 $u, v \in \mathbb{R}^n_{&gt;0}$ 是缩放因子，满足： 行和约束：$R \mathbf{1} = \mathbf{1} \implies u \odot (Pv) = \mathbf{1}$ 列和约束：$R^T \mathbf{1} = \mathbf{1} \implies v \odot (P^T u) = \mathbf{1}$ 损失函数: $L = f(R)$，令 $G = \nabla_R L = \frac{\partial L}{\partial R}$ 为已知梯度。 隐函数微分推导 我们的目标是求 $\frac{\partial L}{\partial X}$。根据链式法则：
-$$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial R} \cdot \frac{\partial R}{\partial P} \cdot \frac{\partial P}{\partial X}$$由于 $P_{ij} = e^{X_{ij}}$，我们知道 $\frac{\partial P_{ij}}{\partial X_{ij}} = P_{ij}$。因此，若能求出 $\frac{\partial L}{\partial P}$，最终结果就是 $\nabla_X L = \nabla_P L \odot P$。">
+输入矩阵: $X \in \mathbb{R}^{n \times n}$。 指数化: $P = \exp(X)$（逐元素指数）。 Sinkhorn 结果: 得到bistochastic matrix $R = \text{diag}(u) P \text{diag}(v)$，其中 $u, v \in \mathbb{R}^n_{&gt;0}$ 是缩放因子，满足： 行和约束：$R \mathbf{1} = \mathbf{1} \implies u \odot (Pv) = \mathbf{1}$ 列和约束：$R^T \mathbf{1} = \mathbf{1} \implies v \odot (P^T u) = \mathbf{1}$ 损失函数: $L = f(R)$，令 $G = \nabla_R L = \frac{\partial L}{\partial R}$ 为已知梯度。 隐函数微分推导 我们的目标是求 $\frac{\partial L}{\partial X}$。根据链式法则：
+$$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial R} \cdot \frac{\partial R}{\partial P} \cdot \frac{\partial P}{\partial X}$$由于 $P_{ij} = e^{X_{ij}} \implies \frac{\partial P_{ij}}{\partial X_{ij}} = P_{ij}$, 若能求出 $\frac{\partial L}{\partial P}$，最终结果就是 $\nabla_X L = \nabla_P L \odot P$。">
 
       <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
-      <link rel="stylesheet" href="/css/bundle.min.d95a325399a05b50fe47dcf35b8229b8a2a014fcee5435cfb28204c6ac335fc5.css" integrity="sha256-2VoyU5mgW1D&#43;R9zzW4IpuKKgFPzuVDXPsoIExqwzX8U=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
 
-      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.64594b125f7b78bdf4fa8316955922bbebb1cd6baef3f16654bfca20309f18f8.js" integrity="sha256-ZFlLEl97eL30&#43;oMWlVkiu&#43;uxzWuu8/FmVL/KIDCfGPg="></script>
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
 <script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -149,12 +149,11 @@ $$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial R} \cdot \frac{\par
 <h1>不通过反转正向传播的方式计算sinkhorn迭代的梯度</h1><time class="dim" datetime="2026-01-05T22:07:08&#43;08:00">January 5, 2026</time></div>
   <section class="page-section"><h2 id="变量定义与前向过程">变量定义与前向过程</h2>
 <blockquote>
-<p>注：$\odot$ 代表逐元素乘法。</p>
-</blockquote>
+<p>注：$\odot$ 代表逐元素乘法。</p></blockquote>
 <ol>
 <li>输入矩阵: $X \in \mathbb{R}^{n \times n}$。</li>
 <li>指数化: $P = \exp(X)$（逐元素指数）。</li>
-<li>Sinkhorn 结果: 得到双随机矩阵 $R = \text{diag}(u) P \text{diag}(v)$，其中 $u, v \in \mathbb{R}^n_{>0}$ 是缩放因子，满足：
+<li>Sinkhorn 结果: 得到bistochastic matrix $R = \text{diag}(u) P \text{diag}(v)$，其中 $u, v \in \mathbb{R}^n_{>0}$ 是缩放因子，满足：
 <ul>
 <li>行和约束：$R \mathbf{1} = \mathbf{1} \implies u \odot (Pv) = \mathbf{1}$</li>
 <li>列和约束：$R^T \mathbf{1} = \mathbf{1} \implies v \odot (P^T u) = \mathbf{1}$</li>
@@ -164,10 +163,9 @@ $$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial R} \cdot \frac{\par
 </ol>
 <h2 id="隐函数微分推导">隐函数微分推导</h2>
 <p>我们的目标是求 $\frac{\partial L}{\partial X}$。根据链式法则：</p>
-$$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial R} \cdot \frac{\partial R}{\partial P} \cdot \frac{\partial P}{\partial X}$$<p>由于 $P_{ij} = e^{X_{ij}}$，我们知道 $\frac{\partial P_{ij}}{\partial X_{ij}} = P_{ij}$。因此，若能求出 $\frac{\partial L}{\partial P}$，最终结果就是 $\nabla_X L = \nabla_P L \odot P$。</p>
-<p>通过对 Sinkhorn 的平衡条件进行隐函数求导，可以证明 $\nabla_X L$ 的计算公式如下：
-最终梯度公式：</p>
-$$\nabla_X L = (G - u \mathbf{1}^T - \mathbf{1} v^T) \odot R$$<p>其中 $u, v \in \mathbb{R}^n$ 是下列线性系统的解：</p>
+$$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial R} \cdot \frac{\partial R}{\partial P} \cdot \frac{\partial P}{\partial X}$$<p>由于 $P_{ij} = e^{X_{ij}} \implies \frac{\partial P_{ij}}{\partial X_{ij}} = P_{ij}$, 若能求出 $\frac{\partial L}{\partial P}$，最终结果就是 $\nabla_X L = \nabla_P L \odot P$。</p>
+<p>通过对 Sinkhorn 的平衡条件进行隐函数求导，可以证明得到 $\nabla_X L$ 的计算公式如下(过程略&hellip;&hellip;):</p>
+$$\nabla_X L = (G - u \mathbf{1}^T - \mathbf{1} v^T) \odot R$$<p>其中 $u, v \in \mathbb{R}^n$ 是下列线性系统的解, 等号右边分别是$G \odot R$ 的<em>行和</em>和<em>列和</em>：</p>
 $$\begin{cases} u + R v = (G \odot R) \mathbf{1} \\ R^T u + v = (G \odot R)^T \mathbf{1} \end{cases}$$<h2 id="具体实现步骤">具体实现步骤</h2>
 <h3 id="1求解线性系统">1）求解线性系统</h3>
 <p>将上述方程改写成矩阵形式：</p>
@@ -175,16 +173,16 @@ $$\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bma
 <h3 id="2组装梯度">2）组装梯度</h3>
 <p>得到 $u$ 和 $v$ 后，代入：</p>
 $$\frac{\partial L}{\partial X_{ij}} = (G_{ij} - u_i - v_j) R_{ij} = (G_{ij} - (u_i + v_j)) R_{ij}$$<p>对于每一个$i,j$，我们需要从上述方程中解得的就是$u_i + v_j$。</p>
-<h2 id="问题">问题：</h2>
+<h2 id="问题">问题</h2>
 <p>记$A=\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix}$。</p>
-<h3 id="1-a是奇异矩阵因此-x-有多解">1. A是奇异矩阵，因此 x 有多解</h3>
+<h3 id="1-a是奇异矩阵x-有多解">1. A是奇异矩阵，x 有多解</h3>
 <p>证明：</p>
 <p>考虑非零向量 $v = \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$（其中 $\mathbf{1}$ 为全 1 的 $n$ 维列向量）。
 计算 $Av$：</p>
-$$Av = \begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \begin{bmatrix} I\mathbf{1} - R\mathbf{1} \\ R^T\mathbf{1} - I\mathbf{1} \end{bmatrix}$$<p>根据双随机矩阵性质 $R\mathbf{1} = \mathbf{1}$ 和 $R^T\mathbf{1} = \mathbf{1}$：</p>
+$$Av = \begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \begin{bmatrix} I\mathbf{1} - R\mathbf{1} \\ R^T\mathbf{1} - I\mathbf{1} \end{bmatrix}$$<p>根据bistochastic matrix性质 $R\mathbf{1} = \mathbf{1}$ 和 $R^T\mathbf{1} = \mathbf{1}$：</p>
 $$Av = \begin{bmatrix} \mathbf{1} - \mathbf{1} \\ \mathbf{1} - \mathbf{1} \end{bmatrix} = \mathbf{0}$$<p>由于存在非零向量在 $A$ 的零空间（Null space）中，故 $\det(A) = 0$。</p>
-<p>直观理解：双随机矩阵的行和列和存在冗余（例如，行和为1，因此每行其实只需知道前n-1个元素）。</p>
-<h3 id="2-即使x有多解我们的计算目标也是确定的">2. 即使x有多解，我们的计算目标也是确定的</h3>
+<p>直观理解：bistochastic matrix的行和列和存在冗余（例如，行和为1，因此每行其实只需知道前n-1个元素）。</p>
+<h3 id="2-多解不影响计算目标">2. 多解不影响计算目标</h3>
 <h4 id="1-线性方程组--的解空间">1) 线性方程组 $Ax = b$ 的解空间</h4>
 <p>由于 $A$ 是奇异的，对于给定的向量 $b$，如果方程有解，则必有无穷多解。其通解形式为：</p>
 $$x = \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} u_0 \\ v_0 \end{bmatrix} + k \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \begin{bmatrix} u_0 + k\mathbf{1} \\ v_0 - k\mathbf{1} \end{bmatrix}$$<p>其中 $\begin{bmatrix} u_0 \\ v_0 \end{bmatrix}$ 是一个特解，$k$ 是任意实数标量。</p>
@@ -219,16 +217,22 @@ $$\dfrac{RR^T\mathbf{u}}{\mu - 1} = (\mu - 1)\mathbf{u} \implies RR^T \mathbf{u}
 <p>因此：</p>
 $$(\mu - 1)^2 = \sigma_i^2 \implies \mu - 1 = \pm \sigma_i \implies \mu = 1 \pm \sigma_i$$<h3 id="2对称半正定性">2）对称半正定性</h3>
 <p>$A$ 是对称半正定矩阵（Positive Semidefinite）。对称性是显然的。</p>
-<p>$A$ 的特征值为 $1 \pm \sigma_i$，因为 $R$ 是双随机矩阵，根据 Perron-Frobenius 定理或谱范数的性质，双随机矩阵的最大奇异值 $\sigma_{\max}(R) = 1$。</p>
+<p>$A$ 的特征值为 $1 \pm \sigma_i$，因为 $R$ 是bistochastic matrix，根据 Perron-Frobenius定理, 其最大奇异值 $\sigma_{\max}(R) = 1$。</p>
 <p>由于所有奇异值 $\sigma_i$ 满足 $0 \le \sigma_i \le 1$，则：</p>
+<ul>
+<li>
 <p>最大特征值 $\mu_{\max} = 1 + \sigma_1 = 1 + 1 = 2$。</p>
+</li>
+<li>
 <p>最小特征值 $\mu_{\min} = 1 - \sigma_1 = 1 - 1 = 0$。</p>
+</li>
+</ul>
 <p>因为所有特征值 $\mu_i \ge 0$，所以 $A$ 是半正定的。</p>
 <h3 id="3相容性">3）相容性</h3>
 <p>共轭梯度法在处理奇异的对称半正定矩阵时，只有在方程组相容的情况下才会收敛到解。所谓相容，是指向量 $b$ 必须落在矩阵 $A$ 的列空间（即值域）内，数学表达为：</p>
 $$b \in \mathcal{R}(A) \iff b \perp \mathcal{N}(A)$$<p>其中 $\mathcal{N}(A)$ 是 $A$ 的零空间（Null Space）。</p>
 <p>针对该矩阵的相容性条件：</p>
-<p>由于 $R$ 是双随机矩阵，我们已知 $A \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \mathbf{0}$。这意味着 $\begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$ 在零空间内。</p>
+<p>由于 $R$ 是bistochastic matrix，我们已知 $A \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \mathbf{0}$。这意味着 $\begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$ 在零空间内。</p>
 <p>如果 $b = \begin{bmatrix} b_1 \\ b_2 \end{bmatrix}$（$b_1, b_2 \in \mathbb{R}^n$），则相容性要求：</p>
 $$\begin{bmatrix} b_1 \\ b_2 \end{bmatrix}^T \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = 0 \implies \sum_{i=1}^n (b_1)_i = \sum_{j=1}^n (b_2)_j$$<p>结论： 只有当 $b$ 的上半部分元素之和等于下半部分元素之和时，CG 法才能收敛到一个精确解。</p>
 <p>对于我们的问题，$b_1 = (G \odot R) \mathbf{1}$，$b_2 = (G \odot R)^T \mathbf{1}$，因此</p>
@@ -236,8 +240,7 @@ $$\sum_{i=1}^n (b_1)_i = \sum_{j=1}^n (b_2)_j = \sum_{i=1}^n \sum_{j=1}^n G_{ij}
 <h2 id="实现">实现</h2>
 <p>特别鸣谢Gemini的辅助编程。这里直接调用了<code>torch.linalg.solve</code>，没有自己实现共轭梯度法。</p>
 <blockquote>
-<p>注：要确保正向sinkhorn充分收敛才能使用此方法；正向收敛不充分的情况下，和自动求导的结果对比会出现很大偏差。</p>
-</blockquote>
+<p>注：要确保正向sinkhorn充分收敛才能使用此方法；正向收敛不充分的情况下，和自动求导的结果对比会出现很大偏差。</p></blockquote>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-py" data-lang="py"><span style="display:flex;"><span><span style="color:#f92672">from</span> icecream <span style="color:#f92672">import</span> ic
 </span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> torch
 </span></span><span style="display:flex;"><span>
@@ -326,10 +329,10 @@ $$\sum_{i=1}^n (b_1)_i = \sum_{j=1}^n (b_2)_j = \sum_{i=1}^n \sum_{j=1}^n G_{ij}
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;Comparison of gradients dL/dA&#34;</span>)
 </span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;--------------------------------&#34;</span>)
-</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;AAE           :&#34;</span>, abs_diff<span style="color:#f92672">.</span>mean()<span style="color:#f92672">.</span>item())
-</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;Aax abs diff  :&#34;</span>, abs_diff<span style="color:#f92672">.</span>max()<span style="color:#f92672">.</span>item())
-</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;Aean rel diff :&#34;</span>, rel_diff<span style="color:#f92672">.</span>mean()<span style="color:#f92672">.</span>item())
-</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;Aax rel diff  :&#34;</span>, rel_diff<span style="color:#f92672">.</span>max()<span style="color:#f92672">.</span>item())
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;MAE           :&#34;</span>, abs_diff<span style="color:#f92672">.</span>mean()<span style="color:#f92672">.</span>item())
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;Max abs diff  :&#34;</span>, abs_diff<span style="color:#f92672">.</span>max()<span style="color:#f92672">.</span>item())
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;Mean rel diff :&#34;</span>, rel_diff<span style="color:#f92672">.</span>mean()<span style="color:#f92672">.</span>item())
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;Max rel diff  :&#34;</span>, rel_diff<span style="color:#f92672">.</span>max()<span style="color:#f92672">.</span>item())
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">Grad (autograd) sample:</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, g1[:<span style="color:#ae81ff">3</span>, :<span style="color:#ae81ff">3</span>])
 </span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">Grad (implicit) sample:</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, g2[:<span style="color:#ae81ff">3</span>, :<span style="color:#ae81ff">3</span>])
@@ -343,7 +346,7 @@ $$\sum_{i=1}^n (b_1)_i = \sum_{j=1}^n (b_2)_j = \sum_{i=1}^n \sum_{j=1}^n G_{ij}
 </div>
 </footer>
       </div><aside id="side-pane" class="side-sticky"><div class="side-details">
-    <span>925 words</span>
+    <span>934 words</span>
     <span>9 - 11 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
   <ul>
     <li><a href="#变量定义与前向过程">变量定义与前向过程</a></li>
@@ -354,10 +357,10 @@ $$\sum_{i=1}^n (b_1)_i = \sum_{j=1}^n (b_2)_j = \sum_{i=1}^n \sum_{j=1}^n G_{ij}
         <li><a href="#2组装梯度">2）组装梯度</a></li>
       </ul>
     </li>
-    <li><a href="#问题">问题：</a>
+    <li><a href="#问题">问题</a>
       <ul>
-        <li><a href="#1-a是奇异矩阵因此-x-有多解">1. A是奇异矩阵，因此 x 有多解</a></li>
-        <li><a href="#2-即使x有多解我们的计算目标也是确定的">2. 即使x有多解，我们的计算目标也是确定的</a></li>
+        <li><a href="#1-a是奇异矩阵x-有多解">1. A是奇异矩阵，x 有多解</a></li>
+        <li><a href="#2-多解不影响计算目标">2. 多解不影响计算目标</a></li>
       </ul>
     </li>
     <li><a href="#收敛性">收敛性</a>
