@@ -5,32 +5,40 @@ title = 'DeepSeek mHC的简单演示（可能有错误）'
 
 DeepSeek发布了最新的魔改版Residual Connection：Manifold Constrained Hyper-Connection.
 
-其基本思路是把旁路residual限制在某个集合上
-- 文中用更“几何”的manifold一词表述;
-- 退化的例子就是Kaiming的原版Residual Connection，约束是`residual = x`
-- 本文则将residual projection matrix的谱范数限制在 $\leq 1$, 使其在正反向传播的时候不易爆炸/崩溃.
+## 思路
 
-类似的思路还可以在比如物理模拟中看到：
-- 通过将物体的transformation matrix约束在$SE(3)$，禁止物体形变，从而模拟刚体。
-- 进一步，在Affine body dynamics中，通过一个惩罚项惩罚transformation matrix偏离$SE(3)$的部分，将物体的transformation映射到尽可能近的$SE(3)$，从而在物体的行为尽可能接近刚体的同时，解决系统难以求解（有约束 $\rightarrow$无约束）的问题。
+1. 其基本思路是把旁路residual限制在某个集合上
 
-HC的基本思路应该是：
+    - 文中用更“几何”的manifold一词表述;
+    - 退化的例子就是Kaiming的原版Residual Connection，约束是`residual = x`
+    - 本文则将residual projection matrix的谱范数限制在 $\leq 1$, 使其在正反向传播的时候不易爆炸/崩溃.
 
-- 原本就有n个stream
-- 在主线forward的时候，把n个stream合并为一个（pre-proj），通过这一层网络（$f$），然后再打散回n个stream（post-proj）
-    - 即 $y=\text{post-proj} \circ f \circ \text{pre-proj}(x)$ 
-- 支线复制输入x，通过一个res-proj进行信息混合之后，加回主线的输出
+2. 类似的思路还可以在比如物理模拟中看到：
 
-mHC对这个res-proj进行约束：
-- 要求其为bistochastic matrix. 
+    - 通过将物体的transformation matrix约束在$SE(3)$，禁止物体形变，从而模拟刚体。
+    - 进一步，在Affine body dynamics中，通过一个惩罚项惩罚transformation matrix偏离$SE(3)$的部分，将物体的transformation映射到尽可能近的$SE(3)$，从而在物体的行为尽可能接近刚体的同时，解决系统难以求解（有约束 $\rightarrow$无约束）的问题。
+
+3. HC的基本思路应该是：
+
+    - 原本就有n个stream
+    - 在主线forward的时候，把n个stream合并为一个（pre-proj），通过这一层网络（$f$），然后再打散回n个stream（post-proj）
+        - 即 $y=\text{post-proj} \circ f \circ \text{pre-proj}(x)$ 
+    - 支线复制输入x，通过一个res-proj进行信息混合之后，加回主线的输出
+
+4. mHC对这个res-proj进行约束：
+    - 要求其为bistochastic matrix. 
     - 具体做法就是通过sinkhorn迭代直接将其映射到最接近的doubly stochastic matrix上。
 
-个人想法: 这里是不是也可以参考muon中的正交化方法, 将奇异值全部设置为1? 
-- 可能需要考察的点包括:
-    - muon中用的N-S迭代在较好的系数 $a,b,c$ 下是否能够收敛良好
-    - 如果不希望保留中间结果, 反向怎么算 (可能也需要回溯正向传播的迭代过程)
+5. 个人想法: 这里是不是也可以参考muon中的正交化方法, 将奇异值全部设置为1? 
+    - 可能需要考察的点包括:
+        - muon中用的N-S迭代在较好的系数 $a,b,c$ 下是否能够收敛良好
+        - 如果不希望保留中间结果, 反向怎么算 (可能也需要回溯正向传播的迭代过程)
 
-我自己写的，可能有错误的简单的代码实现[在这里](https://gist.github.com/Da1sypetals/0a7f70bf6b4ca7d46f0a1c5910e1a8b6)：
+## 简单实现(不含优化)
+
+一种可能有错误的简单的代码实现[在这里](https://gist.github.com/Da1sypetals/0a7f70bf6b4ca7d46f0a1c5910e1a8b6)如下. 除了sinkhorn之外的其他计算流程都在torch的API里, deepseek还通过kernel fusion等方式获得了更好的性能.
+
+Sinkhorn的反向传播还可以通过和原文不同的, [不需要顺着正向传播"原路返回"的另一种方法](https://da1sypetals.netlify.app/posts/sinkhorn-bwd/)计算.
 
 ```py
 # Reference: https://www.arxiv.org/abs/2512.24880

@@ -169,9 +169,11 @@ $$\sum_{i=1}^n (b_1)_i = \sum_{j=1}^n (b_2)_j = \sum_{i=1}^n \sum_{j=1}^n G_{ij}
 
 满足相容性条件，算法应当收敛。
 
-## 实现
+## torch实现
 
 特别鸣谢Gemini的辅助编程。这里直接调用了`torch.linalg.solve`，没有自己实现共轭梯度法。
+
+cuTile的示例实现在[这里](https://gist.github.com/Da1sypetals/e9886cd679b32920100656d7a3dee79b).
 
 > 注：要确保正向sinkhorn充分收敛才能使用此方法；正向收敛不充分的情况下，和自动求导的结果对比会出现很大偏差。
 
