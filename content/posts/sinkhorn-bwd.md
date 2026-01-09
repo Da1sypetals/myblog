@@ -187,7 +187,7 @@ $$\sum_{i=1}^n (b_1)_i = \sum_{j=1}^n (b_2)_j = \sum_{i=1}^n \sum_{j=1}^n G_{ij}
 
 ## torch实现
 
-特别鸣谢Gemini的辅助编程。这里直接调用了`torch.linalg.solve`，没有自己实现共轭梯度法。
+特别鸣谢Gemini的辅助编程。
 
 cuTile的示例实现在[这里](https://gist.github.com/Da1sypetals/e9886cd679b32920100656d7a3dee79b).
 
@@ -196,98 +196,200 @@ cuTile的示例实现在[这里](https://gist.github.com/Da1sypetals/e9886cd679b
 ```py
 from icecream import ic
 import torch
+import einops as ein
 
 dtype = torch.float32
 
+batch = 25001
 n = 4
-iters = 10
+iters = 20
 print(f"{n = }")
 print(f"{iters = }")
 
+# Fix torch seed
+# torch.manual_seed(0)
 
-def sinkhorn_forward(A, iters=20):
-    P = torch.exp(A)
-    u = torch.ones(n, dtype=dtype)
-    v = torch.ones(n, dtype=dtype)
+
+def sinkhorn_forward(M, iters=20):
+    P = torch.exp(M)
+    R = P
 
     for _ in range(iters):
-        u = 1.0 / (P @ v)
-        v = 1.0 / (P.t() @ u)
+        R = R / R.sum(-2, keepdim=True)
+        R = R / R.sum(-1, keepdim=True)
 
-    R = torch.diag(u) @ P @ torch.diag(v)
-    return R, P, u, v
+    return R, P
+
+
+def batch_cg_solve(R, b):
+    """
+    Solve the system Ax = b using the Conjugate Gradient (CG) method.
+    The matrix A is structured as:
+    A = [[I,   R ],
+         [R^T, I ]]
+    """
+    batch_size, n, _ = R.shape
+    device = R.device
+    dtype = R.dtype
+
+    # 1. Construct the complete 2n x 2n matrix A
+    # Create identity matrix I
+    eye = torch.eye(n, device=device, dtype=dtype).unsqueeze(0).expand(batch_size, -1, -1)
+
+    # Concatenate blocks to form A
+    # top: [I, R]
+    top = torch.cat([eye, R], dim=-1)
+    # bottom: [R^T, I]
+    # Use einsum 'bij->bji' for transpose
+    R_T = torch.einsum("bij->bji", R)
+    bottom = torch.cat([R_T, eye], dim=-1)
+    # A shape: (batch, 2n, 2n)
+    A = torch.cat([top, bottom], dim=-2)
+
+    # 2. CG Initialization
+    # Initial guess x0 = 0, shape (batch, 2n)
+    x = torch.zeros_like(b)
+
+    # Initial residual r0 = b - A@x0 = b
+    r = b.clone()
+
+    # Initial search direction p0 = r0
+    p = r.clone()
+
+    # rs_old = r^T * r (dot product per batch)
+    rs_old = torch.einsum("bi,bi->b", r, r)
+
+    max_iter = 2 * n
+
+    # 3. CG Iteration Loop
+    for i in range(max_iter):
+        # Calculate Ap = A @ p
+        # 'bij,bj->bi' performs batch matrix-vector multiplication
+        Ap = torch.einsum("bij,bj->bi", A, p)
+
+        # Calculate step size alpha = (r^T * r) / (p^T * A * p)
+        # pAp is the dot product of p and Ap per batch
+        pAp = torch.einsum("bi,bi->b", p, Ap)
+        # alpha = rs_old / pAp
+        # Avoid division by zero here is very important
+        alpha = rs_old / (pAp + 1e-12)
+
+        # Update solution x = x + alpha * p
+        # 'b,bi->bi' scales each vector in the batch by its corresponding alpha
+        x += torch.einsum("b,bi->bi", alpha, p)
+
+        # Update residual r = r - alpha * Ap
+        r -= torch.einsum("b,bi->bi", alpha, Ap)
+
+        # Calculate new residual inner product
+        rs_new = torch.einsum("bi,bi->b", r, r)
+
+        # Calculate beta = (r_new^T * r_new) / (r_old^T * r_old)
+        # Avoid division by zero here is not so important experimentally
+        # but it's good to have it
+        beta = rs_new / (rs_old + 1e-12)
+
+        # Update search direction p = r + beta * p
+        p = r + torch.einsum("b,bi->bi", beta, p)
+
+        rs_old = rs_new
+
+    return x
 
 
 def sinkhorn_backward_implicit(grad_R, R):
     R = R.detach()
 
-    r = (R * grad_R).sum(dim=1)  # shape (n,)
-    c = (R * grad_R).sum(dim=0)  # shape (n,)
+    r = (R * grad_R).sum(dim=-1)  # shape (n,)
+    c = (R * grad_R).sum(dim=-2)  # shape (n,)
 
     # Build 2n x 2n system
-    A = torch.zeros((2 * n, 2 * n), dtype=dtype)
+    A = torch.zeros((batch, 2 * n, 2 * n), dtype=dtype)
 
-    A[:n, :n] = torch.eye(n, dtype=dtype)
-    A[:n, n:] = R
-    A[n:, :n] = R.t()
-    A[n:, n:] = torch.eye(n, dtype=dtype)
+    A[:, :n, :n] = torch.eye(n, dtype=dtype).unsqueeze(0)
+    A[:, :n, n:] = R
+    A[:, n:, :n] = R.transpose(-2, -1)
+    A[:, n:, n:] = torch.eye(n, dtype=dtype).unsqueeze(0)
 
     ic(torch.linalg.svdvals(A))
 
-    b = torch.cat([r, c])
+    b = torch.cat([r, c], dim=-1)
 
-    sol = torch.linalg.solve(A, b)
+    ic(A.shape)
+    ic(b.shape)
 
-    alpha = sol[:n]
-    beta = sol[n:]
+    # sol = torch.linalg.solve(A, b)
+    sol = batch_cg_solve(R, b)
 
-    Gproj = grad_R - alpha[:, None] - beta[None, :]
+    alpha = sol[:, :n]
+    beta = sol[:, n:]
+
+    Gproj = grad_R - alpha.unsqueeze(-1) - beta.unsqueeze(-2)
     return Gproj * R
 
 
 ######################################################################
 # Variable
 ######################################################################
-A = torch.normal(0.0, 0.01, size=(n, n), dtype=dtype, requires_grad=True)
+dist = torch.distributions.uniform.Uniform(0.0, 4.0)
+M = dist.sample((batch, n, n))
+M.requires_grad_()
+
 
 ######################################################################
 # Shared forward + one shared loss weight
 ######################################################################
-R, P, u, v = sinkhorn_forward(A, iters)
+R, P = sinkhorn_forward(M, iters)
 loss_weight = torch.randn_like(R)
 
 ######################################################################
-# Aethod A: Autograd
+# Method A: Autograd
 ######################################################################
 loss_a = (R * loss_weight).sum()
 loss_a.backward()
-grad_A_autograd = A.grad.detach().clone()
+grad_M_autograd = M.grad.detach().clone()
 
 ######################################################################
-# Aethod B: Implicit differentiation
+# Method B: Implicit differentiation
 ######################################################################
 grad_R = loss_weight
 
 # KL pullback:
-grad_A_implicit = sinkhorn_backward_implicit(grad_R, R)
+grad_M_implicit = sinkhorn_backward_implicit(grad_R, R)
+
 
 ######################################################################
 # Compare
 ######################################################################
-g1 = grad_A_autograd
-g2 = grad_A_implicit
+g1 = grad_M_autograd
+g2 = grad_M_implicit
 
 abs_diff = (g1 - g2).abs()
 rel_diff = abs_diff / (g1.abs() + 1e-12)
 
-print("Comparison of gradients dL/dA")
+print("Comparison of gradients dL/dM")
 print("--------------------------------")
-print("MAE           :", abs_diff.mean().item())
-print("Max abs diff  :", abs_diff.max().item())
-print("Mean rel diff :", rel_diff.mean().item())
-print("Max rel diff  :", rel_diff.max().item())
 
-print("\nGrad (autograd) sample:\n", g1[:3, :3])
-print("\nGrad (implicit) sample:\n", g2[:3, :3])
 
+def format_list(ls):
+    return [f"{x:.2e}" for x in ls]
+
+
+MAE = abs_diff.mean(dim=(-1, -2)).tolist()
+max_abs_diff = abs_diff.reshape(batch, -1).max(-1).values.tolist()
+mean_rel_diff = rel_diff.mean(dim=(-1, -2)).tolist()
+max_rel_diff = rel_diff.reshape(batch, -1).max(-1).values.tolist()
+
+print(f"MAE: {format_list(MAE)}")
+print(f"max_abs_diff: {format_list(max_abs_diff)}")
+print(f"mean_rel_diff: {format_list(mean_rel_diff)}")
+print(f"max_rel_diff: {format_list(max_rel_diff)}")
+
+print(f"Max MAE = {max(MAE)}")
+print(f"Max max_abs_diff = {max(max_abs_diff)}")
+print(f"Max mean_rel_diff = {max(mean_rel_diff)}")
+print(f"Max max_rel_diff = {max(max_rel_diff)}")
+
+print("\nGrad (autograd) sample:\n", g1[0, :3, :3])
+print("\nGrad (implicit) sample:\n", g2[0, :3, :3])
 ```
