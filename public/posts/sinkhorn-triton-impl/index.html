@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+
+<head>
+  
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script>
+    MathJax = {
+        tex: {
+            displayMath: [['\\[', '\\]'], ['$$', '$$']],  
+            inlineMath: [['$', '$']]                  
+        },
+        loader: {
+            load: ['ui/safe']
+        },
+    };
+</script>
+  
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>备注：sinkhorn迭代的反向传播的triton实现 | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sy-petals.vercel.app/posts/sinkhorn-triton-impl/">
+  <meta property="og:site_name" content="Da1sypetals">
+  <meta property="og:title" content="备注：sinkhorn迭代的反向传播的triton实现">
+  <meta property="og:description" content="起因是希望用Tilelang实现一版，但是发现：
+TileLang的matmul不支持batched 尝试用reduce sum模拟matmul，结果获得上千行看不懂的编译器内部报错 reduce也出现不明所以的layout报错 因此现用triton实现一版可用的，后续如果有闲再来尝试加速。
+注：
+必须用ieee精度，即使是tf32x3 精度也不够，很可能在cg迭代中累积了，会出现巨大偏差 triton要求k&gt;=16, 因此这里只能选取n_stream=16（deepseek论文中是4） 用dot的方式比sum的方式快，目前只是功能实现，暂时没有研究ir或者profile了解原因。 from icecream import ic import torch import einops as ein import triton import triton.language as tl # TMA descriptors require a global memory allocation def alloc_fn(size: int, alignment: int, stream: int | None): return torch.empty(size, device=&#34;cuda&#34;, dtype=torch.int8) triton.set_allocator(alloc_fn) dtype = torch.float32 seqlen = 4096 tilesize = 32 n_stream = 16 iters = 100 print(f&#34;{n_stream = }&#34;) print(f&#34;{iters = }&#34;) EPS = tl.constexpr(1e-10) def sinkhorn_forward(M, iters=20): P = torch.exp(M) R = P for _ in range(iters): R = R / R.sum(-2, keepdim=True) R = R / R.sum(-1, keepdim=True) return R, P @triton.jit def matvec_A(R, x1, x2): &#34;&#34;&#34; A = [I, R; R.T, I], perform A @ [x1, x2] R: (tilesize, n, n) x1/x2: (tilesize, n, 1) &#34;&#34;&#34; Rx2 = tl.dot(R, x2, input_precision=&#34;ieee&#34;) RT = R.permute(0, 2, 1) RTx1 = tl.dot(RT, x1, input_precision=&#34;ieee&#34;) y1 = x1 &#43; Rx2 y2 = RTx1 &#43; x2 return y1, y2 # @triton.jit # def matvec_A(R, x1, x2): # &#34;&#34;&#34; # A = [I, R; R.T, I], perform A @ [x1, x2] # R: (tilesize, n, n) # x1/x2: (tilesize, n, 1) # &#34;&#34;&#34; # x2_new = x2.permute(0, 2, 1) # Rx2 = tl.sum(R * x2_new, axis=-1, keep_dims=True) # RT = tl.permute(R, (0, 2, 1)) # x1_new = x1.permute(0, 2, 1) # RTx1 = tl.sum(RT * x1_new, axis=-1, keep_dims=True) # y1 = x1 &#43; Rx2 # y2 = RTx1 &#43; x2 # return y1, y2 @triton.jit def dot(a1, a2, b1, b2): &#34;&#34;&#34; inputs: (tilesize, n, 1) returns: (tilesize, 1, 1) &#34;&#34;&#34; sum1 = tl.sum(a1 * b1, axis=1, keep_dims=True) sum2 = tl.sum(a2 * b2, axis=1, keep_dims=True) return sum1 &#43; sum2 @triton.autotune( configs=[ triton.Config({}, num_stages=1, num_warps=4), ], key=[], ) @triton.jit def sinkhorn_bwd_implicit_cg_kernel( seqlen, out, dout, res, out_stride_0, out_stride_1, out_stride_2, dout_stride_0, dout_stride_1, dout_stride_2, res_stride_0, res_stride_1, res_stride_2, n_stream: tl.constexpr, tilesize: tl.constexpr, ): out_desc = tl.make_tensor_descriptor( out, shape=[seqlen, n_stream, n_stream], strides=[out_stride_0, out_stride_1, out_stride_2], block_shape=[tilesize, n_stream, n_stream], ) dout_desc = tl.make_tensor_descriptor( dout, shape=[seqlen, n_stream, n_stream], strides=[dout_stride_0, dout_stride_1, dout_stride_2], block_shape=[tilesize, n_stream, n_stream], ) res_desc = tl.make_tensor_descriptor( res, shape=[seqlen, n_stream, n_stream], strides=[res_stride_0, res_stride_1, res_stride_2], block_shape=[tilesize, n_stream, n_stream], ) seq_off = tl.program_id(0) * tilesize R = out_desc.load([seq_off, 0, 0]) dR = dout_desc.load([seq_off, 0, 0]) RdR = R * dR b1 = tl.sum(RdR, axis=-1).expand_dims(-1) b2 = tl.sum(RdR, axis=-2).expand_dims(-1) x1 = tl.zeros((tilesize, n_stream, 1), dtype=tl.float32) x2 = tl.zeros((tilesize, n_stream, 1), dtype=tl.float32) tmp1, tmp2 = matvec_A(R, x1, x2) r1 = b1 - tmp1 r2 = b2 - tmp2 p1, p2 = r1, r2 r_normsq = dot(r1, r2, r1, r2) for _ in range(n_stream * 2): Ap1, Ap2 = matvec_A(R, p1, p2) pAp = dot(p1, p2, Ap1, Ap2) # VERY important to avoid divide by zero alpha = r_normsq / (pAp &#43; EPS) x1 &#43;= alpha * p1 x2 &#43;= alpha * p2 r1 -= alpha * Ap1 r2 -= alpha * Ap2 r_new_normsq = dot(r1, r2, r1, r2) # not very important to avoid divide by zero, but it&#39;s good to have it beta = r_new_normsq / (r_normsq &#43; EPS) p1 = r1 &#43; beta * p1 p2 = r2 &#43; beta * p2 r_normsq = r_new_normsq # x1: (tilesize, n_stream, 1) x2_expand = x2.reshape(tilesize, 1, n_stream) res_tile = dR - x1 - x2_expand res_tile *= R res_desc.store([seq_off, 0, 0], res_tile) def sinkhorn_bwd_implicit_cg( out: torch.Tensor, dout: torch.Tensor, tilesize: int, ): seqlen = out.size(0) n_stream = out.size(1) res = torch.empty_like(out) def grid(META): return (triton.cdiv(seqlen, tilesize), 1, 1) sinkhorn_bwd_implicit_cg_kernel[grid]( seqlen, out, dout, res, out.stride(0), out.stride(1), out.stride(2), dout.stride(0), dout.stride(1), dout.stride(2), res.stride(0), res.stride(1), res.stride(2), n_stream, tilesize, ) return res ###################################################################### # Variable ###################################################################### dist = torch.distributions.uniform.Uniform(0.0, 4.0) device = torch.device(&#34;cuda&#34;) M = dist.sample((seqlen, n_stream, n_stream)).to(device) M.requires_grad_() ###################################################################### # Shared forward &#43; one shared loss weight ###################################################################### R, P = sinkhorn_forward(M, iters) loss_weight = torch.randn_like(R) ###################################################################### # Method A: Autograd ###################################################################### loss_a = (R * loss_weight).sum() loss_a.backward() grad_M_autograd = M.grad.detach().clone() ###################################################################### # Method B: Implicit differentiation ###################################################################### grad_R = loss_weight grad_M_implicit = sinkhorn_bwd_implicit_cg(R, grad_R, tilesize=32) ###################################################################### # Compare ###################################################################### g1 = grad_M_autograd g2 = grad_M_implicit abs_diff = (g1 - g2).abs() rel_diff = abs_diff / (g1.abs() &#43; 1e-12) print(&#34;Comparison of gradients dL/dM&#34;) print(&#34;--------------------------------&#34;) def format_list(ls): return [f&#34;{x:.2e}&#34; for x in ls] MAE = abs_diff.mean(dim=(-1, -2)).tolist() max_abs_diff = abs_diff.reshape(seqlen, -1).max(-1).values.tolist() mean_rel_diff = rel_diff.mean(dim=(-1, -2)).tolist() max_rel_diff = rel_diff.reshape(seqlen, -1).max(-1).values.tolist() # print(f&#34;MAE: {format_list(MAE)}&#34;) # print(f&#34;max_abs_diff: {format_list(max_abs_diff)}&#34;) # print(f&#34;mean_rel_diff: {format_list(mean_rel_diff)}&#34;) # print(f&#34;max_rel_diff: {format_list(max_rel_diff)}&#34;) print(f&#34;Max MAE = {max(MAE)}&#34;) print(f&#34;Max max_abs_diff = {max(max_abs_diff)}&#34;) print(f&#34;Max mean_rel_diff = {max(mean_rel_diff)}&#34;) print(f&#34;Max max_rel_diff = {max(max_rel_diff)}&#34;) print(&#34;\nGrad (autograd) sample:\n&#34;, g1[0, :3, :3]) print(&#34;\nGrad (implicit) sample:\n&#34;, g2[0, :3, :3])">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-01-28T20:05:25+08:00">
+    <meta property="article:modified_time" content="2026-01-28T20:05:25+08:00">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="备注：sinkhorn迭代的反向传播的triton实现">
+  <meta name="twitter:description" content="起因是希望用Tilelang实现一版，但是发现：
+TileLang的matmul不支持batched 尝试用reduce sum模拟matmul，结果获得上千行看不懂的编译器内部报错 reduce也出现不明所以的layout报错 因此现用triton实现一版可用的，后续如果有闲再来尝试加速。
+注：
+必须用ieee精度，即使是tf32x3 精度也不够，很可能在cg迭代中累积了，会出现巨大偏差 triton要求k&gt;=16, 因此这里只能选取n_stream=16（deepseek论文中是4） 用dot的方式比sum的方式快，目前只是功能实现，暂时没有研究ir或者profile了解原因。 from icecream import ic import torch import einops as ein import triton import triton.language as tl # TMA descriptors require a global memory allocation def alloc_fn(size: int, alignment: int, stream: int | None): return torch.empty(size, device=&#34;cuda&#34;, dtype=torch.int8) triton.set_allocator(alloc_fn) dtype = torch.float32 seqlen = 4096 tilesize = 32 n_stream = 16 iters = 100 print(f&#34;{n_stream = }&#34;) print(f&#34;{iters = }&#34;) EPS = tl.constexpr(1e-10) def sinkhorn_forward(M, iters=20): P = torch.exp(M) R = P for _ in range(iters): R = R / R.sum(-2, keepdim=True) R = R / R.sum(-1, keepdim=True) return R, P @triton.jit def matvec_A(R, x1, x2): &#34;&#34;&#34; A = [I, R; R.T, I], perform A @ [x1, x2] R: (tilesize, n, n) x1/x2: (tilesize, n, 1) &#34;&#34;&#34; Rx2 = tl.dot(R, x2, input_precision=&#34;ieee&#34;) RT = R.permute(0, 2, 1) RTx1 = tl.dot(RT, x1, input_precision=&#34;ieee&#34;) y1 = x1 &#43; Rx2 y2 = RTx1 &#43; x2 return y1, y2 # @triton.jit # def matvec_A(R, x1, x2): # &#34;&#34;&#34; # A = [I, R; R.T, I], perform A @ [x1, x2] # R: (tilesize, n, n) # x1/x2: (tilesize, n, 1) # &#34;&#34;&#34; # x2_new = x2.permute(0, 2, 1) # Rx2 = tl.sum(R * x2_new, axis=-1, keep_dims=True) # RT = tl.permute(R, (0, 2, 1)) # x1_new = x1.permute(0, 2, 1) # RTx1 = tl.sum(RT * x1_new, axis=-1, keep_dims=True) # y1 = x1 &#43; Rx2 # y2 = RTx1 &#43; x2 # return y1, y2 @triton.jit def dot(a1, a2, b1, b2): &#34;&#34;&#34; inputs: (tilesize, n, 1) returns: (tilesize, 1, 1) &#34;&#34;&#34; sum1 = tl.sum(a1 * b1, axis=1, keep_dims=True) sum2 = tl.sum(a2 * b2, axis=1, keep_dims=True) return sum1 &#43; sum2 @triton.autotune( configs=[ triton.Config({}, num_stages=1, num_warps=4), ], key=[], ) @triton.jit def sinkhorn_bwd_implicit_cg_kernel( seqlen, out, dout, res, out_stride_0, out_stride_1, out_stride_2, dout_stride_0, dout_stride_1, dout_stride_2, res_stride_0, res_stride_1, res_stride_2, n_stream: tl.constexpr, tilesize: tl.constexpr, ): out_desc = tl.make_tensor_descriptor( out, shape=[seqlen, n_stream, n_stream], strides=[out_stride_0, out_stride_1, out_stride_2], block_shape=[tilesize, n_stream, n_stream], ) dout_desc = tl.make_tensor_descriptor( dout, shape=[seqlen, n_stream, n_stream], strides=[dout_stride_0, dout_stride_1, dout_stride_2], block_shape=[tilesize, n_stream, n_stream], ) res_desc = tl.make_tensor_descriptor( res, shape=[seqlen, n_stream, n_stream], strides=[res_stride_0, res_stride_1, res_stride_2], block_shape=[tilesize, n_stream, n_stream], ) seq_off = tl.program_id(0) * tilesize R = out_desc.load([seq_off, 0, 0]) dR = dout_desc.load([seq_off, 0, 0]) RdR = R * dR b1 = tl.sum(RdR, axis=-1).expand_dims(-1) b2 = tl.sum(RdR, axis=-2).expand_dims(-1) x1 = tl.zeros((tilesize, n_stream, 1), dtype=tl.float32) x2 = tl.zeros((tilesize, n_stream, 1), dtype=tl.float32) tmp1, tmp2 = matvec_A(R, x1, x2) r1 = b1 - tmp1 r2 = b2 - tmp2 p1, p2 = r1, r2 r_normsq = dot(r1, r2, r1, r2) for _ in range(n_stream * 2): Ap1, Ap2 = matvec_A(R, p1, p2) pAp = dot(p1, p2, Ap1, Ap2) # VERY important to avoid divide by zero alpha = r_normsq / (pAp &#43; EPS) x1 &#43;= alpha * p1 x2 &#43;= alpha * p2 r1 -= alpha * Ap1 r2 -= alpha * Ap2 r_new_normsq = dot(r1, r2, r1, r2) # not very important to avoid divide by zero, but it&#39;s good to have it beta = r_new_normsq / (r_normsq &#43; EPS) p1 = r1 &#43; beta * p1 p2 = r2 &#43; beta * p2 r_normsq = r_new_normsq # x1: (tilesize, n_stream, 1) x2_expand = x2.reshape(tilesize, 1, n_stream) res_tile = dR - x1 - x2_expand res_tile *= R res_desc.store([seq_off, 0, 0], res_tile) def sinkhorn_bwd_implicit_cg( out: torch.Tensor, dout: torch.Tensor, tilesize: int, ): seqlen = out.size(0) n_stream = out.size(1) res = torch.empty_like(out) def grid(META): return (triton.cdiv(seqlen, tilesize), 1, 1) sinkhorn_bwd_implicit_cg_kernel[grid]( seqlen, out, dout, res, out.stride(0), out.stride(1), out.stride(2), dout.stride(0), dout.stride(1), dout.stride(2), res.stride(0), res.stride(1), res.stride(2), n_stream, tilesize, ) return res ###################################################################### # Variable ###################################################################### dist = torch.distributions.uniform.Uniform(0.0, 4.0) device = torch.device(&#34;cuda&#34;) M = dist.sample((seqlen, n_stream, n_stream)).to(device) M.requires_grad_() ###################################################################### # Shared forward &#43; one shared loss weight ###################################################################### R, P = sinkhorn_forward(M, iters) loss_weight = torch.randn_like(R) ###################################################################### # Method A: Autograd ###################################################################### loss_a = (R * loss_weight).sum() loss_a.backward() grad_M_autograd = M.grad.detach().clone() ###################################################################### # Method B: Implicit differentiation ###################################################################### grad_R = loss_weight grad_M_implicit = sinkhorn_bwd_implicit_cg(R, grad_R, tilesize=32) ###################################################################### # Compare ###################################################################### g1 = grad_M_autograd g2 = grad_M_implicit abs_diff = (g1 - g2).abs() rel_diff = abs_diff / (g1.abs() &#43; 1e-12) print(&#34;Comparison of gradients dL/dM&#34;) print(&#34;--------------------------------&#34;) def format_list(ls): return [f&#34;{x:.2e}&#34; for x in ls] MAE = abs_diff.mean(dim=(-1, -2)).tolist() max_abs_diff = abs_diff.reshape(seqlen, -1).max(-1).values.tolist() mean_rel_diff = rel_diff.mean(dim=(-1, -2)).tolist() max_rel_diff = rel_diff.reshape(seqlen, -1).max(-1).values.tolist() # print(f&#34;MAE: {format_list(MAE)}&#34;) # print(f&#34;max_abs_diff: {format_list(max_abs_diff)}&#34;) # print(f&#34;mean_rel_diff: {format_list(mean_rel_diff)}&#34;) # print(f&#34;max_rel_diff: {format_list(max_rel_diff)}&#34;) print(f&#34;Max MAE = {max(MAE)}&#34;) print(f&#34;Max max_abs_diff = {max(max_abs_diff)}&#34;) print(f&#34;Max mean_rel_diff = {max(mean_rel_diff)}&#34;) print(f&#34;Max max_rel_diff = {max(max_rel_diff)}&#34;) print(&#34;\nGrad (autograd) sample:\n&#34;, g1[0, :3, :3]) print(&#34;\nGrad (implicit) sample:\n&#34;, g2[0, :3, :3])">
+
+      <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
+
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+<script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="notransition">
+  <div id="container">
+    <header id="main-header"><div role="navigation" aria-label="Main">
+  <div class="nav-left">
+    <a href="https://da1sy-petals.vercel.app/" style="color: inherit;">Da1sypetals</a>
+  </div>
+  <div class="nav-right">
+    <div style="position:absolute;width:0px;height:0px;">
+      <div id="nav-dropdown-menu" class="hidden" href="#">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >知识</a>
+    </div>
+    <div class="nav-item">
+      <a href="/art/"
+      >文化</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    </div>
+    <a id="nav-dropdown-button" href="#"><svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+    <div id="nav-menu">
+    <div class="nav-item">
+      <a aria-current="true" class="ancestor" href="/posts/"
+      >知识</a>
+    </div>
+    <div class="nav-item">
+      <a href="/art/"
+      >文化</a>
+    </div>
+    <div class="nav-item">
+      <a href="/english-post/"
+      >en-Posts</a>
+    </div>
+    <div class="nav-item">
+      <a href="/documents/"
+      >文档</a>
+    </div>
+    <div class="nav-item">
+      <a href="https://singings.netlify.app"
+      >歌单</a>
+    </div>
+    <div class="nav-item">
+      <a href="/about/"
+      >关于我</a>
+    </div>
+</div>
+    <a id="theme-switcher" href="#">
+<svg class="light-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5001M17.6859 17.69L18.5 18.5001M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+<svg class="dark-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.32031 11.6835C3.32031 16.6541 7.34975 20.6835 12.3203 20.6835C16.1075 20.6835 19.3483 18.3443 20.6768 15.032C19.6402 15.4486 18.5059 15.6834 17.3203 15.6834C12.3497 15.6834 8.32031 11.654 8.32031 6.68342C8.32031 5.50338 8.55165 4.36259 8.96453 3.32996C5.65605 4.66028 3.32031 7.89912 3.32031 11.6835Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</a>
+  </div>
+</div></header>
+    <div class="flex grow">
+      <div id="main-pane">
+        <main id="main-content"><div class="single-header">
+<ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/">
+        <span itemprop="name">Home</span>
+      </a>
+      <meta itemprop="position" content='1' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sy-petals.vercel.app/posts/">
+        <span itemprop="name">Posts</span>
+      </a>
+      <meta itemprop="position" content='2' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+</ol>
+<h1>备注：sinkhorn迭代的反向传播的triton实现</h1><time class="dim" datetime="2026-01-28T20:05:25&#43;08:00">January 28, 2026</time></div>
+  <section class="page-section"><p>起因是希望用Tilelang实现一版，但是发现：</p>
+<ul>
+<li>TileLang的matmul不支持batched</li>
+<li>尝试用reduce sum模拟matmul，结果获得上千行看不懂的编译器内部报错</li>
+<li>reduce也出现不明所以的layout报错</li>
+</ul>
+<p>因此现用triton实现一版可用的，后续如果有闲再来尝试加速。</p>
+<p>注：</p>
+<ul>
+<li>必须用ieee精度，即使是tf32x3 精度也不够，很可能在cg迭代中累积了，会出现巨大偏差</li>
+<li>triton要求k&gt;=16, 因此这里只能选取n_stream=16（deepseek论文中是4）</li>
+<li>用dot的方式比sum的方式快，目前只是功能实现，暂时没有研究ir或者profile了解原因。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> icecream <span style="color:#f92672">import</span> ic
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> torch
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> einops <span style="color:#66d9ef">as</span> ein
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> triton
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> triton.language <span style="color:#66d9ef">as</span> tl
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># TMA descriptors require a global memory allocation</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">alloc_fn</span>(size: int, alignment: int, stream: int <span style="color:#f92672">|</span> <span style="color:#66d9ef">None</span>):
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> torch<span style="color:#f92672">.</span>empty(size, device<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;cuda&#34;</span>, dtype<span style="color:#f92672">=</span>torch<span style="color:#f92672">.</span>int8)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>triton<span style="color:#f92672">.</span>set_allocator(alloc_fn)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>dtype <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>float32
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>seqlen <span style="color:#f92672">=</span> <span style="color:#ae81ff">4096</span>
+</span></span><span style="display:flex;"><span>tilesize <span style="color:#f92672">=</span> <span style="color:#ae81ff">32</span>
+</span></span><span style="display:flex;"><span>n_stream <span style="color:#f92672">=</span> <span style="color:#ae81ff">16</span>
+</span></span><span style="display:flex;"><span>iters <span style="color:#f92672">=</span> <span style="color:#ae81ff">100</span>
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>n_stream <span style="color:#e6db74">= }</span><span style="color:#e6db74">&#34;</span>)
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>iters <span style="color:#e6db74">= }</span><span style="color:#e6db74">&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>EPS <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>constexpr(<span style="color:#ae81ff">1e-10</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">sinkhorn_forward</span>(M, iters<span style="color:#f92672">=</span><span style="color:#ae81ff">20</span>):
+</span></span><span style="display:flex;"><span>    P <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>exp(M)
+</span></span><span style="display:flex;"><span>    R <span style="color:#f92672">=</span> P
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> _ <span style="color:#f92672">in</span> range(iters):
+</span></span><span style="display:flex;"><span>        R <span style="color:#f92672">=</span> R <span style="color:#f92672">/</span> R<span style="color:#f92672">.</span>sum(<span style="color:#f92672">-</span><span style="color:#ae81ff">2</span>, keepdim<span style="color:#f92672">=</span><span style="color:#66d9ef">True</span>)
+</span></span><span style="display:flex;"><span>        R <span style="color:#f92672">=</span> R <span style="color:#f92672">/</span> R<span style="color:#f92672">.</span>sum(<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, keepdim<span style="color:#f92672">=</span><span style="color:#66d9ef">True</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> R, P
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@triton.jit</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">matvec_A</span>(R, x1, x2):
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;&#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    A = [I, R; R.T, I], perform A @ [x1, x2]
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    R: (tilesize, n, n)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    x1/x2: (tilesize, n, 1)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>    Rx2 <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>dot(R, x2, input_precision<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;ieee&#34;</span>)
+</span></span><span style="display:flex;"><span>    RT <span style="color:#f92672">=</span> R<span style="color:#f92672">.</span>permute(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>    RTx1 <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>dot(RT, x1, input_precision<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;ieee&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    y1 <span style="color:#f92672">=</span> x1 <span style="color:#f92672">+</span> Rx2
+</span></span><span style="display:flex;"><span>    y2 <span style="color:#f92672">=</span> RTx1 <span style="color:#f92672">+</span> x2
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> y1, y2
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># @triton.jit</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># def matvec_A(R, x1, x2):</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     &#34;&#34;&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     A = [I, R; R.T, I], perform A @ [x1, x2]</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     R: (tilesize, n, n)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     x1/x2: (tilesize, n, 1)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     &#34;&#34;&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     x2_new = x2.permute(0, 2, 1)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     Rx2 = tl.sum(R * x2_new, axis=-1, keep_dims=True)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     RT = tl.permute(R, (0, 2, 1))</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     x1_new = x1.permute(0, 2, 1)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     RTx1 = tl.sum(RT * x1_new, axis=-1, keep_dims=True)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     y1 = x1 + Rx2</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     y2 = RTx1 + x2</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#     return y1, y2</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@triton.jit</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">dot</span>(a1, a2, b1, b2):
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;&#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    inputs: (tilesize, n, 1)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    returns: (tilesize, 1, 1)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>    sum1 <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>sum(a1 <span style="color:#f92672">*</span> b1, axis<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>, keep_dims<span style="color:#f92672">=</span><span style="color:#66d9ef">True</span>)
+</span></span><span style="display:flex;"><span>    sum2 <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>sum(a2 <span style="color:#f92672">*</span> b2, axis<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>, keep_dims<span style="color:#f92672">=</span><span style="color:#66d9ef">True</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> sum1 <span style="color:#f92672">+</span> sum2
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@triton.autotune</span>(
+</span></span><span style="display:flex;"><span>    configs<span style="color:#f92672">=</span>[
+</span></span><span style="display:flex;"><span>        triton<span style="color:#f92672">.</span>Config({}, num_stages<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>, num_warps<span style="color:#f92672">=</span><span style="color:#ae81ff">4</span>),
+</span></span><span style="display:flex;"><span>    ],
+</span></span><span style="display:flex;"><span>    key<span style="color:#f92672">=</span>[],
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@triton.jit</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">sinkhorn_bwd_implicit_cg_kernel</span>(
+</span></span><span style="display:flex;"><span>    seqlen,
+</span></span><span style="display:flex;"><span>    out,
+</span></span><span style="display:flex;"><span>    dout,
+</span></span><span style="display:flex;"><span>    res,
+</span></span><span style="display:flex;"><span>    out_stride_0,
+</span></span><span style="display:flex;"><span>    out_stride_1,
+</span></span><span style="display:flex;"><span>    out_stride_2,
+</span></span><span style="display:flex;"><span>    dout_stride_0,
+</span></span><span style="display:flex;"><span>    dout_stride_1,
+</span></span><span style="display:flex;"><span>    dout_stride_2,
+</span></span><span style="display:flex;"><span>    res_stride_0,
+</span></span><span style="display:flex;"><span>    res_stride_1,
+</span></span><span style="display:flex;"><span>    res_stride_2,
+</span></span><span style="display:flex;"><span>    n_stream: tl<span style="color:#f92672">.</span>constexpr,
+</span></span><span style="display:flex;"><span>    tilesize: tl<span style="color:#f92672">.</span>constexpr,
+</span></span><span style="display:flex;"><span>):
+</span></span><span style="display:flex;"><span>    out_desc <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>make_tensor_descriptor(
+</span></span><span style="display:flex;"><span>        out,
+</span></span><span style="display:flex;"><span>        shape<span style="color:#f92672">=</span>[seqlen, n_stream, n_stream],
+</span></span><span style="display:flex;"><span>        strides<span style="color:#f92672">=</span>[out_stride_0, out_stride_1, out_stride_2],
+</span></span><span style="display:flex;"><span>        block_shape<span style="color:#f92672">=</span>[tilesize, n_stream, n_stream],
+</span></span><span style="display:flex;"><span>    )
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    dout_desc <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>make_tensor_descriptor(
+</span></span><span style="display:flex;"><span>        dout,
+</span></span><span style="display:flex;"><span>        shape<span style="color:#f92672">=</span>[seqlen, n_stream, n_stream],
+</span></span><span style="display:flex;"><span>        strides<span style="color:#f92672">=</span>[dout_stride_0, dout_stride_1, dout_stride_2],
+</span></span><span style="display:flex;"><span>        block_shape<span style="color:#f92672">=</span>[tilesize, n_stream, n_stream],
+</span></span><span style="display:flex;"><span>    )
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    res_desc <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>make_tensor_descriptor(
+</span></span><span style="display:flex;"><span>        res,
+</span></span><span style="display:flex;"><span>        shape<span style="color:#f92672">=</span>[seqlen, n_stream, n_stream],
+</span></span><span style="display:flex;"><span>        strides<span style="color:#f92672">=</span>[res_stride_0, res_stride_1, res_stride_2],
+</span></span><span style="display:flex;"><span>        block_shape<span style="color:#f92672">=</span>[tilesize, n_stream, n_stream],
+</span></span><span style="display:flex;"><span>    )
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    seq_off <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>program_id(<span style="color:#ae81ff">0</span>) <span style="color:#f92672">*</span> tilesize
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    R <span style="color:#f92672">=</span> out_desc<span style="color:#f92672">.</span>load([seq_off, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>])
+</span></span><span style="display:flex;"><span>    dR <span style="color:#f92672">=</span> dout_desc<span style="color:#f92672">.</span>load([seq_off, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>])
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    RdR <span style="color:#f92672">=</span> R <span style="color:#f92672">*</span> dR
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    b1 <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>sum(RdR, axis<span style="color:#f92672">=-</span><span style="color:#ae81ff">1</span>)<span style="color:#f92672">.</span>expand_dims(<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>    b2 <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>sum(RdR, axis<span style="color:#f92672">=-</span><span style="color:#ae81ff">2</span>)<span style="color:#f92672">.</span>expand_dims(<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    x1 <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>zeros((tilesize, n_stream, <span style="color:#ae81ff">1</span>), dtype<span style="color:#f92672">=</span>tl<span style="color:#f92672">.</span>float32)
+</span></span><span style="display:flex;"><span>    x2 <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>zeros((tilesize, n_stream, <span style="color:#ae81ff">1</span>), dtype<span style="color:#f92672">=</span>tl<span style="color:#f92672">.</span>float32)
+</span></span><span style="display:flex;"><span>    tmp1, tmp2 <span style="color:#f92672">=</span> matvec_A(R, x1, x2)
+</span></span><span style="display:flex;"><span>    r1 <span style="color:#f92672">=</span> b1 <span style="color:#f92672">-</span> tmp1
+</span></span><span style="display:flex;"><span>    r2 <span style="color:#f92672">=</span> b2 <span style="color:#f92672">-</span> tmp2
+</span></span><span style="display:flex;"><span>    p1, p2 <span style="color:#f92672">=</span> r1, r2
+</span></span><span style="display:flex;"><span>    r_normsq <span style="color:#f92672">=</span> dot(r1, r2, r1, r2)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> _ <span style="color:#f92672">in</span> range(n_stream <span style="color:#f92672">*</span> <span style="color:#ae81ff">2</span>):
+</span></span><span style="display:flex;"><span>        Ap1, Ap2 <span style="color:#f92672">=</span> matvec_A(R, p1, p2)
+</span></span><span style="display:flex;"><span>        pAp <span style="color:#f92672">=</span> dot(p1, p2, Ap1, Ap2)
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># VERY important to avoid divide by zero</span>
+</span></span><span style="display:flex;"><span>        alpha <span style="color:#f92672">=</span> r_normsq <span style="color:#f92672">/</span> (pAp <span style="color:#f92672">+</span> EPS)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        x1 <span style="color:#f92672">+=</span> alpha <span style="color:#f92672">*</span> p1
+</span></span><span style="display:flex;"><span>        x2 <span style="color:#f92672">+=</span> alpha <span style="color:#f92672">*</span> p2
+</span></span><span style="display:flex;"><span>        r1 <span style="color:#f92672">-=</span> alpha <span style="color:#f92672">*</span> Ap1
+</span></span><span style="display:flex;"><span>        r2 <span style="color:#f92672">-=</span> alpha <span style="color:#f92672">*</span> Ap2
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        r_new_normsq <span style="color:#f92672">=</span> dot(r1, r2, r1, r2)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># not very important to avoid divide by zero, but it&#39;s good to have it</span>
+</span></span><span style="display:flex;"><span>        beta <span style="color:#f92672">=</span> r_new_normsq <span style="color:#f92672">/</span> (r_normsq <span style="color:#f92672">+</span> EPS)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        p1 <span style="color:#f92672">=</span> r1 <span style="color:#f92672">+</span> beta <span style="color:#f92672">*</span> p1
+</span></span><span style="display:flex;"><span>        p2 <span style="color:#f92672">=</span> r2 <span style="color:#f92672">+</span> beta <span style="color:#f92672">*</span> p2
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        r_normsq <span style="color:#f92672">=</span> r_new_normsq
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># x1: (tilesize, n_stream, 1)</span>
+</span></span><span style="display:flex;"><span>    x2_expand <span style="color:#f92672">=</span> x2<span style="color:#f92672">.</span>reshape(tilesize, <span style="color:#ae81ff">1</span>, n_stream)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    res_tile <span style="color:#f92672">=</span> dR <span style="color:#f92672">-</span> x1 <span style="color:#f92672">-</span> x2_expand
+</span></span><span style="display:flex;"><span>    res_tile <span style="color:#f92672">*=</span> R
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    res_desc<span style="color:#f92672">.</span>store([seq_off, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>], res_tile)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">sinkhorn_bwd_implicit_cg</span>(
+</span></span><span style="display:flex;"><span>    out: torch<span style="color:#f92672">.</span>Tensor,
+</span></span><span style="display:flex;"><span>    dout: torch<span style="color:#f92672">.</span>Tensor,
+</span></span><span style="display:flex;"><span>    tilesize: int,
+</span></span><span style="display:flex;"><span>):
+</span></span><span style="display:flex;"><span>    seqlen <span style="color:#f92672">=</span> out<span style="color:#f92672">.</span>size(<span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>    n_stream <span style="color:#f92672">=</span> out<span style="color:#f92672">.</span>size(<span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    res <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>empty_like(out)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">grid</span>(META):
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> (triton<span style="color:#f92672">.</span>cdiv(seqlen, tilesize), <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    sinkhorn_bwd_implicit_cg_kernel[grid](
+</span></span><span style="display:flex;"><span>        seqlen,
+</span></span><span style="display:flex;"><span>        out,
+</span></span><span style="display:flex;"><span>        dout,
+</span></span><span style="display:flex;"><span>        res,
+</span></span><span style="display:flex;"><span>        out<span style="color:#f92672">.</span>stride(<span style="color:#ae81ff">0</span>),
+</span></span><span style="display:flex;"><span>        out<span style="color:#f92672">.</span>stride(<span style="color:#ae81ff">1</span>),
+</span></span><span style="display:flex;"><span>        out<span style="color:#f92672">.</span>stride(<span style="color:#ae81ff">2</span>),
+</span></span><span style="display:flex;"><span>        dout<span style="color:#f92672">.</span>stride(<span style="color:#ae81ff">0</span>),
+</span></span><span style="display:flex;"><span>        dout<span style="color:#f92672">.</span>stride(<span style="color:#ae81ff">1</span>),
+</span></span><span style="display:flex;"><span>        dout<span style="color:#f92672">.</span>stride(<span style="color:#ae81ff">2</span>),
+</span></span><span style="display:flex;"><span>        res<span style="color:#f92672">.</span>stride(<span style="color:#ae81ff">0</span>),
+</span></span><span style="display:flex;"><span>        res<span style="color:#f92672">.</span>stride(<span style="color:#ae81ff">1</span>),
+</span></span><span style="display:flex;"><span>        res<span style="color:#f92672">.</span>stride(<span style="color:#ae81ff">2</span>),
+</span></span><span style="display:flex;"><span>        n_stream,
+</span></span><span style="display:flex;"><span>        tilesize,
+</span></span><span style="display:flex;"><span>    )
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> res
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">######################################################################</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Variable</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">######################################################################</span>
+</span></span><span style="display:flex;"><span>dist <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>distributions<span style="color:#f92672">.</span>uniform<span style="color:#f92672">.</span>Uniform(<span style="color:#ae81ff">0.0</span>, <span style="color:#ae81ff">4.0</span>)
+</span></span><span style="display:flex;"><span>device <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>device(<span style="color:#e6db74">&#34;cuda&#34;</span>)
+</span></span><span style="display:flex;"><span>M <span style="color:#f92672">=</span> dist<span style="color:#f92672">.</span>sample((seqlen, n_stream, n_stream))<span style="color:#f92672">.</span>to(device)
+</span></span><span style="display:flex;"><span>M<span style="color:#f92672">.</span>requires_grad_()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">######################################################################</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Shared forward + one shared loss weight</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">######################################################################</span>
+</span></span><span style="display:flex;"><span>R, P <span style="color:#f92672">=</span> sinkhorn_forward(M, iters)
+</span></span><span style="display:flex;"><span>loss_weight <span style="color:#f92672">=</span> torch<span style="color:#f92672">.</span>randn_like(R)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">######################################################################</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Method A: Autograd</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">######################################################################</span>
+</span></span><span style="display:flex;"><span>loss_a <span style="color:#f92672">=</span> (R <span style="color:#f92672">*</span> loss_weight)<span style="color:#f92672">.</span>sum()
+</span></span><span style="display:flex;"><span>loss_a<span style="color:#f92672">.</span>backward()
+</span></span><span style="display:flex;"><span>grad_M_autograd <span style="color:#f92672">=</span> M<span style="color:#f92672">.</span>grad<span style="color:#f92672">.</span>detach()<span style="color:#f92672">.</span>clone()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">######################################################################</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Method B: Implicit differentiation</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">######################################################################</span>
+</span></span><span style="display:flex;"><span>grad_R <span style="color:#f92672">=</span> loss_weight
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>grad_M_implicit <span style="color:#f92672">=</span> sinkhorn_bwd_implicit_cg(R, grad_R, tilesize<span style="color:#f92672">=</span><span style="color:#ae81ff">32</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">######################################################################</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Compare</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">######################################################################</span>
+</span></span><span style="display:flex;"><span>g1 <span style="color:#f92672">=</span> grad_M_autograd
+</span></span><span style="display:flex;"><span>g2 <span style="color:#f92672">=</span> grad_M_implicit
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>abs_diff <span style="color:#f92672">=</span> (g1 <span style="color:#f92672">-</span> g2)<span style="color:#f92672">.</span>abs()
+</span></span><span style="display:flex;"><span>rel_diff <span style="color:#f92672">=</span> abs_diff <span style="color:#f92672">/</span> (g1<span style="color:#f92672">.</span>abs() <span style="color:#f92672">+</span> <span style="color:#ae81ff">1e-12</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;Comparison of gradients dL/dM&#34;</span>)
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;--------------------------------&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">format_list</span>(ls):
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> [<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{</span>x<span style="color:#e6db74">:</span><span style="color:#e6db74">.2e</span><span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span> <span style="color:#66d9ef">for</span> x <span style="color:#f92672">in</span> ls]
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>MAE <span style="color:#f92672">=</span> abs_diff<span style="color:#f92672">.</span>mean(dim<span style="color:#f92672">=</span>(<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">2</span>))<span style="color:#f92672">.</span>tolist()
+</span></span><span style="display:flex;"><span>max_abs_diff <span style="color:#f92672">=</span> abs_diff<span style="color:#f92672">.</span>reshape(seqlen, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)<span style="color:#f92672">.</span>max(<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)<span style="color:#f92672">.</span>values<span style="color:#f92672">.</span>tolist()
+</span></span><span style="display:flex;"><span>mean_rel_diff <span style="color:#f92672">=</span> rel_diff<span style="color:#f92672">.</span>mean(dim<span style="color:#f92672">=</span>(<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">2</span>))<span style="color:#f92672">.</span>tolist()
+</span></span><span style="display:flex;"><span>max_rel_diff <span style="color:#f92672">=</span> rel_diff<span style="color:#f92672">.</span>reshape(seqlen, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)<span style="color:#f92672">.</span>max(<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)<span style="color:#f92672">.</span>values<span style="color:#f92672">.</span>tolist()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># print(f&#34;MAE: {format_list(MAE)}&#34;)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># print(f&#34;max_abs_diff: {format_list(max_abs_diff)}&#34;)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># print(f&#34;mean_rel_diff: {format_list(mean_rel_diff)}&#34;)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># print(f&#34;max_rel_diff: {format_list(max_rel_diff)}&#34;)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;Max MAE = </span><span style="color:#e6db74">{</span>max(MAE)<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>)
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;Max max_abs_diff = </span><span style="color:#e6db74">{</span>max(max_abs_diff)<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>)
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;Max mean_rel_diff = </span><span style="color:#e6db74">{</span>max(mean_rel_diff)<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>)
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;Max max_rel_diff = </span><span style="color:#e6db74">{</span>max(max_rel_diff)<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">Grad (autograd) sample:</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, g1[<span style="color:#ae81ff">0</span>, :<span style="color:#ae81ff">3</span>, :<span style="color:#ae81ff">3</span>])
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">Grad (implicit) sample:</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, g2[<span style="color:#ae81ff">0</span>, :<span style="color:#ae81ff">3</span>, :<span style="color:#ae81ff">3</span>])
+</span></span></code></pre></div></section></main>
+        <footer id="main-footer"><div class="footer">
+  <a href="#">Scroll to Top</a>
+  <div class="footer-copyright">
+    <div class="dim">© 2026 Da1sypetals</div>
+    <div>Made with ❤️ and powered by <a href="https://github.com/math-queiroz/rusty-typewriter" target="_blank">Rusty Typewriter</a> theme for <a href="https://gohugo.io/" target="_blank">Hugo</a></div>
+  </div>
+</div>
+</footer>
+      </div><aside id="side-pane" class="side-sticky"><div class="side-details">
+    <span>734 words</span>
+    <span>6 - 8 minutes read</span></div></aside></div>
+  </div>
+</body>
+
+</html>
