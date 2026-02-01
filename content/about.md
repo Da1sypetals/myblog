@@ -39,5 +39,5 @@ title = '关于我'
 
 - 《东风志》 Aki阿杰
 
-- [这里](https://singings.netlify.app)还有很多... 
+- [这里](https://daisy-songs.vercel.app)还有很多... 
 

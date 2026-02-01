@@ -40,7 +40,7 @@ weight = 4
 
 [[menus.main]]
 name = '歌单'
-url = 'https://singings.netlify.app'
+url = 'https://daisy-songs.vercel.app'
 weight = 8
 
 [[menus.main]]

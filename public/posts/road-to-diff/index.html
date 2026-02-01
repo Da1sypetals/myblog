@@ -59,9 +59,9 @@ SymPy 目前还不能生成 Rust 代码（可以，但是有 bug）。
 SymPy 提供的访问符号表达式的数据结构是树的形式，节点类型是运算符类型（Add, Mul, Div, Sin, 等等）或者常数/符号，节点的孩子是 operand 操作数。实现代码生成的思路就是按深度优先遍历树，得到孩子的表达式，然后再根据节点类型得到当前节点的表达式。边界条件是当前节点是常数，或者符号。">
 
       <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
-      <link rel="stylesheet" href="/css/bundle.min.59eb1a059f8cd558e64375ede3e68d3e9120ddb0c6bdbab555c247689cef59e1.css" integrity="sha256-WesaBZ&#43;M1VjmQ3Xt4&#43;aNPpEg3bDGvbq1VcJHaJzvWeE=" crossorigin="anonymous">
+      <link rel="stylesheet" href="/css/bundle.min.d95a325399a05b50fe47dcf35b8229b8a2a014fcee5435cfb28204c6ac335fc5.css" integrity="sha256-2VoyU5mgW1D&#43;R9zzW4IpuKKgFPzuVDXPsoIExqwzX8U=" crossorigin="anonymous">
 
-      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.5e0de3b335e5c523c7cf45473dc43fccb6c75f64a9d59cc04a6eccbb7c25eb49.js" integrity="sha256-Xg3jszXlxSPHz0VHPcQ/zLbHX2Sp1ZzASm7Mu3wl60k="></script>
+      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.64594b125f7b78bdf4fa8316955922bbebb1cd6baef3f16654bfca20309f18f8.js" integrity="sha256-ZFlLEl97eL30&#43;oMWlVkiu&#43;uxzWuu8/FmVL/KIDCfGPg="></script>
 <script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -97,7 +97,7 @@ SymPy 提供的访问符号表达式的数据结构是树的形式，节点类�
       >文档</a>
     </div>
     <div class="nav-item">
-      <a href="https://singings.netlify.app"
+      <a href="https://daisy-songs.vercel.app"
       >歌单</a>
     </div>
     <div class="nav-item">
@@ -128,7 +128,7 @@ SymPy 提供的访问符号表达式的数据结构是树的形式，节点类�
       >文档</a>
     </div>
     <div class="nav-item">
-      <a href="https://singings.netlify.app"
+      <a href="https://daisy-songs.vercel.app"
       >歌单</a>
     </div>
     <div class="nav-item">
@@ -178,10 +178,12 @@ SymPy 提供的访问符号表达式的数据结构是树的形式，节点类�
 </ul>
 <p>找到的资料中，前者有 MATLAB 或者 SymPy，后者有 PyTorch 等深度学习库，和更适合的 <a href="https://github.com/patr-schm/TinyAD">TinyAD</a>。</p>
 <blockquote>
-<p>为什么说更适合？因为深度学习库的求导是以tensor为单位的，但是我这里的求导需要以单个标量为单位，粒度不同，深度学习库可能会跑出完全没法看的帧率。</p></blockquote>
+<p>为什么说更适合？因为深度学习库的求导是以tensor为单位的，但是我这里的求导需要以单个标量为单位，粒度不同，深度学习库可能会跑出完全没法看的帧率。</p>
+</blockquote>
 <p>但是一个致命的问题来了：上述工具都在 C++ 的工具链上，而我不会 C++（或者，我可能会一点点 C++，但是我不会 CMake，因此不会调包。）</p>
 <blockquote>
-<p>我曾经花了三天尝试在项目里用上 Eigen，然后失败告终，还是技术水平太菜了。</p></blockquote>
+<p>我曾经花了三天尝试在项目里用上 Eigen，然后失败告终，还是技术水平太菜了。</p>
+</blockquote>
 <p>我只好换一门我比较熟悉的语言：Rust。这是一切罪恶的开始&hellip;</p>
 <h2 id="一条看起来简单的路">一条看起来简单的路</h2>
 <p>目前 Rust 还没有一个可以求二阶 hessian 的自动求导库（至少我在 crates.io 没搜到）。<br>
