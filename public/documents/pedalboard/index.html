@@ -159,7 +159,7 @@ The pedalboard module is named after the concept of a guitar pedalboard, in whic
 <p><strong>Note:</strong> For audio I/O functionality (i.e.: reading and writing audio files), see the <code>pedalboard.io</code> module.</p>
 </blockquote>
 <p>The <code>pedalboard</code> module is named after the concept of a guitar pedalboard, in which musicians will chain various effects pedals together to give them complete control over their sound. The <code>pedalboard</code> module implements this concept with its main <code>Pedalboard</code> class:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> pedalboard <span style="color:#f92672">import</span> Pedalboard, Chorus, Distortion, Reverb
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> pedalboard <span style="color:#f92672">import</span> Pedalboard, Chorus, Distortion, Reverb
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#75715e"># Create an empty Pedalboard object:</span>
 </span></span><span style="display:flex;"><span>my_pedalboard <span style="color:#f92672">=</span> Pedalboard()
@@ -177,7 +177,7 @@ The pedalboard module is named after the concept of a guitar pedalboard, in whic
 <h3 id="pedalboardaudioprocessorparameter"><code>pedalboard.AudioProcessorParameter</code></h3>
 <p>A wrapper around various different parameters exposed by <code>VST3Plugin</code> or <code>AudioUnitPlugin</code> instances.</p>
 <p><code>AudioProcessorParameter</code> objects are rarely used directly, and usually used via their implicit interface:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>my_plugin <span style="color:#f92672">=</span> load_plugin(<span style="color:#e6db74">&#34;My Cool Audio Effect.vst3&#34;</span>)
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>my_plugin <span style="color:#f92672">=</span> load_plugin(<span style="color:#e6db74">&#34;My Cool Audio Effect.vst3&#34;</span>)
 </span></span><span style="display:flex;"><span><span style="color:#75715e"># Print all of the parameter names:</span>
 </span></span><span style="display:flex;"><span>print(my_plugin<span style="color:#f92672">.</span>parameters<span style="color:#f92672">.</span>keys())
 </span></span><span style="display:flex;"><span><span style="color:#75715e"># [&#34;mix&#34;, &#34;delay_time_ms&#34;, &#34;foobar&#34;]</span>
@@ -229,7 +229,7 @@ The pedalboard module is named after the concept of a guitar pedalboard, in whic
 <h3 id="pedalboardpedalboardplugins-optionallistplugin--none"><code>pedalboard.Pedalboard(plugins: Optional[List[Plugin]] = None)</code></h3>
 <p>A container for a series of <code>Plugin</code> objects, to use for processing audio, like a guitar pedalboard.</p>
 <p><code>Pedalboard</code> objects act like regular Python <code>List</code> objects, but come with an additional <code>process()</code> method (also aliased to <code>__call__()</code>), allowing audio to be passed through the entire <code>Pedalboard</code> object for processing:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>my_pedalboard <span style="color:#f92672">=</span> Pedalboard()
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>my_pedalboard <span style="color:#f92672">=</span> Pedalboard()
 </span></span><span style="display:flex;"><span>my_pedalboard<span style="color:#f92672">.</span>append(Reverb())
 </span></span><span style="display:flex;"><span>output_audio <span style="color:#f92672">=</span> my_pedalboard(input_audio)
 </span></span></code></pre></div><blockquote>
@@ -392,7 +392,7 @@ The pedalboard module is named after the concept of a guitar pedalboard, in whic
 <h3 id="pedalboarddistortion"><code>pedalboard.Distortion</code></h3>
 <p>A distortion effect, which applies a non-linear (tanh, or hyperbolic tangent) waveshaping function to apply harmonically pleasing distortion to a signal.</p>
 <p>This plugin produces a signal that is roughly equivalent to running:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">distortion</span>(x):
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">distortion</span>(x):
 </span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> tanh(x <span style="color:#f92672">*</span> db_to_gain(drive_db))
 </span></span></code></pre></div><h4 id="methods-10">Methods</h4>
 <ul>
@@ -815,7 +815,7 @@ This method may only be called on the main thread, and will block the main threa
 <li>the <code>threading.Event.set()</code> method is called (by another thread) on a provided <code>threading.Event</code> object</li>
 </ul>
 <p>An example of how to programmatically close an editor window:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">import</span> pedalboard
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">import</span> pedalboard
 </span></span><span style="display:flex;"><span><span style="color:#f92672">from</span> threading <span style="color:#f92672">import</span> Event, Thread
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>plugin <span style="color:#f92672">=</span> pedalboard<span style="color:#f92672">.</span>load_plugin(<span style="color:#e6db74">&#34;../path-to-my-plugin-file&#34;</span>)
@@ -859,7 +859,7 @@ This method may only be called on the main thread, and will block the main threa
 <hr>
 <h2 id="functions">Functions</h2>
 <h3 id="time_stretch"><code>time_stretch</code></h3>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">time_stretch</span>(
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">time_stretch</span>(
 </span></span><span style="display:flex;"><span>    input_audio: numpy<span style="color:#f92672">.</span>ndarray[numpy<span style="color:#f92672">.</span>float32],
 </span></span><span style="display:flex;"><span>    samplerate: float,
 </span></span><span style="display:flex;"><span>    stretch_factor: Union[float, numpy<span style="color:#f92672">.</span>ndarray[numpy<span style="color:#f92672">.</span>float64]] <span style="color:#f92672">=</span> <span style="color:#ae81ff">1.0</span>,

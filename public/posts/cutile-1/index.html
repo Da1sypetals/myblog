@@ -164,7 +164,7 @@ def _get_final_ir(pyfunc, args, tile_context) -&gt; ir.Function: ir_ctx = ir.IRC
 <p>我们发现报错发生在<code>src/cuda/tile/_cext.pyi</code>，提示驱动版本过低。vibe coding启动，我们让LLM把_cext这个cpp库用一个<a href="https://github.com/Da1sypetals/cutile-python/blob/typecheck/src/cuda/tile/_cext.py">mock</a>进行替代，骗过编译器；然后包装了一个CutileIrDump类，通过<code>cuda.tile._compile._get_final_ir</code>函数可以获取到cuTile IR （不是TileIR）。有两种格式，人类可读的和binary的。</p>
 <p><img src="../images/cutileir.png" alt=""></p>
 <p>了解编译流程，我们主要从<code>cuda.tile._compile._get_final_ir</code>入手。</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">_get_final_ir</span>(pyfunc, args, tile_context) <span style="color:#f92672">-&gt;</span> ir<span style="color:#f92672">.</span>Function:
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">_get_final_ir</span>(pyfunc, args, tile_context) <span style="color:#f92672">-&gt;</span> ir<span style="color:#f92672">.</span>Function:
 </span></span><span style="display:flex;"><span>    ir_ctx <span style="color:#f92672">=</span> ir<span style="color:#f92672">.</span>IRContext()
 </span></span><span style="display:flex;"><span>    func_ir: ir<span style="color:#f92672">.</span>Function <span style="color:#f92672">=</span> get_function_ir(pyfunc, ir_ctx, call_site<span style="color:#f92672">=</span><span style="color:#66d9ef">None</span>)
 </span></span><span style="display:flex;"><span>    ir_args <span style="color:#f92672">=</span> func_ir<span style="color:#f92672">.</span>bind_arguments(args, get_constant_annotations(pyfunc))
@@ -224,7 +224,7 @@ def _get_final_ir(pyfunc, args, tile_context) -&gt; ir.Function: ir_ctx = ir.IRC
 <img src="../images/cutile-debug-0.png" alt=""></p>
 <p>可以看到<code>func_ir.root_block._operations</code> 里面就是我们代码经过最基本的翻译，并经过shape检查之后形成的中间表示。这里<code>infer_types_pass</code>这个pass已经执行完了，所以我们应当可以看到所有的tile的shape都是什么。此处（断点处）调用 <code>func_ir.to_string()</code> 即可将中间表示输出为文本形式。</p>
 <p>以下列这个kernel为例，</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">import</span> cuda.tile <span style="color:#66d9ef">as</span> ct
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">import</span> cuda.tile <span style="color:#66d9ef">as</span> ct
 </span></span><span style="display:flex;"><span>ConstInt <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>Constant[int]
 </span></span><span style="display:flex;"><span>PAD_ZERO <span style="color:#f92672">=</span> ct<span style="color:#f92672">.</span>PaddingMode<span style="color:#f92672">.</span>ZERO
 </span></span><span style="display:flex;"><span>

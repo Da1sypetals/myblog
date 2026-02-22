@@ -284,7 +284,7 @@ Block = for + list[Stmt] | if + list[Stmt] + else + list[Stmt]
 <li>添加一个MockTensor的实现, 只创建metadata不创建数据, 并且在编译器处添加一个MockTensor的接口, 能够接收MockTensor携带的metadata.</li>
 <li>参考<a href="https://www.bilibili.com/video/BV1sjqvYzEwg">码农高天用来标识CI测试类型</a> 的做法, 让用户在docstring通过某种特定的语法标识输入参数, 并在LSP server端对docstring进行解析, 生成输入参数的构造代码. 大致形态是 (注意<code>&lt;typecheck&gt;</code>标识):</li>
 </ul>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#a6e22e">@ct.kernel</span>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#a6e22e">@ct.kernel</span>
 </span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">layer_norm_bwd_dwdb</span>(DW, DB, FINAL_DW, FINAL_DB, TILE_M: ConstInt, TILE_N: ConstInt):
 </span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;&#34;&#34;
 </span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    &lt;typecheck&gt;
