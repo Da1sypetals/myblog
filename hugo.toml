@@ -23,30 +23,37 @@ name = '知识'
 pageRef = '/posts'
 weight = 1
 
+
+[[menus.main]]
+name = 'vibe-coded'
+pageRef = '/vibe-coded'
+weight = 5
+
+
 [[menus.main]]
 name = '文化'
 pageRef = '/art'
-weight = 2
+weight = 10
 
 [[menus.main]]
 name = 'en-Posts'
 pageRef = '/english-post'
-weight = 3
+weight = 15
 
 [[menus.main]]
 name = '文档'
 pageRef = '/documents'
-weight = 4
+weight = 20
 
 [[menus.main]]
 name = '歌单'
 url = 'https://daisy-songs.vercel.app'
-weight = 8
+weight = 25
 
 [[menus.main]]
 name = '关于我'
 pageRef = '/about.md'
-weight = 9
+weight = 30
 
 
 # build search index ================
