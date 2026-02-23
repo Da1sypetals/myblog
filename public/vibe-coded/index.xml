@@ -2,17 +2,17 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Vibe-Codeds on Da1sypetals</title>
-    <link>https://da1sy-petals.vercel.app/vibe-coded/</link>
+    <link>https://da1sypetals.netlify.app/vibe-coded/</link>
     <description>Recent content in Vibe-Codeds on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
     <lastBuildDate>Mon, 23 Feb 2026 21:53:16 +0800</lastBuildDate>
-    <atom:link href="https://da1sy-petals.vercel.app/vibe-coded/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://da1sypetals.netlify.app/vibe-coded/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>供MacOS使用的 Qwen3 TTS GUI</title>
-      <link>https://da1sy-petals.vercel.app/vibe-coded/qwen3-tts/</link>
+      <link>https://da1sypetals.netlify.app/vibe-coded/qwen3-tts/</link>
       <pubDate>Mon, 23 Feb 2026 21:53:16 +0800</pubDate>
-      <guid>https://da1sy-petals.vercel.app/vibe-coded/qwen3-tts/</guid>
+      <guid>https://da1sypetals.netlify.app/vibe-coded/qwen3-tts/</guid>
       <description>&lt;p&gt;项目地址：&lt;a href=&#34;https://github.com/Da1sypetals/ttsui-mac&#34;&gt;https://github.com/Da1sypetals/ttsui-mac&lt;/a&gt;&lt;/p&gt;&#xA;&lt;p&gt;一个用于 MacOS 的 &lt;strong&gt;AI 语音合成（Text-to-Speech）桌面应用&lt;/strong&gt;，基于阿里通义的 Qwen3-TTS 模型，提供三种不同的语音合成方式：&lt;/p&gt;&#xA;&lt;h2 id=&#34;1-clone声音克隆&#34;&gt;1. Clone（声音克隆）&lt;/h2&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;strong&gt;上传音频&lt;/strong&gt;：拖放参考音频文件，&lt;strong&gt;或直接录音&lt;/strong&gt;&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;保存说话人&lt;/strong&gt;：将常用的声音保存为&amp;quot;说话人&amp;quot;，方便重复使用&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;输入文字&lt;/strong&gt;：输入任意文字，AI 会用参考音频的声音朗读出来&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;h2 id=&#34;2-control控制模式&#34;&gt;2. Control（控制模式）&lt;/h2&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;strong&gt;预设声音&lt;/strong&gt;：选择内置的中文或英文预设声音&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;情绪控制&lt;/strong&gt;：通过文字描述来控制情绪，例如&amp;quot;非常开心兴奋&amp;quot;、&amp;ldquo;平静舒缓&amp;rdquo;、&amp;ldquo;专业正式&amp;quot;等&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;输入文字&lt;/strong&gt;：生成带有指定情绪的语音&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;h2 id=&#34;3-design声音设计&#34;&gt;3. Design（声音设计）&lt;/h2&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;strong&gt;自由创造&lt;/strong&gt;：通过文字描述来设计一个全新的声音&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;描述示例&lt;/strong&gt;：如&amp;quot;一个活泼的年轻女声，音调高昂&amp;rdquo;、&amp;ldquo;一个深沉、冷静的男声，专业干练&amp;rdquo;、&amp;ldquo;一个温暖慈祥的奶奶声音&amp;quot;等&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;输入文字&lt;/strong&gt;：生成自定义声音朗读的语音&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;h2 id=&#34;其他功能&#34;&gt;其他功能&lt;/h2&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;strong&gt;音频播放&lt;/strong&gt;：内置播放器预览生成的语音&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;保存导出&lt;/strong&gt;：将生成的语音保存为音频文件&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;说话人管理&lt;/strong&gt;：保存、重命名、删除常用的克隆声音&lt;/li&gt;&#xA;&lt;/ul&gt;</description>
     </item>
   </channel>

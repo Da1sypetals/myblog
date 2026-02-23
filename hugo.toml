@@ -1,4 +1,4 @@
-baseURL = 'https://da1sy-petals.vercel.app'
+baseURL = 'https://da1sypetals.netlify.app'
 languageCode = 'zh-CN'
 title = 'Da1sypetals'
 theme = 'rusty-typewriter'

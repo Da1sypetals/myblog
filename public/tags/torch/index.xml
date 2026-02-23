@@ -2,52 +2,52 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Torch on Da1sypetals</title>
-    <link>https://da1sy-petals.vercel.app/tags/torch/</link>
+    <link>https://da1sypetals.netlify.app/tags/torch/</link>
     <description>Recent content in Torch on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
     <lastBuildDate>Thu, 02 Oct 2025 15:01:14 +0800</lastBuildDate>
-    <atom:link href="https://da1sy-petals.vercel.app/tags/torch/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://da1sypetals.netlify.app/tags/torch/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>SnapViewer Devlog #3: Optimizations</title>
-      <link>https://da1sy-petals.vercel.app/english-post/snapviewer-3-optim/</link>
+      <link>https://da1sypetals.netlify.app/english-post/snapviewer-3-optim/</link>
       <pubDate>Thu, 02 Oct 2025 15:01:14 +0800</pubDate>
-      <guid>https://da1sy-petals.vercel.app/english-post/snapviewer-3-optim/</guid>
+      <guid>https://da1sypetals.netlify.app/english-post/snapviewer-3-optim/</guid>
       <description>&lt;p&gt;&lt;strong&gt;Intro: Troubleshooting Memory and Speed Performance&lt;/strong&gt;&lt;/p&gt;&#xA;&lt;p&gt;&lt;strong&gt;Disclaimer:&lt;/strong&gt; I develop and test primarily on Windows using the latest stable Rust toolchain and CPython 3.13.&lt;/p&gt;&#xA;&lt;h2 id=&#34;1-background-and-motivation&#34;&gt;1. Background and Motivation&lt;/h2&gt;&#xA;&lt;p&gt;SnapViewer handles large memory snapshots effectively — for example, pickle files up to 1 GB and compressed snapshots up to 500 MB. However, when processing extremely large dumps (e.g., a 1.3 GB snapshot), we encountered serious memory and speed bottlenecks:&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;Format conversion (pickle → compressed JSON) triggered memory peaks around 30 GB.&lt;/li&gt;&#xA;&lt;li&gt;Data loading of the compressed JSON into Rust structures caused another ~30 GB spike.&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;Frequent page faults and intense disk I/O (observed in Task Manager) made the application sluggish and prone to stalls. To address this, we applied a Profile-Guided Optimization (PGO) approach.&lt;/p&gt;</description>
     </item>
     <item>
       <title>Snapviewer Devlog #2: UI</title>
-      <link>https://da1sy-petals.vercel.app/english-post/snapviewer-2-ui/</link>
+      <link>https://da1sypetals.netlify.app/english-post/snapviewer-2-ui/</link>
       <pubDate>Thu, 02 Oct 2025 14:56:13 +0800</pubDate>
-      <guid>https://da1sy-petals.vercel.app/english-post/snapviewer-2-ui/</guid>
+      <guid>https://da1sypetals.netlify.app/english-post/snapviewer-2-ui/</guid>
       <description>&lt;p&gt;&lt;strong&gt;Intro: Building the UI as a Hybrid Rust &amp;amp; Python Application&lt;/strong&gt;&lt;/p&gt;&#xA;&lt;p&gt;Building a UI can often be the trickiest part of a development project, especially when you&amp;rsquo;re trying to integrate different languages and paradigms.&lt;/p&gt;&#xA;&lt;p&gt;For SnapViewer, my memory allocation viewer, I needed an integrated UI that could display allocation details on click and feature a REPL for SQL queries against a SQLite database. This post details my journey, the hurdles I faced, and the solutions I found, primarily focusing on a Rust backend and Python UI.&lt;/p&gt;</description>
     </item>
     <item>
       <title>Notes on Writing PyTorch CUDA Extensions</title>
-      <link>https://da1sy-petals.vercel.app/english-post/torch-cuda-ext/</link>
+      <link>https://da1sypetals.netlify.app/english-post/torch-cuda-ext/</link>
       <pubDate>Thu, 02 Oct 2025 14:48:02 +0800</pubDate>
-      <guid>https://da1sy-petals.vercel.app/english-post/torch-cuda-ext/</guid>
+      <guid>https://da1sypetals.netlify.app/english-post/torch-cuda-ext/</guid>
       <description>&lt;p&gt;&lt;strong&gt;Intro: PyTorch is a Deep Learning Operating System.&lt;/strong&gt;&lt;/p&gt;&#xA;&lt;h2 id=&#34;check-tensor-storage&#34;&gt;Check tensor storage&lt;/h2&gt;&#xA;&lt;h3 id=&#34;device-check&#34;&gt;Device check&lt;/h3&gt;&#xA;&lt;p&gt;You should ALWAYS check EXPLICITLY whether input tensors are on desired devices. In most cases you want them on the same GPU, or in rare cases you want some tensors on CPU to perform some operations that are not efficient on GPU.&lt;/p&gt;&#xA;&lt;p&gt;&lt;strong&gt;API:&lt;/strong&gt;&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;code&gt;tensor.is_cuda()&lt;/code&gt;&lt;/li&gt;&#xA;&lt;li&gt;&lt;code&gt;tensor.device()&lt;/code&gt; (Use &lt;code&gt;operator==&lt;/code&gt; for equality comparison).&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;Sometimes the not on correct device problem causes strange error messages like &lt;code&gt;Cusparse context initialization failure&lt;/code&gt; or things even more weird, which first seem unrelated to a device problem. This is why I suggest you always start your debug journey here.&lt;/p&gt;</description>
     </item>
     <item>
       <title>SnapViewer: Faster PyTorch Memory Allocation Viewer</title>
-      <link>https://da1sy-petals.vercel.app/english-post/snapviewer/</link>
+      <link>https://da1sypetals.netlify.app/english-post/snapviewer/</link>
       <pubDate>Wed, 01 Oct 2025 16:09:53 +0800</pubDate>
-      <guid>https://da1sy-petals.vercel.app/english-post/snapviewer/</guid>
+      <guid>https://da1sypetals.netlify.app/english-post/snapviewer/</guid>
       <description>&lt;h1 id=&#34;background&#34;&gt;Background&lt;/h1&gt;&#xA;&lt;p&gt;When training models with PyTorch, out-of-memory (OOM) errors are common, necessitating GPU memory optimization. When simple methods (like reducing batch size) no longer work, analyzing the memory footprint of the model itself may be required.&lt;/p&gt;&#xA;&lt;p&gt;At this point, you might come across this &lt;a href=&#34;https://docs.pytorch.org/docs/stable/torch_cuda_memory.html&#34;&gt;documentation&lt;/a&gt;, which teaches you how to record a memory snapshot and visualize it on this website.&lt;/p&gt;&#xA;&lt;p&gt;However, there’s a major issue: the website is extremely laggy. If your model is small, with snapshots of just a few MB, the performance is somewhat tolerable. But if your model is large, with snapshots reaching tens or even hundreds of MB, the website becomes unbearably slow, with frame rates dropping as low as 2–3 frames per minute (this is not a typo).&lt;/p&gt;</description>
     </item>
     <item>
       <title>Snapviewer Devlog #3: 性能优化</title>
-      <link>https://da1sy-petals.vercel.app/posts/snapviewer-3-zh/</link>
+      <link>https://da1sypetals.netlify.app/posts/snapviewer-3-zh/</link>
       <pubDate>Sat, 07 Jun 2025 00:00:00 +0000</pubDate>
-      <guid>https://da1sy-petals.vercel.app/posts/snapviewer-3-zh/</guid>
+      <guid>https://da1sypetals.netlify.app/posts/snapviewer-3-zh/</guid>
       <description>&lt;h1 id=&#34;内存与速度性能问题排查&#34;&gt;内存与速度性能问题排查&lt;/h1&gt;&#xA;&lt;p&gt;&lt;strong&gt;免责声明&lt;/strong&gt;：我主要在 Windows 上使用最新的稳定版 Rust 工具链和 CPython 3.13 进行开发和测试。&lt;/p&gt;&#xA;&lt;h2 id=&#34;1-背景与动机&#34;&gt;1. 背景与动机&lt;/h2&gt;&#xA;&lt;p&gt;SnapViewer 能够高效处理大型内存快照——例如，支持高达 500 MB 的压缩快照。然而，在处理 1.3 GB的snapshot的时，我发现了严重的内存和速度瓶颈：&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;格式转换（pickle → 压缩 JSON）引发了约 30 GB 的内存峰值。&lt;/li&gt;&#xA;&lt;li&gt;将压缩 JSON 加载到 Rust 数据结构中又引发了另一次约 30 GB 的内存激增。&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;频繁的 page fault 和强烈的磁盘 I/O（在任务管理器中观察到）导致应用程序响应迟缓，甚至频繁卡顿。为了解决这一问题，我们采用了 Profile-Guided Optimization（PGO，基于性能分析的优化）方法。&lt;/p&gt;&#xA;&lt;h2 id=&#34;2-profile-guided-optimizationpgo&#34;&gt;2. Profile-Guided Optimization（PGO）&lt;/h2&gt;&#xA;&lt;p&gt;PGO 需要通过实证分析来识别真正的热点。我首先使用 &lt;a href=&#34;https://crates.io/crates/memory-stats&#34;&gt;memory-stats&lt;/a&gt; crate 进行内存分析，在早期优化阶段进行轻量级检查。随后，我将数据加载流水线拆解为若干离散步骤：&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;读取压缩文件（重度磁盘 I/O）&lt;/li&gt;&#xA;&lt;li&gt;从压缩流中提取 JSON 字符串&lt;/li&gt;&#xA;&lt;li&gt;将 JSON 反序列化为原生 Rust 数据结构&lt;/li&gt;&#xA;&lt;li&gt;填充内存中的 SQLite 数据库以支持即席 SQL 查询&lt;/li&gt;&#xA;&lt;li&gt;在 CPU 上构建三角网格（triangle mesh）&lt;/li&gt;&#xA;&lt;li&gt;初始化渲染窗口（CPU-GPU 数据传输）&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;性能分析揭示了两个主要的内存问题：过度使用 &lt;code&gt;clone&lt;/code&gt; 和多个中间数据结构。以下是我实施的优化措施。&lt;/p&gt;</description>
     </item>
     <item>
       <title>SnapViewer: 更快的PyTorch显存分配可视化</title>
-      <link>https://da1sy-petals.vercel.app/posts/snapviewer-zh/</link>
+      <link>https://da1sypetals.netlify.app/posts/snapviewer-zh/</link>
       <pubDate>Fri, 06 Jun 2025 00:00:00 +0000</pubDate>
-      <guid>https://da1sy-petals.vercel.app/posts/snapviewer-zh/</guid>
+      <guid>https://da1sypetals.netlify.app/posts/snapviewer-zh/</guid>
       <description>&lt;h2 id=&#34;背景&#34;&gt;背景&lt;/h2&gt;&#xA;&lt;p&gt;在使用 PyTorch 训练模型时，内存不足（OOM）错误是很常见的，因此需要对 GPU 内存进行优化。当简单的方法（如减少batch size）不再有效时，就需要分析模型本身的内存占用情况。&lt;/p&gt;&#xA;&lt;p&gt;此时，你可能会看到这份&lt;a href=&#34;https://docs.pytorch.org/docs/stable/torch_cuda_memory.html&#34;&gt;文档&lt;/a&gt;，它教你如何记录内存快照并在网站上进行可视化。&lt;/p&gt;&#xA;&lt;p&gt;但是这里存在一个严重的问题：这个网站性能比较差。&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;如果你的模型较小，快照只有几 MB，性能还可以接受。&lt;/li&gt;&#xA;&lt;li&gt;但是如果你的模型很大，快照达到几十甚至上百 MB，网站就会变得极慢，帧率可能低至每分钟 2-3 帧（非笔误）。&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;我研究了网站的 JavaScript 代码，其主要功能是：&lt;/p&gt;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;手动加载 Python 的 pickle 文件；&lt;/li&gt;&#xA;&lt;li&gt;每次视口发生变化时重新解析原始数据为图形表示，然后将其渲染到屏幕上。&lt;/li&gt;&#xA;&lt;/ol&gt;&#xA;&lt;p&gt;这些解析逻辑用 JavaScript 编写，你可以想象一下每帧执行这些操作，处理上百 MB 数据要多久.&lt;/p&gt;&#xA;&lt;h2 id=&#34;灵感&#34;&gt;灵感&lt;/h2&gt;&#xA;&lt;p&gt;我当前的工作包括优化一个非LLM的深度学习模型。在处理数十亿参数的模型所导出的显存snapshot时，我遇到了这个问题。&lt;/p&gt;&#xA;&lt;p&gt;为什么不用现有的 LLM 基础设施而选择手动优化？简单地说，这个模型是研究人员自定义设计的，其中包含许多与标准 LLM 完全不同的模块。现在似乎每个人都认为深度学习就只是关于 LLM——以至于一些技术负责人也认为 LLM 的基础设施可以很容易地适配到其他模型上……不过我有点跑题了。&lt;/p&gt;&#xA;&lt;p&gt;最初，我写了一个简单的脚本来解析快照内容，希望能发现模型中的内存分配问题。但是在一个月的工作中，我发现我还是需要一个带有GUI的可视化器, 于是我开发了 SnapViewer.&lt;/p&gt;&#xA;&lt;p&gt;简而言之：内存快照的图形数据被解析并呈现为一个巨大的三角形mesh，利用现有的渲染库来高效处理网格渲染。&lt;/p&gt;&#xA;&lt;p&gt;下面是一个 100 MB 以上的快照在我的集成显卡上流畅运行的截图：&lt;/p&gt;&#xA;&lt;p&gt;&lt;img src=&#34;../images/snapviewer.gif&#34; alt=&#34;snapviewer&#34;&gt;&lt;/p&gt;&#xA;&lt;h2 id=&#34;实现&#34;&gt;实现&lt;/h2&gt;&#xA;&lt;h3 id=&#34;参考实现&#34;&gt;参考实现&lt;/h3&gt;&#xA;&lt;p&gt;快照格式在 &lt;code&gt;record_memory_history&lt;/code&gt; 函数的&lt;a href=&#34;https://github.com/pytorch/pytorch/blob/main/torch/cuda/memory.py&#34;&gt;docstring&lt;/a&gt;中有部分记录。但这份文档并不完整, 可能是后续commit的人懒得更新docstring了.&lt;/p&gt;&#xA;&lt;p&gt;实际将快照解析为字典的过程发生在&lt;a href=&#34;https://github.com/pytorch/pytorch/blob/main/torch/cuda/_memory_viz.py&#34;&gt;这里&lt;/a&gt;：&lt;/p&gt;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;该脚本将分配器跟踪转换为内存时间线，然后传递给网页查看器的 JS 代码。&lt;/li&gt;&#xA;&lt;li&gt;JS 代码进一步将其转换为多边形（表示分配），用于可视化。每个多边形对应一个分配，存储大小和调用栈等细节。&lt;/li&gt;&#xA;&lt;/ol&gt;&#xA;&lt;h3 id=&#34;实现快照-反序列化&#34;&gt;实现：快照 (反)序列化&lt;/h3&gt;&#xA;&lt;h4 id=&#34;初始实现&#34;&gt;初始实现&lt;/h4&gt;&#xA;&lt;p&gt;我用 Python 实现这一部分，因为我需要处理 Python 原生数据结构。我只是简单地将字典转换为 JSON 文件。&lt;/p&gt;</description>
     </item>
   </channel>
