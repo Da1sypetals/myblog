@@ -58,34 +58,8 @@ $$M(k) = (u_0 + k\mathbf{1})\mathbf{1}^T + \mathbf{1}(v_0 - k\mathbf{1})^T = u_0
 
 $k$ 相关项相互抵消，$M$ 与具体解的选择无关。$\square$
 
----
 
 ## 算法
-
-### 算法1：秩1修正（正定系统）
-
-**1）准备右端项**
-$$r = (G \odot R)\mathbf{1}, \quad c = (G \odot R)^T\mathbf{1}$$
-
-**2）构建正定系统**
-$$S = I - R^T R + \frac{1}{n}\mathbf{1}\mathbf{1}^T$$
-**以及**
-$$b = c - R^T r$$
-
-**3）求解**
-$$S \, \tilde{v} = b$$
-
-**4）构造解**
-$$u = r - R\tilde{v}$$
-$$v = \tilde{v} - \left(\frac{1}{n}\mathbf{1}^T\tilde{v}\right)\mathbf{1}$$
-
-**5）组装结果**
-$$M_{ij} = u_i + v_j$$
-
-**6）最终梯度**
-$$\nabla_X L = (G - M) \odot R$$
-
-### 算法2：不修正
 
 **1）准备右端项**
 $$s_r = (G \odot R)\mathbf{1}, \quad s_c = (G \odot R)^T\mathbf{1}$$
@@ -110,12 +84,10 @@ $$M_{ij} = u_i + v_j$$
 **6）最终梯度**
 $$\nabla_X L = (G - M) \odot R$$
 
+可以证明这个方法和上述求解 $2n \times 2n$ 系统的方法等价，证明略。
 
----
 
-## 实现
-
-采取不修正的方式实现。
+## PyTorch 实现
 
 ```python
 """
@@ -301,51 +273,6 @@ print("SUMMARY")
 print("=" * 60)
 
 ```
-
----
-
-## 证明
-
-### 秩1修正后，结果的正确性
-
-**步骤1**：验证 $\tilde{v}$ 与 $v^*$ 的关系。
-
-由 $S\tilde{v} = c - R^T r$ 和 $(I - R^T R)v^* = c - R^T r$，有：
-$$(I - R^T R + \frac{1}{n}\mathbf{1}\mathbf{1}^T)\tilde{v} = (I - R^T R)v^*$$
-
-即：
-$$(I - R^T R)(\tilde{v} - v^*) = -\frac{1}{n}\mathbf{1}\mathbf{1}^T\tilde{v}$$
-
-由于 $I - R^T R$ 的零空间由 $\mathbf{1}$ 张开（$R^T R \mathbf{1} = \mathbf{1}$），存在标量 $\alpha$ 使得：
-$$\tilde{v} - v^* = -\frac{\mathbf{1}^T\tilde{v}}{n}\mathbf{1} + \alpha\mathbf{1}$$
-
-取 $\alpha = \frac{\mathbf{1}^T\tilde{v}}{n} - \frac{\mathbf{1}^T v^*}{n}$，则：
-$$\tilde{v} = v^* - \frac{\mathbf{1}^T v^*}{n}\mathbf{1} = v^* - \bar{v}^*\mathbf{1}$$
-
-即 $\tilde{v}$ 是 $v^*$ 的去均值版本，满足 $\mathbf{1}^T\tilde{v} = 0$。
-
-**步骤2**：计算 $u$。
-
-$$u = r - R\tilde{v} = r - R(v^* - \bar{v}^*\mathbf{1}) = r - Rv^* + \bar{v}^*R\mathbf{1} = u^* + \bar{v}^*\mathbf{1}$$
-
-其中利用了 $R\mathbf{1} = \mathbf{1}$。
-
-**步骤3**：计算 $v$。
-
-由于 $\mathbf{1}^T\tilde{v} = 0$，有：
-$$v = \tilde{v} - 0 \cdot \mathbf{1} = \tilde{v} = v^* - \bar{v}^*\mathbf{1}$$
-
-**步骤4**：验证 $M_{ij}$。
-
-$$M_{ij} = u_i + v_j = (u^*_i + \bar{v}^*) + (v^*_j - \bar{v}^*) = u^*_i + v^*_j = M^*_{ij}$$
-
-偏移量 $\bar{v}^*$ 在 $u_i$ 和 $v_j$ 中相互抵消，结果与原系统一致。$\square$
-
-### 不修正
-
-正确性的证明类似，而共轭梯度方法本身[可以解决半正定系统的求解](https://arxiv.org/pdf/1809.00793)。
-
----
 
 ## Triton 实现
 

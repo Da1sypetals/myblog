@@ -186,27 +186,7 @@ $$Av = \begin{bmatrix} I\mathbf{1} - R\mathbf{1} \\ R^T\mathbf{1} - I\mathbf{1} 
 $$M = u\mathbf{1}^T + \mathbf{1}v^T \quad (\text{即 } M_{ij} = u_i + v_j)$$<p><strong>定理</strong>：对于 $Ax=b$ 的任何解 $x$，矩阵 $M$ 是唯一确定的。</p>
 <p><strong>证明</strong>：将通解代入 $M$ 的表达式：</p>
 $$M(k) = (u_0 + k\mathbf{1})\mathbf{1}^T + \mathbf{1}(v_0 - k\mathbf{1})^T = u_0\mathbf{1}^T + k\mathbf{1}\mathbf{1}^T + \mathbf{1}v_0^T - k\mathbf{1}\mathbf{1}^T = u_0\mathbf{1}^T + \mathbf{1}v_0^T$$<p>$k$ 相关项相互抵消，$M$ 与具体解的选择无关。$\square$</p>
-<hr>
 <h2 id="算法">算法</h2>
-<h3 id="算法1秩1修正正定系统">算法1：秩1修正（正定系统）</h3>
-<p><strong>1）准备右端项</strong>
-</p>
-$$r = (G \odot R)\mathbf{1}, \quad c = (G \odot R)^T\mathbf{1}$$<p><strong>2）构建正定系统</strong>
-</p>
-$$S = I - R^T R + \frac{1}{n}\mathbf{1}\mathbf{1}^T$$<p>
-<strong>以及</strong>
-</p>
-$$b = c - R^T r$$<p><strong>3）求解</strong>
-</p>
-$$S \, \tilde{v} = b$$<p><strong>4）构造解</strong>
-</p>
-$$u = r - R\tilde{v}$$<p>
-</p>
-$$v = \tilde{v} - \left(\frac{1}{n}\mathbf{1}^T\tilde{v}\right)\mathbf{1}$$<p><strong>5）组装结果</strong>
-</p>
-$$M_{ij} = u_i + v_j$$<p><strong>6）最终梯度</strong>
-</p>
-$$\nabla_X L = (G - M) \odot R$$<h3 id="算法2不修正">算法2：不修正</h3>
 <p><strong>1）准备右端项</strong>
 </p>
 $$s_r = (G \odot R)\mathbf{1}, \quad s_c = (G \odot R)^T\mathbf{1}$$<p><strong>2）构建半正定系统</strong>
@@ -224,9 +204,8 @@ $$v = x$$<p><strong>5）组装结果</strong>
 </p>
 $$M_{ij} = u_i + v_j$$<p><strong>6）最终梯度</strong>
 </p>
-$$\nabla_X L = (G - M) \odot R$$<hr>
-<h2 id="实现">实现</h2>
-<p>采取不修正的方式实现。</p>
+$$\nabla_X L = (G - M) \odot R$$<p>可以证明这个方法和上述求解 $2n \times 2n$ 系统的方法等价，证明略。</p>
+<h2 id="pytorch-实现">PyTorch 实现</h2>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#e6db74">&#34;&#34;&#34;
 </span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Sinkhorn Backward Pass: n×n Rank-0 (Singular) System with Manual CG
 </span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Solves (I - R^T R) ṽ = b without rank-1 correction using manual conjugate gradient
@@ -408,30 +387,7 @@ $$\nabla_X L = (G - M) \odot R$$<hr>
 </span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;=&#34;</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">60</span>)
 </span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;SUMMARY&#34;</span>)
 </span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;=&#34;</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">60</span>)
-</span></span></code></pre></div><hr>
-<h2 id="证明">证明</h2>
-<h3 id="秩1修正后结果的正确性">秩1修正后，结果的正确性</h3>
-<p><strong>步骤1</strong>：验证 $\tilde{v}$ 与 $v^*$ 的关系。</p>
-<p>由 $S\tilde{v} = c - R^T r$ 和 $(I - R^T R)v^* = c - R^T r$，有：
-</p>
-$$(I - R^T R + \frac{1}{n}\mathbf{1}\mathbf{1}^T)\tilde{v} = (I - R^T R)v^*$$<p>即：
-</p>
-$$(I - R^T R)(\tilde{v} - v^*) = -\frac{1}{n}\mathbf{1}\mathbf{1}^T\tilde{v}$$<p>由于 $I - R^T R$ 的零空间由 $\mathbf{1}$ 张开（$R^T R \mathbf{1} = \mathbf{1}$），存在标量 $\alpha$ 使得：
-</p>
-$$\tilde{v} - v^* = -\frac{\mathbf{1}^T\tilde{v}}{n}\mathbf{1} + \alpha\mathbf{1}$$<p>取 $\alpha = \frac{\mathbf{1}^T\tilde{v}}{n} - \frac{\mathbf{1}^T v^*}{n}$，则：
-</p>
-$$\tilde{v} = v^* - \frac{\mathbf{1}^T v^*}{n}\mathbf{1} = v^* - \bar{v}^*\mathbf{1}$$<p>即 $\tilde{v}$ 是 $v^*$ 的去均值版本，满足 $\mathbf{1}^T\tilde{v} = 0$。</p>
-<p><strong>步骤2</strong>：计算 $u$。</p>
-$$u = r - R\tilde{v} = r - R(v^* - \bar{v}^*\mathbf{1}) = r - Rv^* + \bar{v}^*R\mathbf{1} = u^* + \bar{v}^*\mathbf{1}$$<p>其中利用了 $R\mathbf{1} = \mathbf{1}$。</p>
-<p><strong>步骤3</strong>：计算 $v$。</p>
-<p>由于 $\mathbf{1}^T\tilde{v} = 0$，有：
-</p>
-$$v = \tilde{v} - 0 \cdot \mathbf{1} = \tilde{v} = v^* - \bar{v}^*\mathbf{1}$$<p><strong>步骤4</strong>：验证 $M_{ij}$。</p>
-$$M_{ij} = u_i + v_j = (u^*_i + \bar{v}^*) + (v^*_j - \bar{v}^*) = u^*_i + v^*_j = M^*_{ij}$$<p>偏移量 $\bar{v}^*$ 在 $u_i$ 和 $v_j$ 中相互抵消，结果与原系统一致。$\square$</p>
-<h3 id="不修正">不修正</h3>
-<p>正确性的证明类似，而共轭梯度方法本身<a href="https://arxiv.org/pdf/1809.00793">可以解决半正定系统的求解</a>。</p>
-<hr>
-<h2 id="triton-实现">Triton 实现</h2>
+</span></span></code></pre></div><h2 id="triton-实现">Triton 实现</h2>
 <h3 id="实现细节">实现细节</h3>
 <p>在 Triton kernel 中，每个 thread block 处理一批（<code>tilesize</code> 个）独立的 $n \times n$ 系统。CG 的每次迭代需要计算 $S p = (I - R^T R) p$。</p>
 <p>最直接的实现是在 kernel 入口处预计算 $R^T R$，然后在 CG 循环中复用：</p>
@@ -752,8 +708,8 @@ $$S p = (I - R^T R) p = p - R^T \underbrace{(R p)}_{\text{中间结果}}$$<p>即
 </div>
 </footer>
       </div><aside id="side-pane" class="side-sticky"><div class="side-details">
-    <span>2172 words</span>
-    <span>18 - 23 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
+    <span>1961 words</span>
+    <span>16 - 21 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
   <ul>
     <li><a href="#问题设定">问题设定</a>
       <ul>
@@ -763,19 +719,8 @@ $$S p = (I - R^T R) p = p - R^T \underbrace{(R p)}_{\text{中间结果}}$$<p>即
         <li><a href="#不变量">不变量</a></li>
       </ul>
     </li>
-    <li><a href="#算法">算法</a>
-      <ul>
-        <li><a href="#算法1秩1修正正定系统">算法1：秩1修正（正定系统）</a></li>
-        <li><a href="#算法2不修正">算法2：不修正</a></li>
-      </ul>
-    </li>
-    <li><a href="#实现">实现</a></li>
-    <li><a href="#证明">证明</a>
-      <ul>
-        <li><a href="#秩1修正后结果的正确性">秩1修正后，结果的正确性</a></li>
-        <li><a href="#不修正">不修正</a></li>
-      </ul>
-    </li>
+    <li><a href="#算法">算法</a></li>
+    <li><a href="#pytorch-实现">PyTorch 实现</a></li>
     <li><a href="#triton-实现">Triton 实现</a>
       <ul>
         <li><a href="#实现细节">实现细节</a></li>
