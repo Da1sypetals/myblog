@@ -14,7 +14,7 @@ title = '计算sinkhorn迭代的梯度 2：更简单的nxn系统'
    - 列和约束：$R^T \mathbf{1} = \mathbf{1} \implies v \odot (P^T u) = \mathbf{1}$
 4. **损失函数**：$L = f(R)$，令 $G = \nabla_R L = \frac{\partial L}{\partial R}$ 为已知梯度。
 
-### 解决方法
+## 求解
 
 TLDR：通过对 Sinkhorn 的平衡条件进行隐函数求导，$\nabla_X L$ 的计算公式为：
 
@@ -84,7 +84,7 @@ $$M_{ij} = u_i + v_j$$
 **6）最终梯度**
 $$\nabla_X L = (G - M) \odot R$$
 
-可以证明这个方法和上述求解 $2n \times 2n$ 系统的方法等价，证明略。
+可以证明这个方法和上述求解 $2n \times 2n$ 系统的方法数学上等价。CG[在一定条件下可以求解半正定系统](https://arxiv.org/pdf/1809.00793)，其余证明略。
 
 
 ## PyTorch 实现
