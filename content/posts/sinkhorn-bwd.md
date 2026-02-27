@@ -50,8 +50,7 @@ $$\nabla_X L = (G - u \mathbf{1}^T - \mathbf{1} v^T) \odot R$$
 
 $$\begin{cases} u + R v = (G \odot R) \mathbf{1} \\ R^T u + v = (G \odot R)^T \mathbf{1} \end{cases}$$
 
-## 具体实现步骤
-### 1）求解线性系统
+### 求解线性系统
 
 将上述方程改写成矩阵形式：
 
@@ -59,7 +58,7 @@ $$\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bma
 
 求解上述线性系统，得到 $u$ 和 $v$。
 
-### 2）组装梯度
+### 组装梯度
 
 得到 $u$ 和 $v$ 后，代入：
 
@@ -68,11 +67,11 @@ $$\frac{\partial L}{\partial X_{ij}} = (G_{ij} - u_i - v_j) R_{ij} = (G_{ij} - (
 对于每一个$i,j$，我们需要从上述方程中解得的就是$u_i + v_j$。
 
 
-## 问题
+### 性质
 
 记$A=\begin{bmatrix} I & R \\ R^T & I \end{bmatrix}$。
 
-### 1. 多解
+#### 1. 多解
 证明：
 
 考虑非零向量 $w = \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$（其中 $\mathbf{1}$ 为全 1 的 $n$ 维列向量）。
@@ -88,9 +87,9 @@ $$Aw = \begin{bmatrix} \mathbf{1} - \mathbf{1} \\ \mathbf{1} - \mathbf{1} \end{b
 
 直观理解：bistochastic matrix的行和列和存在冗余（例如，行和为1，因此每行其实只需知道前n-1个元素）。
 
-### 2. 不变量
+#### 2. 不变量
 
-#### 1) 线性方程组 $Ax = b$ 的解空间
+##### 1) 线性方程组 $Ax = b$ 的解空间
 由于 $A$ 是奇异的，对于给定的向量 $b$，如果方程有解，则必有无穷多解。其通解形式为：
 
 $$x = \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} u_0 \\ v_0 \end{bmatrix} + k \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \begin{bmatrix} u_0 + k\mathbf{1} \\ v_0 - k\mathbf{1} \end{bmatrix}$$
@@ -98,7 +97,7 @@ $$x = \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} u_0 \\ v_0 \end{bma
 其中 $\begin{bmatrix} u_0 \\ v_0 \end{bmatrix}$ 是一个特解，$k$ 是任意实数标量。
 
 
-#### 2) 不变量
+##### 2) 不变量
 虽然解 $x$ 包含不确定的偏移量 $k$，但我们的计算目标是确定的。
 我们的计算目标是矩阵 $M$，定义为：
 
@@ -122,92 +121,326 @@ $$M = f(R, b)$$
 
 $M$ 是 $R$ 和 $b$ 的确定函数，不受具体解的影响；因此只要求解能收敛，就可以计算出正确的梯度。
 
+#### 3. 形式变换
 
-## 收敛性
+从原系统消元:
+$$R^T(r - Rv) + v = c \implies (I - R^T R)v = c - R^T r$$
 
-我们采取共轭梯度法求解这个线性系统。
+我们可以得到新的方程 $Sv = b$，其中 $S = I - R^T R$, $b = c - R^T r$。
 
-### 1）特征值
+其中, $S$ 是对称半正定的:
 
-若 $R$ 的奇异值为 $\sigma_1, \sigma_2, \dots, \sigma_n$，则 $A$ 的特征值为 $1 \pm \sigma_i$。
+**1) 对称性**
+$$S^T = I - (R^T R)^T = I - R^T R = S \quad \checkmark$$
 
-证明：设 $\mu$ 是 $A$ 的特征值，对应的特征向量为 $z = \begin{bmatrix} p \\ q \end{bmatrix}$，其中 $p, q \in \mathbb{R}^n$。
+**2) 半正定性**
 
-则有方程组：
+对任意 $x \in \mathbb{R}^n$：
+$$x^T S x = \|x\|_2^2 - \|Rx\|_2^2$$
 
-- $p + Rq = \mu p \implies Rq = (\mu - 1)p$
+只需证 $\|Rx\|_2 \leq \|x\|_2$。
 
-- $R^Tp + q = \mu q \implies R^Tp = (\mu - 1)q$
+由行随机性（$\sum_j R_{ij} = 1$）及 Jensen 不等式：
+$$\left(\sum_j R_{ij} x_j\right)^2 \leq \sum_j R_{ij} x_j^2$$
 
-将 (2) 代入 (1) 可得：
+对 $i$ 求和：
+$$\|Rx\|_2^2 = \sum_i \left(\sum_j R_{ij} x_j\right)^2 \leq \sum_i \sum_j R_{ij} x_j^2 = \sum_j x_j^2 \sum_i R_{ij} = \|x\|_2^2$$
 
-$$\dfrac{RR^Tp}{\mu - 1} = (\mu - 1)p \implies RR^T p = (\mu - 1)^2 p$$
+故 $x^T S x \geq 0$.
 
-这表明 $(\mu - 1)^2$ 是矩阵 $RR^T$ 的特征值。根据奇异值分解的定义，$RR^T$ 的特征值正是 $R$ 的奇异值的平方 $\sigma_i^2$。
+由于
 
-因此：
+$$S\mathbf{1} = \mathbf{1} - R^T(R\mathbf{1}) = \mathbf{1} - R^T\mathbf{1} = \mathbf{0}$$
 
-$$(\mu - 1)^2 = \sigma_i^2 \implies \mu - 1 = \pm \sigma_i \implies \mu = 1 \pm \sigma_i$$
+故$S$不是正定的.
 
-### 2）对称半正定性
 
-$A$ 是对称半正定矩阵（Positive Semidefinite）。对称性是显然的。
+## 算法
 
-$A$ 的特征值为 $1 \pm \sigma_i$，因为 $R$ 是bistochastic matrix，根据 Perron-Frobenius定理, 其最大奇异值 $\sigma_{\max}(R) = 1$。
+下述以 $s_c, s_r$ 代替上文的 $c, r$.
 
-由于所有奇异值 $\sigma_i$ 满足 $0 \le \sigma_i \le 1$，则：
+**1）准备右端项**
+$$s_r = (G \odot R)\mathbf{1}, \quad s_c = (G \odot R)^T\mathbf{1}$$
 
-- 最大特征值 $\mu_{\max} = 1 + \sigma_1 = 1 + 1 = 2$。
+**2）构建半正定系统**
+$$S = I - R^T R$$
+**以及**
+$$b = s_c - R^T s_r$$
 
-- 最小特征值 $\mu_{\min} = 1 - \sigma_1 = 1 - 1 = 0$。
+**3）用CG求解**
+$$S \, x = b$$
 
-因为所有特征值 $\mu_i \ge 0$，所以 $A$ 是半正定的。
+**4）构造解**
+$$u = r - Rx$$
+$$v = x$$
 
-### 3）相容性
 
-共轭梯度法在处理奇异的对称半正定矩阵时，[只有满足下列条件才会收敛到解](https://arxiv.org/pdf/1809.00793)：
 
-$$b \in \mathcal{R}(A) \iff b \perp \mathcal{N}(A)$$
+**5）组装结果**
+$$M_{ij} = u_i + v_j$$
 
-其中 $\mathcal{N}(A)$ 是 $A$ 的零空间（Null Space）；这个条件被称为相容性条件。
+**6）最终梯度**
+$$\nabla_X L = (G - M) \odot R$$
 
-针对该矩阵的相容性条件：
+CG[在一定条件下可以求解半正定系统](https://arxiv.org/pdf/1809.00793).
 
-由于 $R$ 是bistochastic matrix，我们已知 $A \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \mathbf{0}$。这意味着 $\begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$ 在零空间内。
 
-设 $b = \begin{bmatrix} b_1 \\ b_2 \end{bmatrix}$（$b_1, b_2 \in \mathbb{R}^n$），则根据相容性条件，
+## PyTorch 实现
 
-$$\begin{bmatrix} b_1 \\ b_2 \end{bmatrix}^T \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = 0 \implies \sum_{i=1}^n (b_1)_i = \sum_{j=1}^n (b_2)_j$$
+```python
+"""
+Sinkhorn Backward Pass: n×n Rank-0 (Singular) System with Manual CG
+Solves (I - R^T R) ṽ = b without rank-1 correction using manual conjugate gradient
+"""
 
-而 $b_1 = (G \odot R) \mathbf{1}$，$b_2 = (G \odot R)^T \mathbf{1}$，因此
+import torch
 
-$$\sum_{i=1}^n (b_1)_i = \sum_{j=1}^n (b_2)_j = \sum_{i=1}^n \sum_{j=1}^n G_{ij} R_{ij}$$
+dtype = torch.float32
+batch = 10001
+n = 4
+iters = 48
 
-满足相容性条件，算法应当收敛。
+EPS = 1e-11
 
-## torch实现
+print(f"{n = }")
+print(f"{iters = }")
+print(f"{batch = }")
 
-特别鸣谢Gemini的辅助编程。
 
-cuTile的示例实现在[这里](https://gist.github.com/Da1sypetals/e9886cd679b32920100656d7a3dee79b).
+def sinkhorn_forward(M, iters=20):
+    """Standard Sinkhorn forward pass"""
+    P = torch.exp(M)
+    R = P
+    for _ in range(iters):
+        R = R / R.sum(-2, keepdim=True)
+        R = R / R.sum(-1, keepdim=True)
+    return R, P
 
-> 注：要确保正向sinkhorn充分收敛才能使用此方法；正向收敛不充分的情况下，和自动求导的结果对比会出现很大偏差。
 
-```py
+def batch_cg_solve_singular(A, b):
+    """
+    Manual Conjugate Gradient solver for potentially singular systems.
+    A: (batch, n, n) - system matrices
+    b: (batch, n) - right hand side
+    """
+    batch_size, n, _ = A.shape
+    device = A.device
+    dtype = A.dtype
+
+    # CG Initialization
+    x = torch.zeros_like(b)
+    r = b.clone()
+    p = r.clone()
+    rs_old = torch.einsum("bi,bi->b", r, r)
+
+    # CG Iteration
+    # Iteration count is n, which is theoretically guaranteed by CG algorithm
+    for i in range(n):
+        Ap = torch.einsum("bij,bj->bi", A, p)
+        pAp = torch.einsum("bi,bi->b", p, Ap)
+        alpha = rs_old / (pAp + EPS)
+        x += torch.einsum("b,bi->bi", alpha, p)
+        r -= torch.einsum("b,bi->bi", alpha, Ap)
+        rs_new = torch.einsum("bi,bi->b", r, r)
+        beta = rs_new / (rs_old + EPS)
+        p = r + torch.einsum("b,bi->bi", beta, p)
+        rs_old = rs_new
+
+    return x
+
+
+def sinkhorn_backward_n_rank0(grad_R, R, cg_iters=10):
+    """
+    Rank-0 method: Solve n×n singular system WITHOUT rank-1 correction
+    Uses manual Conjugate Gradient to solve (I - R^T R) ṽ = b
+
+    Algorithm steps:
+    1. r = (G ⊙ R)1, c = (G ⊙ R)^T 1
+    2. S0 = I - R^T R (SINGULAR), b = c - R^T r
+    3. Solve: S0 ṽ = b using manual CG
+    4. u = r - R ṽ, v = ṽ (CG naturally finds ~zero mean solution)
+    5. M_{ij} = u_i + v_j
+    6. ∇_X L = (G - M) ⊙ R
+    """
+    batch_size, n, _ = R.shape
+    device = R.device
+    dtype = R.dtype
+
+    R_detached = R.detach()
+    G = grad_R
+
+    # Step 1: Prepare RHS
+    r = (R_detached * G).sum(dim=-1)  # shape (batch, n)
+    c = (R_detached * G).sum(dim=-2)  # shape (batch, n)
+
+    # Step 2: Build n×n SINGULAR system (no rank-1 correction)
+    # S0 = I - R^T R
+    R_T = torch.einsum("bij->bji", R_detached)
+    RTR = torch.einsum("bij,bjk->bik", R_T, R_detached)
+    eye = torch.eye(n, device=device, dtype=dtype).unsqueeze(0).expand(batch_size, -1, -1)
+
+    S0 = eye - RTR  # SINGULAR matrix
+    b = c - torch.einsum("bij,bj->bi", R_T, r)
+
+    # Debug: Compute eigenvalues to verify singularity
+    eigenvalues = torch.linalg.eigvalsh(S0)
+    min_eig = eigenvalues.min(dim=-1).values
+    max_eig = eigenvalues.max(dim=-1).values
+    print("Rank-0 system eigenvalue statistics:")
+    print(f"  Min eigenvalue:  {min_eig.min().item():.5f}")
+    print(f"  Max eigenvalue:  {max_eig.max().item():.5f}")
+    print(f"  Near-zero eigenvalues exist: {(eigenvalues.abs() < 1e-6).any().item()}")
+
+    # Step 3: Solve S0 ṽ = b using manual CG
+    v_tilde = batch_cg_solve_singular(S0, b, max_iter=cg_iters)
+
+    # Step 4: Construct solution
+    # CG naturally produces minimum-norm solution (~zero mean)
+    u = r - torch.einsum("bij,bj->bi", R_detached, v_tilde)
+    v = v_tilde
+
+    # Step 5: Assemble M_{ij} = u_i + v_j
+    M = u.unsqueeze(-1) + v.unsqueeze(-2)
+
+    # Step 7: Final gradient
+    grad_X = (G - M) * R_detached
+
+    return grad_X
+
+
+######################################################################
+# Test Setup
+######################################################################
+
+# Generate random input
+dist = torch.distributions.uniform.Uniform(0.0, 4.0)
+M = dist.sample((batch, n, n))
+M.requires_grad_()
+
+# Forward pass (shared)
+R, P = sinkhorn_forward(M, iters)
+loss_weight = torch.randn_like(R)
+
+######################################################################
+# Method A: Autograd (Reference)
+######################################################################
+M.grad = None
+loss_a = (R * loss_weight).sum()
+loss_a.backward()
+grad_M_autograd = M.grad.detach().clone()
+
+######################################################################
+# Method B: Rank-0 CG (Singular system, manual CG)
+######################################################################
+grad_R = loss_weight
+grad_M_rank0_cg = sinkhorn_backward_n_rank0(grad_R, R, cg_iters=n)
+
+######################################################################
+# Comparison
+######################################################################
+
+g_ref = grad_M_autograd
+g_rank0 = grad_M_rank0_cg
+
+# Compute differences
+abs_diff = (g_ref - g_rank0).abs()
+rel_diff = abs_diff / (g_ref.abs() + 1e-12)
+
+MAE = abs_diff.mean(dim=(-1, -2))
+max_abs_diff = abs_diff.reshape(batch, -1).max(-1).values
+mean_rel_diff = rel_diff.mean(dim=(-1, -2))
+max_rel_diff = rel_diff.reshape(batch, -1).max(-1).values
+
+print("\n" + "=" * 60)
+print("GRADIENT COMPARISON: Autograd vs Rank-0 CG")
+print("=" * 60)
+print(f"Max MAE:           {MAE.max().item():.6e}")
+print(f"Max max_abs_diff:  {max_abs_diff.max().item():.6e}")
+print(f"Max mean_rel_diff: {mean_rel_diff.max().item():.6e}")
+print(f"Max max_rel_diff:  {max_rel_diff.max().item():.6e}")
+
+print("\n" + "=" * 60)
+print("SAMPLE GRADIENTS (first batch)")
+print("=" * 60)
+print(f"\nAutograd reference:\n{g_ref[0]}")
+print(f"\nRank-0 CG method:\n{g_rank0[0]}")
+print(f"\nAbsolute difference:\n{abs_diff[0]}")
+
+print("\n" + "=" * 60)
+print("SUMMARY")
+print("=" * 60)
+
+```
+
+## Triton 实现
+
+### 实现细节
+
+在 Triton kernel 中，每个 thread block 处理一批（`tilesize` 个）独立的 $n \times n$ 系统。CG 的每次迭代需要计算 $S p = (I - R^T R) p$。
+
+最直接的实现是在 kernel 入口处预计算 $R^T R$，然后在 CG 循环中复用：
+
+```python
+# 原始实现（tune_triton_new.py）
+RTR = tl.dot(RT, R, input_precision="tf32")   # 预计算，常驻寄存器
+
+for _ in range(n):
+    Sp = p - tl.dot(RTR, p)   # 每次迭代 1 次 matvec
+```
+
+
+但是这样实现很慢：这里使用matmul的pattern和GEMM不同，只在开头计算一次，不足以填满 Tensor Core 的流水线，利用率低；实测比处理 $2n \times 2n$ 系统的原始实现还慢约 2 倍。
+
+注意到 $S p$ 可以分解为两次连续的 matvec，而无需显式存储 $R^T R$：
+
+$$S p = (I - R^T R) p = p - R^T \underbrace{(R p)}_{\text{中间结果}}$$
+
+即先算 $q = Rp$（$n \times 1$），再算 $R^T q$（$n \times 1$），两次 matvec 的中间结果 $q$ 只需 $n$ 个寄存器，用完即释放。
+
+对应的 Triton 实现：
+
+```python
+@triton.jit
+def matvec_S(R, x):
+    Rx = tl.dot(R, x,  input_precision="ieee")  # q = Rx
+    RT = R.permute(0, 2, 1)
+    RTRx = tl.dot(RT, Rx, input_precision="ieee")              # R^T q
+    return x - RTRx
+```
+
+CG 循环中直接调用，不再持有 `RTR`：
+
+```python
+for _ in range(n_stream):
+    Sp = matvec_S(R, p)
+    pSp = tl.sum(p * Sp, ...)
+    ...
+```
+
+与处理 $2n \times 2n$ 系统的baseline相比，在下列代码的设定下，可以加速1.4x。
+
+### 代码
+
+```python
 from icecream import ic
 import torch
 import einops as ein
+import triton
+import triton.language as tl
+from tqdm import trange
+import time
+
+
+# TMA descriptors require a global memory allocation
+def alloc_fn(size: int, alignment: int, stream: int | None):
+    return torch.empty(size, device="cuda", dtype=torch.int8)
+
+
+triton.set_allocator(alloc_fn)
+
 
 dtype = torch.float32
-
-batch = 25001
-n = 4
-iters = 20
-print(f"{n = }")
-print(f"{iters = }")
-
-# Fix torch seed
-# torch.manual_seed(0)
+EPS = tl.constexpr(1e-10)
 
 
 def sinkhorn_forward(M, iters=20):
@@ -221,175 +454,258 @@ def sinkhorn_forward(M, iters=20):
     return R, P
 
 
-def batch_cg_solve(R, b):
+@triton.jit
+def matvec_S(R, x):
     """
-    Solve the system Ax = b using the Conjugate Gradient (CG) method.
-    The matrix A is structured as:
-    A = [[I,   R ],
-         [R^T, I ]]
+    S = I - R^T R, perform S @ x WITHOUT materializing RTR.
+    Computes: x - R^T (R x)  using two matvecs.
+    R: (tilesize, n, n)
+    x: (tilesize, n, 1)
+    returns: (tilesize, n, 1)
     """
-    batch_size, n, _ = R.shape
-    device = R.device
-    dtype = R.dtype
-
-    # 1. Construct the complete 2n x 2n matrix A
-    # Create identity matrix I
-    eye = torch.eye(n, device=device, dtype=dtype).unsqueeze(0).expand(batch_size, -1, -1)
-
-    # Concatenate blocks to form A
-    # top: [I, R]
-    top = torch.cat([eye, R], dim=-1)
-    # bottom: [R^T, I]
-    # Use einsum 'bij->bji' for transpose
-    R_T = torch.einsum("bij->bji", R)
-    bottom = torch.cat([R_T, eye], dim=-1)
-    # A shape: (batch, 2n, 2n)
-    A = torch.cat([top, bottom], dim=-2)
-
-    # 2. CG Initialization
-    # Initial guess x0 = 0, shape (batch, 2n)
-    x = torch.zeros_like(b)
-
-    # Initial residual r0 = b - A@x0 = b
-    r = b.clone()
-
-    # Initial search direction p0 = r0
-    p = r.clone()
-
-    # rs_old = r^T * r (dot product per batch)
-    rs_old = torch.einsum("bi,bi->b", r, r)
-
-    max_iter = 2 * n
-
-    # 3. CG Iteration Loop
-    for i in range(max_iter):
-        # Calculate Ap = A @ p
-        # 'bij,bj->bi' performs batch matrix-vector multiplication
-        Ap = torch.einsum("bij,bj->bi", A, p)
-
-        # Calculate step size alpha = (r^T * r) / (p^T * A * p)
-        # pAp is the dot product of p and Ap per batch
-        pAp = torch.einsum("bi,bi->b", p, Ap)
-        # alpha = rs_old / pAp
-        # Avoid division by zero here is very important
-        alpha = rs_old / (pAp + 1e-12)
-
-        # Update solution x = x + alpha * p
-        # 'b,bi->bi' scales each vector in the batch by its corresponding alpha
-        x += torch.einsum("b,bi->bi", alpha, p)
-
-        # Update residual r = r - alpha * Ap
-        r -= torch.einsum("b,bi->bi", alpha, Ap)
-
-        # Calculate new residual inner product
-        rs_new = torch.einsum("bi,bi->b", r, r)
-
-        # Calculate beta = (r_new^T * r_new) / (r_old^T * r_old)
-        # Avoid division by zero here is not so important experimentally
-        # but it's good to have it
-        beta = rs_new / (rs_old + 1e-12)
-
-        # Update search direction p = r + beta * p
-        p = r + torch.einsum("b,bi->bi", beta, p)
-
-        rs_old = rs_new
-
-    return x
+    Rx = tl.dot(R, x, input_precision="ieee")           # (tilesize, n, 1)
+    RT = R.permute(0, 2, 1)
+    RTRx = tl.dot(RT, Rx, input_precision="ieee")       # (tilesize, n, 1)
+    return x - RTRx
 
 
-def sinkhorn_backward_implicit(grad_R, R):
-    R = R.detach()
+@triton.autotune(
+    configs=[
+        triton.Config({"tilesize": tilesize}, num_stages=1, num_warps=num_warps)
+        for tilesize in [1, 2, 4, 8, 16, 32, 64]
+        for num_warps in [1, 2, 4, 8]
+    ],
+    key=[],
+)
+@triton.jit
+def sinkhorn_bwd_implicit_cg_kernel(
+    seqlen,
+    out,
+    dout,
+    res,
+    out_stride_0,
+    out_stride_1,
+    out_stride_2,
+    dout_stride_0,
+    dout_stride_1,
+    dout_stride_2,
+    res_stride_0,
+    res_stride_1,
+    res_stride_2,
+    n_stream: tl.constexpr,
+    tilesize: tl.constexpr,
+):
+    out_desc = tl.make_tensor_descriptor(
+        out,
+        shape=[seqlen, n_stream, n_stream],
+        strides=[out_stride_0, out_stride_1, out_stride_2],
+        block_shape=[tilesize, n_stream, n_stream],
+    )
 
-    r = (R * grad_R).sum(dim=-1)  # shape (n,)
-    c = (R * grad_R).sum(dim=-2)  # shape (n,)
+    dout_desc = tl.make_tensor_descriptor(
+        dout,
+        shape=[seqlen, n_stream, n_stream],
+        strides=[dout_stride_0, dout_stride_1, dout_stride_2],
+        block_shape=[tilesize, n_stream, n_stream],
+    )
 
-    # Build 2n x 2n system
-    A = torch.zeros((batch, 2 * n, 2 * n), dtype=dtype)
+    res_desc = tl.make_tensor_descriptor(
+        res,
+        shape=[seqlen, n_stream, n_stream],
+        strides=[res_stride_0, res_stride_1, res_stride_2],
+        block_shape=[tilesize, n_stream, n_stream],
+    )
 
-    A[:, :n, :n] = torch.eye(n, dtype=dtype).unsqueeze(0)
-    A[:, :n, n:] = R
-    A[:, n:, :n] = R.transpose(-2, -1)
-    A[:, n:, n:] = torch.eye(n, dtype=dtype).unsqueeze(0)
+    seq_off = tl.program_id(0) * tilesize
 
-    ic(torch.linalg.svdvals(A))
+    R = out_desc.load([seq_off, 0, 0])
+    RT = R.permute(0, 2, 1)
+    dR = dout_desc.load([seq_off, 0, 0])
 
-    b = torch.cat([r, c], dim=-1)
+    # Step 1: r = (G ⊙ R) 1,  c = (G ⊙ R)^T 1
+    RdR = R * dR
+    r = tl.sum(RdR, axis=-1).expand_dims(-1)   # (tilesize, n, 1)
+    c = tl.sum(RdR, axis=-2).expand_dims(-1)   # (tilesize, n, 1)
 
-    ic(A.shape)
-    ic(b.shape)
+    # Step 2: b = c - R^T r
+    b = c - tl.dot(RT, r, input_precision="ieee")  # (tilesize, n, 1)
 
-    # sol = torch.linalg.solve(A, b)
-    sol = batch_cg_solve(R, b)
+    # Step 3: CG to solve (I - R^T R) x = b
+    # Key optimization: do NOT precompute RTR (avoids n² register pressure).
+    # Instead, each matvec_S call does: x - R^T(Rx)  (two n×1 matvecs).
+    x = tl.zeros((tilesize, n_stream, 1), dtype=tl.float32)
+    res_cg = b - matvec_S(R, x)   # residual = b - S x = b (since x=0)
+    p = res_cg
+    r_normsq = tl.sum(res_cg * res_cg, axis=1, keep_dims=True)
 
-    alpha = sol[:, :n]
-    beta = sol[:, n:]
+    for _ in range(n_stream):
+        Sp = matvec_S(R, p)
+        pSp = tl.sum(p * Sp, axis=1, keep_dims=True)
+        alpha = r_normsq / (pSp + EPS)
 
-    Gproj = grad_R - alpha.unsqueeze(-1) - beta.unsqueeze(-2)
-    return Gproj * R
+        x += alpha * p
+        res_cg -= alpha * Sp
 
+        r_new_normsq = tl.sum(res_cg * res_cg, axis=1, keep_dims=True)
+        beta = r_new_normsq / (r_normsq + EPS)
 
-######################################################################
-# Variable
-######################################################################
-dist = torch.distributions.uniform.Uniform(0.0, 4.0)
-M = dist.sample((batch, n, n))
-M.requires_grad_()
+        p = res_cg + beta * p
+        r_normsq = r_new_normsq
 
+    # Step 4: u = r - R x,  v = x
+    u = r - tl.dot(R, x, input_precision="ieee")   # (tilesize, n, 1)
+    v = x                                           # (tilesize, n, 1)
 
-######################################################################
-# Shared forward + one shared loss weight
-######################################################################
-R, P = sinkhorn_forward(M, iters)
-loss_weight = torch.randn_like(R)
+    # Step 5: M_ij = u_i + v_j  =>  M = u 1^T + 1 v^T
+    # u: (tilesize, n, 1), v^T: (tilesize, 1, n)
+    v_T = v.reshape(tilesize, 1, n_stream)
+    M_mat = u + v_T   # broadcast -> (tilesize, n, n)
 
-######################################################################
-# Method A: Autograd
-######################################################################
-loss_a = (R * loss_weight).sum()
-loss_a.backward()
-grad_M_autograd = M.grad.detach().clone()
+    # Step 6: grad = (G - M) ⊙ R
+    res_tile = (dR - M_mat) * R
 
-######################################################################
-# Method B: Implicit differentiation
-######################################################################
-grad_R = loss_weight
-
-# KL pullback:
-grad_M_implicit = sinkhorn_backward_implicit(grad_R, R)
-
-
-######################################################################
-# Compare
-######################################################################
-g1 = grad_M_autograd
-g2 = grad_M_implicit
-
-abs_diff = (g1 - g2).abs()
-rel_diff = abs_diff / (g1.abs() + 1e-12)
-
-print("Comparison of gradients dL/dM")
-print("--------------------------------")
+    res_desc.store([seq_off, 0, 0], res_tile)
 
 
-def format_list(ls):
-    return [f"{x:.2e}" for x in ls]
+def sinkhorn_bwd_implicit_cg(
+    out: torch.Tensor,
+    dout: torch.Tensor,
+    repeat: int,
+):
+    seqlen = out.size(0)
+    n_stream = out.size(1)
+    ic(seqlen)
+    ic(n_stream)
+
+    res = torch.empty_like(out)
+
+    def grid(META):  # META is the dict passed in @triton.autotune
+        return (triton.cdiv(seqlen, META["tilesize"]), 1, 1)
+
+    a = torch.randn(8192, 8192)
+    for _ in trange(4):
+        _ = a @ a
+        # Compile the kernel by running warmup
+        sinkhorn_bwd_implicit_cg_kernel[grid](
+            seqlen,
+            out,
+            dout,
+            res,
+            out.stride(0),
+            out.stride(1),
+            out.stride(2),
+            dout.stride(0),
+            dout.stride(1),
+            dout.stride(2),
+            res.stride(0),
+            res.stride(1),
+            res.stride(2),
+            n_stream,
+        )
+        torch.cuda.synchronize()
+
+    # start
+    start_event = torch.cuda.Event(enable_timing=True)
+    end_event = torch.cuda.Event(enable_timing=True)
+
+    torch.cuda.synchronize()
+    start_event.record()
+    for _ in range(repeat):
+        sinkhorn_bwd_implicit_cg_kernel[grid](
+            seqlen,
+            out,
+            dout,
+            res,
+            out.stride(0),
+            out.stride(1),
+            out.stride(2),
+            dout.stride(0),
+            dout.stride(1),
+            dout.stride(2),
+            res.stride(0),
+            res.stride(1),
+            res.stride(2),
+            n_stream,
+        )
+
+    # end
+    torch.cuda.synchronize()
+    end_event.record()
+
+    elapsed_time_ms = start_event.elapsed_time(end_event)
+
+    # Print timing results
+    print(f"Kernel execution time ({repeat = }): {elapsed_time_ms:.3f} ms")
+    print(f"Average time per iteration: {elapsed_time_ms / repeat:.3f} ms")
+
+    return res
 
 
-MAE = abs_diff.mean(dim=(-1, -2)).tolist()
-max_abs_diff = abs_diff.reshape(batch, -1).max(-1).values.tolist()
-mean_rel_diff = rel_diff.mean(dim=(-1, -2)).tolist()
-max_rel_diff = rel_diff.reshape(batch, -1).max(-1).values.tolist()
+def main():
+    seqlen = 65536
+    n_stream = 16
+    iters = 100
+    repeat = 512
+    ######################################################################
+    # Variable
+    ######################################################################
+    dist = torch.distributions.uniform.Uniform(0.0, 4.0)
+    device = torch.device("cuda")
+    M = dist.sample((seqlen, n_stream, n_stream)).to(device)
+    M.requires_grad_()
 
-print(f"MAE: {format_list(MAE)}")
-print(f"max_abs_diff: {format_list(max_abs_diff)}")
-print(f"mean_rel_diff: {format_list(mean_rel_diff)}")
-print(f"max_rel_diff: {format_list(max_rel_diff)}")
+    ######################################################################
+    # Shared forward + one shared loss weight
+    ######################################################################
+    R, P = sinkhorn_forward(M, iters)
+    loss_weight = torch.randn_like(R)
 
-print(f"Max MAE = {max(MAE)}")
-print(f"Max max_abs_diff = {max(max_abs_diff)}")
-print(f"Max mean_rel_diff = {max(mean_rel_diff)}")
-print(f"Max max_rel_diff = {max(max_rel_diff)}")
+    ######################################################################
+    # Method A: Autograd
+    ######################################################################
+    loss_a = (R * loss_weight).sum()
+    loss_a.backward()
+    grad_M_autograd = M.grad.detach().clone()
 
-print("\nGrad (autograd) sample:\n", g1[0, :3, :3])
-print("\nGrad (implicit) sample:\n", g2[0, :3, :3])
+    ######################################################################
+    # Method B: Implicit differentiation (n×n system, no RTR materialization)
+    ######################################################################
+    grad_R = loss_weight
+
+    grad_M_implicit = sinkhorn_bwd_implicit_cg(R, grad_R, repeat=repeat)
+
+    ######################################################################
+    # Compare
+    ######################################################################
+    g1 = grad_M_autograd
+    g2 = grad_M_implicit
+
+    abs_diff = (g1 - g2).abs()
+    rel_diff = abs_diff / (g1.abs() + 1e-12)
+
+    print("Comparison of gradients dL/dM")
+    print("--------------------------------")
+
+    def format_list(ls):
+        return [f"{x:.2e}" for x in ls]
+
+    MAE = abs_diff.mean(dim=(-1, -2)).tolist()
+    max_abs_diff = abs_diff.reshape(seqlen, -1).max(-1).values.tolist()
+    mean_rel_diff = rel_diff.mean(dim=(-1, -2)).tolist()
+    max_rel_diff = rel_diff.reshape(seqlen, -1).max(-1).values.tolist()
+
+    print(f"Max MAE = {max(MAE)}")
+    print(f"Max max_abs_diff = {max(max_abs_diff)}")
+    print(f"Max mean_rel_diff = {max(mean_rel_diff)}")
+    print(f"Max max_rel_diff = {max(max_rel_diff)}")
+
+    print("\nGrad (autograd) sample:\n", g1[0, :3, :3])
+    print("\nGrad (implicit) sample:\n", g2[0, :3, :3])
+
+    assert max(MAE) < 1e-7, f"Intolerable difference: MAE = {max(MAE)}"
+
+
+if __name__ == "__main__":
+    main()
+
 ```
