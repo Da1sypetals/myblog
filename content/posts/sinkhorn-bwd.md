@@ -54,7 +54,7 @@ $$\begin{cases} u + R v = (G \odot R) \mathbf{1} \\ R^T u + v = (G \odot R)^T \m
 
 将上述方程改写成矩阵形式：
 
-$$\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} (G \odot R) \mathbf{1} \\ (G \odot R)^T \mathbf{1} \end{bmatrix} = b$$
+$$\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} (G \odot R) \mathbf{1} \\ (G \odot R)^T \mathbf{1} \end{bmatrix} = b_0$$
 
 求解上述线性系统，得到 $u$ 和 $v$。
 
@@ -124,9 +124,9 @@ $M$ 是 $R$ 和 $b$ 的确定函数，不受具体解的影响；因此只要求
 #### 3. 形式变换
 
 从原系统消元:
-$$R^T(r - Rv) + v = c \implies (I - R^T R)v = c - R^T r$$
+$$R^T(s_r - Rv) + v = s_c \implies (I - R^T R)v = s_c - R^T s_r$$
 
-我们可以得到新的方程 $Sv = b$，其中 $S = I - R^T R$, $b = c - R^T r$。
+我们可以得到新的方程 $S\tilde{v} = b$，其中 $S = I - R^T R$, $b = s_c - R^T s_r$，$\tilde{v}$ 是新系统的解。
 
 其中, $S$ 是对称半正定的:
 
@@ -157,8 +157,6 @@ $$S\mathbf{1} = \mathbf{1} - R^T(R\mathbf{1}) = \mathbf{1} - R^T\mathbf{1} = \ma
 
 ## 算法
 
-下述以 $s_c, s_r$ 代替上文的 $c, r$.
-
 **1）准备右端项**
 $$s_r = (G \odot R)\mathbf{1}, \quad s_c = (G \odot R)^T\mathbf{1}$$
 
@@ -168,11 +166,11 @@ $$S = I - R^T R$$
 $$b = s_c - R^T s_r$$
 
 **3）用CG求解**
-$$S \, x = b$$
+$$S \, \tilde{v} = b$$
 
 **4）构造解**
-$$u = r - Rx$$
-$$v = x$$
+$$u = s_r - R\tilde{v}$$
+$$v = \tilde{v}$$
 
 
 
@@ -522,21 +520,21 @@ def sinkhorn_bwd_implicit_cg_kernel(
     RT = R.permute(0, 2, 1)
     dR = dout_desc.load([seq_off, 0, 0])
 
-    # Step 1: r = (G ⊙ R) 1,  c = (G ⊙ R)^T 1
+    # Step 1: s_r = (G ⊙ R) 1,  s_c = (G ⊙ R)^T 1
     RdR = R * dR
-    r = tl.sum(RdR, axis=-1).expand_dims(-1)   # (tilesize, n, 1)
-    c = tl.sum(RdR, axis=-2).expand_dims(-1)   # (tilesize, n, 1)
+    s_r = tl.sum(RdR, axis=-1).expand_dims(-1)   # (tilesize, n, 1)
+    s_c = tl.sum(RdR, axis=-2).expand_dims(-1)   # (tilesize, n, 1)
 
-    # Step 2: b = c - R^T r
-    b = c - tl.dot(RT, r, input_precision="ieee")  # (tilesize, n, 1)
+    # Step 2: b = s_c - R^T s_r
+    b = s_c - tl.dot(RT, s_r, input_precision="ieee")  # (tilesize, n, 1)
 
     # Step 3: CG to solve (I - R^T R) x = b
     # Key optimization: do NOT precompute RTR (avoids n² register pressure).
     # Instead, each matvec_S call does: x - R^T(Rx)  (two n×1 matvecs).
     x = tl.zeros((tilesize, n_stream, 1), dtype=tl.float32)
-    res_cg = b - matvec_S(R, x)   # residual = b - S x = b (since x=0)
-    p = res_cg
-    r_normsq = tl.sum(res_cg * res_cg, axis=1, keep_dims=True)
+    r = b - matvec_S(R, x)   # residual = b - S x = b (since x=0)
+    p = r
+    r_normsq = tl.sum(r * r, axis=1, keep_dims=True)
 
     for _ in range(n_stream):
         Sp = matvec_S(R, p)
@@ -544,16 +542,16 @@ def sinkhorn_bwd_implicit_cg_kernel(
         alpha = r_normsq / (pSp + EPS)
 
         x += alpha * p
-        res_cg -= alpha * Sp
+        r -= alpha * Sp
 
-        r_new_normsq = tl.sum(res_cg * res_cg, axis=1, keep_dims=True)
+        r_new_normsq = tl.sum(r * r, axis=1, keep_dims=True)
         beta = r_new_normsq / (r_normsq + EPS)
 
-        p = res_cg + beta * p
+        p = r + beta * p
         r_normsq = r_new_normsq
 
-    # Step 4: u = r - R x,  v = x
-    u = r - tl.dot(R, x, input_precision="ieee")   # (tilesize, n, 1)
+    # Step 4: u = s_r - R x,  v = x
+    u = s_r - tl.dot(R, x, input_precision="ieee")   # (tilesize, n, 1)
     v = x                                           # (tilesize, n, 1)
 
     # Step 5: M_ij = u_i + v_j  =>  M = u 1^T + 1 v^T
