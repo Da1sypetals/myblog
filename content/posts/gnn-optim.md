@@ -1,7 +1,6 @@
 +++
 date = '2025-10-02'
 title = '近期GNN Attention算子优化工作速览'
-featured = true
 tags = ["deep-learning", "cuda"]
 +++
 
