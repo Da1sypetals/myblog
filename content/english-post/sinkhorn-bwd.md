@@ -1,190 +1,192 @@
 +++
-date = '2026-01-05T22:07:08+08:00'
-featured = true
-title = '不通过反转正向传播的方式计算sinkhorn迭代的梯度'
+date = '2026-02-28T14:40:55+08:00'
+draft = true
+title = 'Computing Sinkhorn Iteration Gradients Without Reverting the Forward Iterations'
 +++
 
+_Translated by Kimi K2.5_
 
-## 问题设定
+## Problem Setup
 
-### 问题
+### Problem Statement
 
-> 注：$\odot$ 代表逐元素乘法。
+> Note: $\odot$ denotes element-wise multiplication.
 
-1. 输入矩阵: $X \in \mathbb{R}^{n \times n}$。
+1. Input matrix: $X \in \mathbb{R}^{n \times n}$.
 
-2. $P = \exp(X)$（element-wise）。
-3. 通过对 $P$ 进行 Sinkhorn-knopp迭代，得到bistochastic matrix $R = \text{diag}(\alpha) P \text{diag}(\beta)$，其中 $\alpha, \beta \in \mathbb{R}^n_{>0}$ 是缩放因子，满足：
-    - 行和约束：$R \mathbf{1} = \mathbf{1} \implies \alpha \odot (P\beta) = \mathbf{1}$
-    - 列和约束：$R^T \mathbf{1} = \mathbf{1} \implies \beta \odot (P^T \alpha) = \mathbf{1}$
-4. 损失函数: $L = f(R)$，令 $G = \nabla_R L = \frac{\partial L}{\partial R}$ 为已知梯度。
+2. $P = \exp(X)$ (element-wise).
+3. Through Sinkhorn-Knopp iteration on $P$, we obtain bistochastic matrix $R = \text{diag}(\alpha) P \text{diag}(\beta)$, where $\alpha, \beta \in \mathbb{R}^n_{>0}$ are scaling factors satisfying:
+    - Row sum constraint: $R \mathbf{1} = \mathbf{1} \implies \alpha \odot (P\beta) = \mathbf{1}$
+    - Column sum constraint: $R^T \mathbf{1} = \mathbf{1} \implies \beta \odot (P^T \alpha) = \mathbf{1}$
+4. Loss function: $L = f(R)$, let $G = \nabla_R L = \frac{\partial L}{\partial R}$ be the known gradient.
 
-### 目标
+### Objective
 
-$L$ 对 $X$ 的梯度：$\frac{\partial L}{\partial X}$。
+Gradient of $L$ with respect to $X$: $\frac{\partial L}{\partial X}$.
 
 ### TLDR
 
-通过使用CG方法求解下列方程：
+By solving the following system using the CG method:
 
 $$\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} (G \odot R) \mathbf{1} \\ (G \odot R)^T \mathbf{1} \end{bmatrix}$$
 
-可以得到 $L$ 对 $X$ 的梯度：
+we obtain the gradient of $L$ with respect to $X$:
 $$\nabla_X L = (G - u \mathbf{1}^T - \mathbf{1} v^T) \odot R$$
 
-在前向sinkhorn-knopp迭代充分收敛的条件下，该方法能够收敛。
+This method converges when the forward Sinkhorn-Knopp iteration is sufficiently converged.
 
 
-## 求解
-我们的目标是求 $\frac{\partial L}{\partial X}$。根据链式法则：
+## Derivation
+
+Our goal is to compute $\frac{\partial L}{\partial X}$. By the chain rule:
 
 
 $$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial R} \cdot \frac{\partial R}{\partial P} \cdot \frac{\partial P}{\partial X}$$
 
-由于 $P_{ij} = e^{X_{ij}} \implies \frac{\partial P_{ij}}{\partial X_{ij}} = P_{ij}$, 若能求出 $\frac{\partial L}{\partial P}$，最终结果就是 $\nabla_X L = \nabla_P L \odot P$。
+Since $P_{ij} = e^{X_{ij}} \implies \frac{\partial P_{ij}}{\partial X_{ij}} = P_{ij}$, if we can find $\frac{\partial L}{\partial P}$, the final result is $\nabla_X L = \nabla_P L \odot P$.
 
-通过对 Sinkhorn 的平衡条件进行隐函数求导，可以证明得到 $\nabla_X L$ 的计算公式如下(过程略......):
+Through implicit differentiation of the Sinkhorn balancing conditions, we can prove the following formula for $\nabla_X L$ (derivation omitted):
 
 $$\nabla_X L = (G - u \mathbf{1}^T - \mathbf{1} v^T) \odot R$$
 
-其中 $u, v \in \mathbb{R}^n$ 是下列线性系统的解, 等号右边分别是$G \odot R$ 的*行和*和*列和*：
+where $u, v \in \mathbb{R}^n$ are solutions to the following linear system, with the right-hand sides being the *row sums* and *column sums* of $G \odot R$ respectively:
 
 $$\begin{cases} u + R v = (G \odot R) \mathbf{1} \\ R^T u + v = (G \odot R)^T \mathbf{1} \end{cases}$$
 
-### 求解线性系统
+### Solving the Linear System
 
-将上述方程改写成矩阵形式：
+Rewriting the above equations in matrix form:
 
 $$\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} (G \odot R) \mathbf{1} \\ (G \odot R)^T \mathbf{1} \end{bmatrix} = b_0$$
 
-求解上述线性系统，得到 $u$ 和 $v$。
+Solve this linear system to obtain $u$ and $v$.
 
-### 组装梯度
+### Assembling the Gradient
 
-得到 $u$ 和 $v$ 后，代入：
+With $u$ and $v$ obtained, substitute into:
 
 $$\frac{\partial L}{\partial X_{ij}} = (G_{ij} - u_i - v_j) R_{ij} = (G_{ij} - (u_i + v_j)) R_{ij}$$
 
-对于每一个$i,j$，我们需要从上述方程中解得的就是$u_i + v_j$。
+For each $i,j$, what we need to solve from the above equation is $u_i + v_j$.
 
 
-### 性质
+### Properties
 
-记$A=\begin{bmatrix} I & R \\ R^T & I \end{bmatrix}$。
+Let $A=\begin{bmatrix} I & R \\ R^T & I \end{bmatrix}$.
 
-#### 1. 多解
-证明：
+#### 1. Multiple Solutions
+Proof:
 
-考虑非零向量 $w = \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$（其中 $\mathbf{1}$ 为全 1 的 $n$ 维列向量）。
-计算 $Aw$：
+Consider the non-zero vector $w = \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$ (where $\mathbf{1}$ is the $n$-dimensional all-ones column vector).
+Compute $Aw$:
 
 $$Aw = \begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \begin{bmatrix} I\mathbf{1} - R\mathbf{1} \\ R^T\mathbf{1} - I\mathbf{1} \end{bmatrix}$$
 
-根据bistochastic matrix性质 $R\mathbf{1} = \mathbf{1}$ 和 $R^T\mathbf{1} = \mathbf{1}$：
+By the bistochastic matrix properties $R\mathbf{1} = \mathbf{1}$ and $R^T\mathbf{1} = \mathbf{1}$:
 
 $$Aw = \begin{bmatrix} \mathbf{1} - \mathbf{1} \\ \mathbf{1} - \mathbf{1} \end{bmatrix} = \mathbf{0}$$
 
-由于存在非零向量在 $A$ 的零空间（Null space）中，故 $\det(A) = 0$。
+Since there exists a non-zero vector in the null space of $A$, $\det(A) = 0$.
 
-直观理解：bistochastic matrix的行和列和存在冗余（例如，行和为1，因此每行其实只需知道前n-1个元素）。
+Intuition: The row and column sums of a bistochastic matrix have redundancy (e.g., if row sums equal 1, each row really only needs its first $n-1$ elements).
 
-#### 2. 不变量
+#### 2. Invariants
 
-##### 1) 线性方程组 $Ax = b$ 的解空间
-由于 $A$ 是奇异的，对于给定的向量 $b$，如果方程有解，则必有无穷多解。其通解形式为：
+##### 1) Solution Space of Linear System $Ax = b$
+Since $A$ is singular, for a given vector $b$, if the equation has a solution, it must have infinitely many. The general solution form is:
 
 $$x = \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} u_0 \\ v_0 \end{bmatrix} + k \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \begin{bmatrix} u_0 + k\mathbf{1} \\ v_0 - k\mathbf{1} \end{bmatrix}$$
 
-其中 $\begin{bmatrix} u_0 \\ v_0 \end{bmatrix}$ 是一个特解，$k$ 是任意实数标量。
+where $\begin{bmatrix} u_0 \\ v_0 \end{bmatrix}$ is a particular solution and $k$ is an arbitrary real scalar.
 
 
-##### 2) 不变量
-虽然解 $x$ 包含不确定的偏移量 $k$，但我们的计算目标是确定的。
-我们的计算目标是矩阵 $M$，定义为：
+##### 2) Invariant
+Although the solution $x$ contains an uncertain offset $k$, our computational target is determinate.
+Our computational target is matrix $M$, defined as:
 
-$$M = u\mathbf{1}^T + \mathbf{1}v^T \quad (\text{即 } M_{ij} = u_i + v_j)$$
-证明唯一性：
-将含有自由变量 $k$ 的通解代入 $M$ 的表达式：
+$$M = u\mathbf{1}^T + \mathbf{1}v^T \quad (\text{i.e., } M_{ij} = u_i + v_j)$$
+Proof of uniqueness:
+Substitute the general solution with free variable $k$ into the expression for $M$:
 
 $$M(k) = (u_0 + k\mathbf{1})\mathbf{1}^T + \mathbf{1}(v_0 - k\mathbf{1})^T$$
 
-利用矩阵分配律展开：
+Expand using matrix distributivity:
 
 $$M(k) = u_0\mathbf{1}^T + k(\mathbf{1}\mathbf{1}^T) + \mathbf{1}v_0^T - k(\mathbf{1}\mathbf{1}^T)$$
 
-消去 $k$ 相关项：
+Cancel the $k$-related terms:
 
 $$M(k) = u_0\mathbf{1}^T + \mathbf{1}v_0^T = M_{\text{fixed}}$$
-结论：
-对于 $Ax=b$ 的任何解 $x$，由它们计算得到的矩阵 $M$ 是确定的。即：
+Conclusion:
+For any solution $x$ of $Ax=b$, the matrix $M$ computed from them is determinate. That is:
 
 $$M = f(R, b)$$
 
-$M$ 是 $R$ 和 $b$ 的确定函数，不受具体解的影响；因此只要求解能收敛，就可以计算出正确的梯度。
+$M$ is a determinate function of $R$ and $b$, unaffected by the specific choice of solution; therefore, as long as the solver converges, the correct gradient can be computed.
 
-#### 3. 形式变换
+#### 3. Transformation of Form
 
-从原系统消元:
+Eliminating variables from the original system:
 $$R^T(s_r - Rv) + v = s_c \implies (I - R^T R)v = s_c - R^T s_r$$
 
-我们可以得到新的方程 $S\tilde{v} = b$，其中 $S = I - R^T R$, $b = s_c - R^T s_r$，$\tilde{v}$ 是新系统的解。
+We obtain the new equation $S\tilde{v} = b$, where $S = I - R^T R$, $b = s_c - R^T s_r$, and $\tilde{v}$ is the solution to the new system.
 
-其中, $S$ 是对称半正定的:
+Here, $S$ is symmetric positive semidefinite:
 
-**1) 对称性**
+**1) Symmetry**
 $$S^T = I - (R^T R)^T = I - R^T R = S \quad \checkmark$$
 
-**2) 半正定性**
+**2) Positive Semidefiniteness**
 
-对任意 $x \in \mathbb{R}^n$：
+For any $x \in \mathbb{R}^n$:
 $$x^T S x = \|x\|_2^2 - \|Rx\|_2^2$$
 
-只需证 $\|Rx\|_2 \leq \|x\|_2$。
+We only need to prove $\|Rx\|_2 \leq \|x\|_2$.
 
-由行随机性（$\sum_j R_{ij} = 1$）及 Jensen 不等式：
+By row stochasticity ($\sum_j R_{ij} = 1$) and Jensen's inequality:
 $$\left(\sum_j R_{ij} x_j\right)^2 \leq \sum_j R_{ij} x_j^2$$
 
-对 $i$ 求和：
+Summing over $i$:
 $$\|Rx\|_2^2 = \sum_i \left(\sum_j R_{ij} x_j\right)^2 \leq \sum_i \sum_j R_{ij} x_j^2 = \sum_j x_j^2 \sum_i R_{ij} = \|x\|_2^2$$
 
-故 $x^T S x \geq 0$.
+Thus $x^T S x \geq 0$.
 
-由于
+Since
 
 $$S\mathbf{1} = \mathbf{1} - R^T(R\mathbf{1}) = \mathbf{1} - R^T\mathbf{1} = \mathbf{0}$$
 
-故$S$不是正定的.
+$S$ is not positive definite.
 
 
-## 算法
+## Algorithm
 
-**1）准备右端项**
+**1) Prepare right-hand side**
 $$s_r = (G \odot R)\mathbf{1}, \quad s_c = (G \odot R)^T\mathbf{1}$$
 
-**2）构建半正定系统**
+**2) Build positive semidefinite system**
 $$S = I - R^T R$$
-**以及**
+**and**
 $$b = s_c - R^T s_r$$
 
-**3）用CG求解**
+**3) Solve with CG**
 $$S \, \tilde{v} = b$$
 
-**4）构造解**
+**4) Construct solution**
 $$u = s_r - R\tilde{v}$$
 $$v = \tilde{v}$$
 
 
 
-**5）组装结果**
+**5) Assemble result**
 $$M_{ij} = u_i + v_j$$
 
-**6）最终梯度**
+**6) Final gradient**
 $$\nabla_X L = (G - M) \odot R$$
 
-CG[在一定条件下可以求解半正定系统](https://arxiv.org/pdf/1809.00793).
+CG [can solve positive semidefinite systems under certain conditions](https://arxiv.org/pdf/1809.00793).
 
 
-## PyTorch 实现
+## PyTorch Implementation
 
 ```python
 """
@@ -371,32 +373,32 @@ print("=" * 60)
 
 ```
 
-## Triton 实现
+## Triton Implementation
 
-### 实现细节
+### Implementation Details
 
-在 Triton kernel 中，每个 thread block 处理一批（`tilesize` 个）独立的 $n \times n$ 系统。CG 的每次迭代需要计算 $S p = (I - R^T R) p$。
+In the Triton kernel, each thread block processes a batch of (`tilesize`) independent $n \times n$ systems. Each iteration of CG requires computing $S p = (I - R^T R) p$.
 
-最直接的实现是在 kernel 入口处预计算 $R^T R$，然后在 CG 循环中复用：
+The most straightforward implementation is to precompute $R^T R$ at the kernel entry and reuse it in the CG loop:
 
 ```python
-# 原始实现（tune_triton_new.py）
-RTR = tl.dot(RT, R, input_precision="tf32")   # 预计算
+# Original implementation (tune_triton_new.py)
+RTR = tl.dot(RT, R, input_precision="tf32")   # Precompute
 
 for _ in range(n):
-    Sp = p - tl.dot(RTR, p)   # 每次迭代 1 次 matvec
+    Sp = p - tl.dot(RTR, p)   # 1 matvec per iteration
 ```
 
 
-但是这样实现很慢：这里使用matmul的pattern和GEMM不同，只在开头计算一次，不足以填满 Tensor Core 的流水线，利用率低；实测比处理 $2n \times 2n$ 系统的原始实现还慢约 2 倍。
+However, this implementation is slow: the matmul pattern here differs from GEMM, and computing only once at the beginning is insufficient to fill the Tensor Core pipeline, resulting in low utilization; in practice, it's about 2× slower than the original implementation handling $2n \times 2n$ systems.
 
-注意到 $S p$ 可以分解为两次连续的 matvec，而无需显式存储 $R^T R$：
+Notice that $S p$ can be decomposed into two consecutive matvecs without explicitly storing $R^T R$:
 
-$$S p = (I - R^T R) p = p - R^T \underbrace{(R p)}_{\text{中间结果}}$$
+$$S p = (I - R^T R) p = p - R^T \underbrace{(R p)}_{\text{intermediate result}}$$
 
-即先算 $q = Rp$（$n \times 1$），再算 $R^T q$（$n \times 1$）。
+That is, first compute $q = Rp$ ($n \times 1$), then compute $R^T q$ ($n \times 1$).
 
-对应的 Triton 实现：
+The corresponding Triton implementation:
 
 ```python
 @triton.jit
@@ -407,7 +409,7 @@ def matvec_S(R, x):
     return x - RTRx
 ```
 
-CG 循环中直接调用，不再持有 `RTR`：
+Call directly in the CG loop without holding `RTR`:
 
 ```python
 for _ in range(n_stream):
@@ -416,9 +418,9 @@ for _ in range(n_stream):
     ...
 ```
 
-与处理 $2n \times 2n$ 系统的baseline相比，在下列代码的设定下，可以加速1.4x。
+Compared to the baseline handling $2n \times 2n$ systems, with the settings in the following code, this achieves a 1.4× speedup.
 
-### 代码
+### Code
 
 ```python
 from icecream import ic

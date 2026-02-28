@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN" dir="ltr">
 
-<head>
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
   
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 <script>
@@ -19,37 +19,35 @@
   <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>不通过反转正向传播的方式计算sinkhorn迭代的梯度 | Da1sypetals</title>
-<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sypetals.netlify.app/posts/sinkhorn-bwd/">
+<title>Computing Sinkhorn Iteration Gradients Without Reverting the Forward Iterations | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="http://localhost:1313/english-post/sinkhorn-bwd/">
   <meta property="og:site_name" content="Da1sypetals">
-  <meta property="og:title" content="不通过反转正向传播的方式计算sinkhorn迭代的梯度">
-  <meta property="og:description" content="问题设定 问题 注：$\odot$ 代表逐元素乘法。
-输入矩阵: $X \in \mathbb{R}^{n \times n}$。
-$P = \exp(X)$（element-wise）。
-通过对 $P$ 进行 Sinkhorn-knopp迭代，得到bistochastic matrix $R = \text{diag}(\alpha) P \text{diag}(\beta)$，其中 $\alpha, \beta \in \mathbb{R}^n_{&gt;0}$ 是缩放因子，满足：
-行和约束：$R \mathbf{1} = \mathbf{1} \implies \alpha \odot (P\beta) = \mathbf{1}$ 列和约束：$R^T \mathbf{1} = \mathbf{1} \implies \beta \odot (P^T \alpha) = \mathbf{1}$ 损失函数: $L = f(R)$，令 $G = \nabla_R L = \frac{\partial L}{\partial R}$ 为已知梯度。
-目标 $L$ 对 $X$ 的梯度：$\frac{\partial L}{\partial X}$。
-TLDR 通过使用CG方法求解下列方程：">
+  <meta property="og:title" content="Computing Sinkhorn Iteration Gradients Without Reverting the Forward Iterations">
+  <meta property="og:description" content="Translated by Kimi K2.5
+Problem Setup Problem Statement Note: $\odot$ denotes element-wise multiplication.
+Input matrix: $X \in \mathbb{R}^{n \times n}$.
+$P = \exp(X)$ (element-wise).
+Through Sinkhorn-Knopp iteration on $P$, we obtain bistochastic matrix $R = \text{diag}(\alpha) P \text{diag}(\beta)$, where $\alpha, \beta \in \mathbb{R}^n_{&gt;0}$ are scaling factors satisfying:
+Row sum constraint: $R \mathbf{1} = \mathbf{1} \implies \alpha \odot (P\beta) = \mathbf{1}$ Column sum constraint: $R^T \mathbf{1} = \mathbf{1} \implies \beta \odot (P^T \alpha) = \mathbf{1}$ Loss function: $L = f(R)$, let $G = \nabla_R L = \frac{\partial L}{\partial R}$ be the known gradient.">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:type" content="article">
-    <meta property="article:section" content="posts">
-    <meta property="article:published_time" content="2026-01-05T22:07:08+08:00">
-    <meta property="article:modified_time" content="2026-01-05T22:07:08+08:00">
+    <meta property="article:section" content="english-post">
+    <meta property="article:published_time" content="2026-02-28T14:40:55+08:00">
+    <meta property="article:modified_time" content="2026-02-28T14:40:55+08:00">
 
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="不通过反转正向传播的方式计算sinkhorn迭代的梯度">
-  <meta name="twitter:description" content="问题设定 问题 注：$\odot$ 代表逐元素乘法。
-输入矩阵: $X \in \mathbb{R}^{n \times n}$。
-$P = \exp(X)$（element-wise）。
-通过对 $P$ 进行 Sinkhorn-knopp迭代，得到bistochastic matrix $R = \text{diag}(\alpha) P \text{diag}(\beta)$，其中 $\alpha, \beta \in \mathbb{R}^n_{&gt;0}$ 是缩放因子，满足：
-行和约束：$R \mathbf{1} = \mathbf{1} \implies \alpha \odot (P\beta) = \mathbf{1}$ 列和约束：$R^T \mathbf{1} = \mathbf{1} \implies \beta \odot (P^T \alpha) = \mathbf{1}$ 损失函数: $L = f(R)$，令 $G = \nabla_R L = \frac{\partial L}{\partial R}$ 为已知梯度。
-目标 $L$ 对 $X$ 的梯度：$\frac{\partial L}{\partial X}$。
-TLDR 通过使用CG方法求解下列方程：">
+  <meta name="twitter:title" content="Computing Sinkhorn Iteration Gradients Without Reverting the Forward Iterations">
+  <meta name="twitter:description" content="Translated by Kimi K2.5
+Problem Setup Problem Statement Note: $\odot$ denotes element-wise multiplication.
+Input matrix: $X \in \mathbb{R}^{n \times n}$.
+$P = \exp(X)$ (element-wise).
+Through Sinkhorn-Knopp iteration on $P$, we obtain bistochastic matrix $R = \text{diag}(\alpha) P \text{diag}(\beta)$, where $\alpha, \beta \in \mathbb{R}^n_{&gt;0}$ are scaling factors satisfying:
+Row sum constraint: $R \mathbf{1} = \mathbf{1} \implies \alpha \odot (P\beta) = \mathbf{1}$ Column sum constraint: $R^T \mathbf{1} = \mathbf{1} \implies \beta \odot (P^T \alpha) = \mathbf{1}$ Loss function: $L = f(R)$, let $G = \nabla_R L = \frac{\partial L}{\partial R}$ be the known gradient.">
 
-      <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
-      <link rel="stylesheet" href="/css/bundle.min.d95a325399a05b50fe47dcf35b8229b8a2a014fcee5435cfb28204c6ac335fc5.css" integrity="sha256-2VoyU5mgW1D&#43;R9zzW4IpuKKgFPzuVDXPsoIExqwzX8U=" crossorigin="anonymous">
+    <link rel="stylesheet" href="/css/root.css">
+    <link rel="stylesheet" href="/css/bundle.css">
 
-      <script src="/js/bundle.cc8ae9952dbfb731affafabdf26e5c60a6910047ff59ccdeaf1daebaa26c8830.js" integrity="sha256-zIrplS2/tzGv&#43;vq98m5cYKaRAEf/Wczerx2uuqJsiDA=" crossorigin="anonymous"></script><script defer src="/js/search/flexsearch.compact.64594b125f7b78bdf4fa8316955922bbebb1cd6baef3f16654bfca20309f18f8.js" integrity="sha256-ZFlLEl97eL30&#43;oMWlVkiu&#43;uxzWuu8/FmVL/KIDCfGPg="></script>
+      <script src="/js/bundle.js"></script><script defer src="/js/search/flexsearch.compact.64594b125f7b78bdf4fa8316955922bbebb1cd6baef3f16654bfca20309f18f8.js" integrity="sha256-ZFlLEl97eL30&#43;oMWlVkiu&#43;uxzWuu8/FmVL/KIDCfGPg="></script>
 <script defer src="/js/search/search.1d980f84df11f3eb7c8c5f17f541d49a0611608df179dd74fa7f06225eb56ace.js" integrity="sha256-HZgPhN8R8&#43;t8jF8X9UHUmgYRYI3xed10&#43;n8GIl61as4="></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -63,13 +61,13 @@ TLDR 通过使用CG方法求解下列方程：">
   <div id="container">
     <header id="main-header"><div role="navigation" aria-label="Main">
   <div class="nav-left">
-    <a href="https://da1sypetals.netlify.app/" style="color: inherit;">Da1sypetals</a>
+    <a href="http://localhost:1313/" style="color: inherit;">Da1sypetals</a>
   </div>
   <div class="nav-right">
     <div style="position:absolute;width:0px;height:0px;">
       <div id="nav-dropdown-menu" class="hidden" href="#">
     <div class="nav-item">
-      <a aria-current="true" class="ancestor" href="/posts/"
+      <a href="/posts/"
       >知识</a>
     </div>
     <div class="nav-item">
@@ -81,7 +79,7 @@ TLDR 通过使用CG方法求解下列方程：">
       >文化</a>
     </div>
     <div class="nav-item">
-      <a href="/english-post/"
+      <a aria-current="true" class="ancestor" href="/english-post/"
       >en-Posts</a>
     </div>
     <div class="nav-item">
@@ -104,7 +102,7 @@ TLDR 通过使用CG方法求解下列方程：">
 </a>
     <div id="nav-menu">
     <div class="nav-item">
-      <a aria-current="true" class="ancestor" href="/posts/"
+      <a href="/posts/"
       >知识</a>
     </div>
     <div class="nav-item">
@@ -116,7 +114,7 @@ TLDR 通过使用CG方法求解下列方程：">
       >文化</a>
     </div>
     <div class="nav-item">
-      <a href="/english-post/"
+      <a aria-current="true" class="ancestor" href="/english-post/"
       >en-Posts</a>
     </div>
     <div class="nav-item">
@@ -148,125 +146,126 @@ TLDR 通过使用CG方法求解下列方程：">
         <main id="main-content"><div class="single-header">
 <ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
     <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-      <a itemprop="item" href="https://da1sypetals.netlify.app/">
+      <a itemprop="item" href="http://localhost:1313/">
         <span itemprop="name">Home</span>
       </a>
       <meta itemprop="position" content='1' />
     </li>
     <span>&nbsp»&nbsp</span>
     <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-      <a itemprop="item" href="https://da1sypetals.netlify.app/posts/">
-        <span itemprop="name">Posts</span>
+      <a itemprop="item" href="http://localhost:1313/english-post/">
+        <span itemprop="name">English-Posts</span>
       </a>
       <meta itemprop="position" content='2' />
     </li>
     <span>&nbsp»&nbsp</span>
 </ol>
-<h1>不通过反转正向传播的方式计算sinkhorn迭代的梯度</h1><time class="dim" datetime="2026-01-05T22:07:08&#43;08:00">January 5, 2026</time></div>
-  <section class="page-section"><h2 id="问题设定">问题设定</h2>
-<h3 id="问题">问题</h3>
+<h1>Computing Sinkhorn Iteration Gradients Without Reverting the Forward Iterations</h1><time class="dim" datetime="2026-02-28T14:40:55&#43;08:00">February 28, 2026</time></div>
+  <section class="page-section"><p><em>Translated by Kimi K2.5</em></p>
+<h2 id="problem-setup">Problem Setup</h2>
+<h3 id="problem-statement">Problem Statement</h3>
 <blockquote>
-<p>注：$\odot$ 代表逐元素乘法。</p>
+<p>Note: $\odot$ denotes element-wise multiplication.</p>
 </blockquote>
 <ol>
 <li>
-<p>输入矩阵: $X \in \mathbb{R}^{n \times n}$。</p>
+<p>Input matrix: $X \in \mathbb{R}^{n \times n}$.</p>
 </li>
 <li>
-<p>$P = \exp(X)$（element-wise）。</p>
+<p>$P = \exp(X)$ (element-wise).</p>
 </li>
 <li>
-<p>通过对 $P$ 进行 Sinkhorn-knopp迭代，得到bistochastic matrix $R = \text{diag}(\alpha) P \text{diag}(\beta)$，其中 $\alpha, \beta \in \mathbb{R}^n_{>0}$ 是缩放因子，满足：</p>
+<p>Through Sinkhorn-Knopp iteration on $P$, we obtain bistochastic matrix $R = \text{diag}(\alpha) P \text{diag}(\beta)$, where $\alpha, \beta \in \mathbb{R}^n_{>0}$ are scaling factors satisfying:</p>
 <ul>
-<li>行和约束：$R \mathbf{1} = \mathbf{1} \implies \alpha \odot (P\beta) = \mathbf{1}$</li>
-<li>列和约束：$R^T \mathbf{1} = \mathbf{1} \implies \beta \odot (P^T \alpha) = \mathbf{1}$</li>
+<li>Row sum constraint: $R \mathbf{1} = \mathbf{1} \implies \alpha \odot (P\beta) = \mathbf{1}$</li>
+<li>Column sum constraint: $R^T \mathbf{1} = \mathbf{1} \implies \beta \odot (P^T \alpha) = \mathbf{1}$</li>
 </ul>
 </li>
 <li>
-<p>损失函数: $L = f(R)$，令 $G = \nabla_R L = \frac{\partial L}{\partial R}$ 为已知梯度。</p>
+<p>Loss function: $L = f(R)$, let $G = \nabla_R L = \frac{\partial L}{\partial R}$ be the known gradient.</p>
 </li>
 </ol>
-<h3 id="目标">目标</h3>
-<p>$L$ 对 $X$ 的梯度：$\frac{\partial L}{\partial X}$。</p>
+<h3 id="objective">Objective</h3>
+<p>Gradient of $L$ with respect to $X$: $\frac{\partial L}{\partial X}$.</p>
 <h3 id="tldr">TLDR</h3>
-<p>通过使用CG方法求解下列方程：</p>
-$$\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} (G \odot R) \mathbf{1} \\ (G \odot R)^T \mathbf{1} \end{bmatrix}$$<p>可以得到 $L$ 对 $X$ 的梯度：
+<p>By solving the following system using the CG method:</p>
+$$\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} (G \odot R) \mathbf{1} \\ (G \odot R)^T \mathbf{1} \end{bmatrix}$$<p>we obtain the gradient of $L$ with respect to $X$:
 </p>
-$$\nabla_X L = (G - u \mathbf{1}^T - \mathbf{1} v^T) \odot R$$<p>在前向sinkhorn-knopp迭代充分收敛的条件下，该方法能够收敛。</p>
-<h2 id="求解">求解</h2>
-<p>我们的目标是求 $\frac{\partial L}{\partial X}$。根据链式法则：</p>
-$$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial R} \cdot \frac{\partial R}{\partial P} \cdot \frac{\partial P}{\partial X}$$<p>由于 $P_{ij} = e^{X_{ij}} \implies \frac{\partial P_{ij}}{\partial X_{ij}} = P_{ij}$, 若能求出 $\frac{\partial L}{\partial P}$，最终结果就是 $\nabla_X L = \nabla_P L \odot P$。</p>
-<p>通过对 Sinkhorn 的平衡条件进行隐函数求导，可以证明得到 $\nabla_X L$ 的计算公式如下(过程略&hellip;&hellip;):</p>
-$$\nabla_X L = (G - u \mathbf{1}^T - \mathbf{1} v^T) \odot R$$<p>其中 $u, v \in \mathbb{R}^n$ 是下列线性系统的解, 等号右边分别是$G \odot R$ 的<em>行和</em>和<em>列和</em>：</p>
-$$\begin{cases} u + R v = (G \odot R) \mathbf{1} \\ R^T u + v = (G \odot R)^T \mathbf{1} \end{cases}$$<h3 id="求解线性系统">求解线性系统</h3>
-<p>将上述方程改写成矩阵形式：</p>
-$$\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} (G \odot R) \mathbf{1} \\ (G \odot R)^T \mathbf{1} \end{bmatrix} = b_0$$<p>求解上述线性系统，得到 $u$ 和 $v$。</p>
-<h3 id="组装梯度">组装梯度</h3>
-<p>得到 $u$ 和 $v$ 后，代入：</p>
-$$\frac{\partial L}{\partial X_{ij}} = (G_{ij} - u_i - v_j) R_{ij} = (G_{ij} - (u_i + v_j)) R_{ij}$$<p>对于每一个$i,j$，我们需要从上述方程中解得的就是$u_i + v_j$。</p>
-<h3 id="性质">性质</h3>
-<p>记$A=\begin{bmatrix} I & R \\ R^T & I \end{bmatrix}$。</p>
-<h4 id="1-多解">1. 多解</h4>
-<p>证明：</p>
-<p>考虑非零向量 $w = \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$（其中 $\mathbf{1}$ 为全 1 的 $n$ 维列向量）。
-计算 $Aw$：</p>
-$$Aw = \begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \begin{bmatrix} I\mathbf{1} - R\mathbf{1} \\ R^T\mathbf{1} - I\mathbf{1} \end{bmatrix}$$<p>根据bistochastic matrix性质 $R\mathbf{1} = \mathbf{1}$ 和 $R^T\mathbf{1} = \mathbf{1}$：</p>
-$$Aw = \begin{bmatrix} \mathbf{1} - \mathbf{1} \\ \mathbf{1} - \mathbf{1} \end{bmatrix} = \mathbf{0}$$<p>由于存在非零向量在 $A$ 的零空间（Null space）中，故 $\det(A) = 0$。</p>
-<p>直观理解：bistochastic matrix的行和列和存在冗余（例如，行和为1，因此每行其实只需知道前n-1个元素）。</p>
-<h4 id="2-不变量">2. 不变量</h4>
-<h5 id="1-线性方程组--的解空间">1) 线性方程组 $Ax = b$ 的解空间</h5>
-<p>由于 $A$ 是奇异的，对于给定的向量 $b$，如果方程有解，则必有无穷多解。其通解形式为：</p>
-$$x = \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} u_0 \\ v_0 \end{bmatrix} + k \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \begin{bmatrix} u_0 + k\mathbf{1} \\ v_0 - k\mathbf{1} \end{bmatrix}$$<p>其中 $\begin{bmatrix} u_0 \\ v_0 \end{bmatrix}$ 是一个特解，$k$ 是任意实数标量。</p>
-<h5 id="2-不变量-1">2) 不变量</h5>
-<p>虽然解 $x$ 包含不确定的偏移量 $k$，但我们的计算目标是确定的。
-我们的计算目标是矩阵 $M$，定义为：</p>
-$$M = u\mathbf{1}^T + \mathbf{1}v^T \quad (\text{即 } M_{ij} = u_i + v_j)$$<p>
-证明唯一性：
-将含有自由变量 $k$ 的通解代入 $M$ 的表达式：</p>
-$$M(k) = (u_0 + k\mathbf{1})\mathbf{1}^T + \mathbf{1}(v_0 - k\mathbf{1})^T$$<p>利用矩阵分配律展开：</p>
-$$M(k) = u_0\mathbf{1}^T + k(\mathbf{1}\mathbf{1}^T) + \mathbf{1}v_0^T - k(\mathbf{1}\mathbf{1}^T)$$<p>消去 $k$ 相关项：</p>
+$$\nabla_X L = (G - u \mathbf{1}^T - \mathbf{1} v^T) \odot R$$<p>This method converges when the forward Sinkhorn-Knopp iteration is sufficiently converged.</p>
+<h2 id="derivation">Derivation</h2>
+<p>Our goal is to compute $\frac{\partial L}{\partial X}$. By the chain rule:</p>
+$$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial R} \cdot \frac{\partial R}{\partial P} \cdot \frac{\partial P}{\partial X}$$<p>Since $P_{ij} = e^{X_{ij}} \implies \frac{\partial P_{ij}}{\partial X_{ij}} = P_{ij}$, if we can find $\frac{\partial L}{\partial P}$, the final result is $\nabla_X L = \nabla_P L \odot P$.</p>
+<p>Through implicit differentiation of the Sinkhorn balancing conditions, we can prove the following formula for $\nabla_X L$ (derivation omitted):</p>
+$$\nabla_X L = (G - u \mathbf{1}^T - \mathbf{1} v^T) \odot R$$<p>where $u, v \in \mathbb{R}^n$ are solutions to the following linear system, with the right-hand sides being the <em>row sums</em> and <em>column sums</em> of $G \odot R$ respectively:</p>
+$$\begin{cases} u + R v = (G \odot R) \mathbf{1} \\ R^T u + v = (G \odot R)^T \mathbf{1} \end{cases}$$<h3 id="solving-the-linear-system">Solving the Linear System</h3>
+<p>Rewriting the above equations in matrix form:</p>
+$$\begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} (G \odot R) \mathbf{1} \\ (G \odot R)^T \mathbf{1} \end{bmatrix} = b_0$$<p>Solve this linear system to obtain $u$ and $v$.</p>
+<h3 id="assembling-the-gradient">Assembling the Gradient</h3>
+<p>With $u$ and $v$ obtained, substitute into:</p>
+$$\frac{\partial L}{\partial X_{ij}} = (G_{ij} - u_i - v_j) R_{ij} = (G_{ij} - (u_i + v_j)) R_{ij}$$<p>For each $i,j$, what we need to solve from the above equation is $u_i + v_j$.</p>
+<h3 id="properties">Properties</h3>
+<p>Let $A=\begin{bmatrix} I & R \\ R^T & I \end{bmatrix}$.</p>
+<h4 id="1-multiple-solutions">1. Multiple Solutions</h4>
+<p>Proof:</p>
+<p>Consider the non-zero vector $w = \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix}$ (where $\mathbf{1}$ is the $n$-dimensional all-ones column vector).
+Compute $Aw$:</p>
+$$Aw = \begin{bmatrix} I & R \\ R^T & I \end{bmatrix} \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \begin{bmatrix} I\mathbf{1} - R\mathbf{1} \\ R^T\mathbf{1} - I\mathbf{1} \end{bmatrix}$$<p>By the bistochastic matrix properties $R\mathbf{1} = \mathbf{1}$ and $R^T\mathbf{1} = \mathbf{1}$:</p>
+$$Aw = \begin{bmatrix} \mathbf{1} - \mathbf{1} \\ \mathbf{1} - \mathbf{1} \end{bmatrix} = \mathbf{0}$$<p>Since there exists a non-zero vector in the null space of $A$, $\det(A) = 0$.</p>
+<p>Intuition: The row and column sums of a bistochastic matrix have redundancy (e.g., if row sums equal 1, each row really only needs its first $n-1$ elements).</p>
+<h4 id="2-invariants">2. Invariants</h4>
+<h5 id="1-solution-space-of-linear-system">1) Solution Space of Linear System $Ax = b$</h5>
+<p>Since $A$ is singular, for a given vector $b$, if the equation has a solution, it must have infinitely many. The general solution form is:</p>
+$$x = \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} u_0 \\ v_0 \end{bmatrix} + k \begin{bmatrix} \mathbf{1} \\ -\mathbf{1} \end{bmatrix} = \begin{bmatrix} u_0 + k\mathbf{1} \\ v_0 - k\mathbf{1} \end{bmatrix}$$<p>where $\begin{bmatrix} u_0 \\ v_0 \end{bmatrix}$ is a particular solution and $k$ is an arbitrary real scalar.</p>
+<h5 id="2-invariant">2) Invariant</h5>
+<p>Although the solution $x$ contains an uncertain offset $k$, our computational target is determinate.
+Our computational target is matrix $M$, defined as:</p>
+$$M = u\mathbf{1}^T + \mathbf{1}v^T \quad (\text{i.e., } M_{ij} = u_i + v_j)$$<p>
+Proof of uniqueness:
+Substitute the general solution with free variable $k$ into the expression for $M$:</p>
+$$M(k) = (u_0 + k\mathbf{1})\mathbf{1}^T + \mathbf{1}(v_0 - k\mathbf{1})^T$$<p>Expand using matrix distributivity:</p>
+$$M(k) = u_0\mathbf{1}^T + k(\mathbf{1}\mathbf{1}^T) + \mathbf{1}v_0^T - k(\mathbf{1}\mathbf{1}^T)$$<p>Cancel the $k$-related terms:</p>
 $$M(k) = u_0\mathbf{1}^T + \mathbf{1}v_0^T = M_{\text{fixed}}$$<p>
-结论：
-对于 $Ax=b$ 的任何解 $x$，由它们计算得到的矩阵 $M$ 是确定的。即：</p>
-$$M = f(R, b)$$<p>$M$ 是 $R$ 和 $b$ 的确定函数，不受具体解的影响；因此只要求解能收敛，就可以计算出正确的梯度。</p>
-<h4 id="3-形式变换">3. 形式变换</h4>
-<p>从原系统消元:
+Conclusion:
+For any solution $x$ of $Ax=b$, the matrix $M$ computed from them is determinate. That is:</p>
+$$M = f(R, b)$$<p>$M$ is a determinate function of $R$ and $b$, unaffected by the specific choice of solution; therefore, as long as the solver converges, the correct gradient can be computed.</p>
+<h4 id="3-transformation-of-form">3. Transformation of Form</h4>
+<p>Eliminating variables from the original system:
 </p>
-$$R^T(s_r - Rv) + v = s_c \implies (I - R^T R)v = s_c - R^T s_r$$<p>我们可以得到新的方程 $S\tilde{v} = b$，其中 $S = I - R^T R$, $b = s_c - R^T s_r$，$\tilde{v}$ 是新系统的解。</p>
-<p>其中, $S$ 是对称半正定的:</p>
-<p><strong>1) 对称性</strong>
+$$R^T(s_r - Rv) + v = s_c \implies (I - R^T R)v = s_c - R^T s_r$$<p>We obtain the new equation $S\tilde{v} = b$, where $S = I - R^T R$, $b = s_c - R^T s_r$, and $\tilde{v}$ is the solution to the new system.</p>
+<p>Here, $S$ is symmetric positive semidefinite:</p>
+<p><strong>1) Symmetry</strong>
 </p>
-$$S^T = I - (R^T R)^T = I - R^T R = S \quad \checkmark$$<p><strong>2) 半正定性</strong></p>
-<p>对任意 $x \in \mathbb{R}^n$：
+$$S^T = I - (R^T R)^T = I - R^T R = S \quad \checkmark$$<p><strong>2) Positive Semidefiniteness</strong></p>
+<p>For any $x \in \mathbb{R}^n$:
 </p>
-$$x^T S x = \|x\|_2^2 - \|Rx\|_2^2$$<p>只需证 $\|Rx\|_2 \leq \|x\|_2$。</p>
-<p>由行随机性（$\sum_j R_{ij} = 1$）及 Jensen 不等式：
+$$x^T S x = \|x\|_2^2 - \|Rx\|_2^2$$<p>We only need to prove $\|Rx\|_2 \leq \|x\|_2$.</p>
+<p>By row stochasticity ($\sum_j R_{ij} = 1$) and Jensen&rsquo;s inequality:
 </p>
-$$\left(\sum_j R_{ij} x_j\right)^2 \leq \sum_j R_{ij} x_j^2$$<p>对 $i$ 求和：
+$$\left(\sum_j R_{ij} x_j\right)^2 \leq \sum_j R_{ij} x_j^2$$<p>Summing over $i$:
 </p>
-$$\|Rx\|_2^2 = \sum_i \left(\sum_j R_{ij} x_j\right)^2 \leq \sum_i \sum_j R_{ij} x_j^2 = \sum_j x_j^2 \sum_i R_{ij} = \|x\|_2^2$$<p>故 $x^T S x \geq 0$.</p>
-<p>由于</p>
-$$S\mathbf{1} = \mathbf{1} - R^T(R\mathbf{1}) = \mathbf{1} - R^T\mathbf{1} = \mathbf{0}$$<p>故$S$不是正定的.</p>
-<h2 id="算法">算法</h2>
-<p><strong>1）准备右端项</strong>
+$$\|Rx\|_2^2 = \sum_i \left(\sum_j R_{ij} x_j\right)^2 \leq \sum_i \sum_j R_{ij} x_j^2 = \sum_j x_j^2 \sum_i R_{ij} = \|x\|_2^2$$<p>Thus $x^T S x \geq 0$.</p>
+<p>Since</p>
+$$S\mathbf{1} = \mathbf{1} - R^T(R\mathbf{1}) = \mathbf{1} - R^T\mathbf{1} = \mathbf{0}$$<p>$S$ is not positive definite.</p>
+<h2 id="algorithm">Algorithm</h2>
+<p><strong>1) Prepare right-hand side</strong>
 </p>
-$$s_r = (G \odot R)\mathbf{1}, \quad s_c = (G \odot R)^T\mathbf{1}$$<p><strong>2）构建半正定系统</strong>
+$$s_r = (G \odot R)\mathbf{1}, \quad s_c = (G \odot R)^T\mathbf{1}$$<p><strong>2) Build positive semidefinite system</strong>
 </p>
 $$S = I - R^T R$$<p>
-<strong>以及</strong>
+<strong>and</strong>
 </p>
-$$b = s_c - R^T s_r$$<p><strong>3）用CG求解</strong>
+$$b = s_c - R^T s_r$$<p><strong>3) Solve with CG</strong>
 </p>
-$$S \, \tilde{v} = b$$<p><strong>4）构造解</strong>
+$$S \, \tilde{v} = b$$<p><strong>4) Construct solution</strong>
 </p>
 $$u = s_r - R\tilde{v}$$<p>
 </p>
-$$v = \tilde{v}$$<p><strong>5）组装结果</strong>
+$$v = \tilde{v}$$<p><strong>5) Assemble result</strong>
 </p>
-$$M_{ij} = u_i + v_j$$<p><strong>6）最终梯度</strong>
+$$M_{ij} = u_i + v_j$$<p><strong>6) Final gradient</strong>
 </p>
-$$\nabla_X L = (G - M) \odot R$$<p>CG<a href="https://arxiv.org/pdf/1809.00793">在一定条件下可以求解半正定系统</a>.</p>
-<h2 id="pytorch-实现">PyTorch 实现</h2>
+$$\nabla_X L = (G - M) \odot R$$<p>CG <a href="https://arxiv.org/pdf/1809.00793">can solve positive semidefinite systems under certain conditions</a>.</p>
+<h2 id="pytorch-implementation">PyTorch Implementation</h2>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#e6db74">&#34;&#34;&#34;
 </span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Sinkhorn Backward Pass: n×n Rank-0 (Singular) System with Manual CG
 </span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Solves (I - R^T R) ṽ = b without rank-1 correction using manual conjugate gradient
@@ -448,32 +447,32 @@ $$\nabla_X L = (G - M) \odot R$$<p>CG<a href="https://arxiv.org/pdf/1809.00793">
 </span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;=&#34;</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">60</span>)
 </span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;SUMMARY&#34;</span>)
 </span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;=&#34;</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">60</span>)
-</span></span></code></pre></div><h2 id="triton-实现">Triton 实现</h2>
-<h3 id="实现细节">实现细节</h3>
-<p>在 Triton kernel 中，每个 thread block 处理一批（<code>tilesize</code> 个）独立的 $n \times n$ 系统。CG 的每次迭代需要计算 $S p = (I - R^T R) p$。</p>
-<p>最直接的实现是在 kernel 入口处预计算 $R^T R$，然后在 CG 循环中复用：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#75715e"># 原始实现（tune_triton_new.py）</span>
-</span></span><span style="display:flex;"><span>RTR <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>dot(RT, R, input_precision<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;tf32&#34;</span>)   <span style="color:#75715e"># 预计算</span>
+</span></span></code></pre></div><h2 id="triton-implementation">Triton Implementation</h2>
+<h3 id="implementation-details">Implementation Details</h3>
+<p>In the Triton kernel, each thread block processes a batch of (<code>tilesize</code>) independent $n \times n$ systems. Each iteration of CG requires computing $S p = (I - R^T R) p$.</p>
+<p>The most straightforward implementation is to precompute $R^T R$ at the kernel entry and reuse it in the CG loop:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#75715e"># Original implementation (tune_triton_new.py)</span>
+</span></span><span style="display:flex;"><span>RTR <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>dot(RT, R, input_precision<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;tf32&#34;</span>)   <span style="color:#75715e"># Precompute</span>
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> _ <span style="color:#f92672">in</span> range(n):
-</span></span><span style="display:flex;"><span>    Sp <span style="color:#f92672">=</span> p <span style="color:#f92672">-</span> tl<span style="color:#f92672">.</span>dot(RTR, p)   <span style="color:#75715e"># 每次迭代 1 次 matvec</span>
-</span></span></code></pre></div><p>但是这样实现很慢：这里使用matmul的pattern和GEMM不同，只在开头计算一次，不足以填满 Tensor Core 的流水线，利用率低；实测比处理 $2n \times 2n$ 系统的原始实现还慢约 2 倍。</p>
-<p>注意到 $S p$ 可以分解为两次连续的 matvec，而无需显式存储 $R^T R$：</p>
-$$S p = (I - R^T R) p = p - R^T \underbrace{(R p)}_{\text{中间结果}}$$<p>即先算 $q = Rp$（$n \times 1$），再算 $R^T q$（$n \times 1$）。</p>
-<p>对应的 Triton 实现：</p>
+</span></span><span style="display:flex;"><span>    Sp <span style="color:#f92672">=</span> p <span style="color:#f92672">-</span> tl<span style="color:#f92672">.</span>dot(RTR, p)   <span style="color:#75715e"># 1 matvec per iteration</span>
+</span></span></code></pre></div><p>However, this implementation is slow: the matmul pattern here differs from GEMM, and computing only once at the beginning is insufficient to fill the Tensor Core pipeline, resulting in low utilization; in practice, it&rsquo;s about 2× slower than the original implementation handling $2n \times 2n$ systems.</p>
+<p>Notice that $S p$ can be decomposed into two consecutive matvecs without explicitly storing $R^T R$:</p>
+$$S p = (I - R^T R) p = p - R^T \underbrace{(R p)}_{\text{intermediate result}}$$<p>That is, first compute $q = Rp$ ($n \times 1$), then compute $R^T q$ ($n \times 1$).</p>
+<p>The corresponding Triton implementation:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#a6e22e">@triton.jit</span>
 </span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">matvec_S</span>(R, x):
 </span></span><span style="display:flex;"><span>    Rx <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>dot(R, x,  input_precision<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;ieee&#34;</span>)  <span style="color:#75715e"># q = Rx</span>
 </span></span><span style="display:flex;"><span>    RT <span style="color:#f92672">=</span> R<span style="color:#f92672">.</span>permute(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">1</span>)
 </span></span><span style="display:flex;"><span>    RTRx <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>dot(RT, Rx, input_precision<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;ieee&#34;</span>)              <span style="color:#75715e"># R^T q</span>
 </span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> x <span style="color:#f92672">-</span> RTRx
-</span></span></code></pre></div><p>CG 循环中直接调用，不再持有 <code>RTR</code>：</p>
+</span></span></code></pre></div><p>Call directly in the CG loop without holding <code>RTR</code>:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#66d9ef">for</span> _ <span style="color:#f92672">in</span> range(n_stream):
 </span></span><span style="display:flex;"><span>    Sp <span style="color:#f92672">=</span> matvec_S(R, p)
 </span></span><span style="display:flex;"><span>    pSp <span style="color:#f92672">=</span> tl<span style="color:#f92672">.</span>sum(p <span style="color:#f92672">*</span> Sp, <span style="color:#f92672">...</span>)
 </span></span><span style="display:flex;"><span>    <span style="color:#f92672">...</span>
-</span></span></code></pre></div><p>与处理 $2n \times 2n$ 系统的baseline相比，在下列代码的设定下，可以加速1.4x。</p>
-<h3 id="代码">代码</h3>
+</span></span></code></pre></div><p>Compared to the baseline handling $2n \times 2n$ systems, with the settings in the following code, this achieves a 1.4× speedup.</p>
+<h3 id="code">Code</h3>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">from</span> icecream <span style="color:#f92672">import</span> ic
 </span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> torch
 </span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> einops <span style="color:#66d9ef">as</span> ein
@@ -769,29 +768,29 @@ $$S p = (I - R^T R) p = p - R^T \underbrace{(R p)}_{\text{中间结果}}$$<p>即
 </div>
 </footer>
       </div><aside id="side-pane" class="side-sticky"><div class="side-details">
-    <span>2279 words</span>
-    <span>19 - 24 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
+    <span>2715 words</span>
+    <span>20 - 25 minutes read</span></div><h3>Table Of Contents</h3><nav id="TableOfContents">
   <ul>
-    <li><a href="#问题设定">问题设定</a>
+    <li><a href="#problem-setup">Problem Setup</a>
       <ul>
-        <li><a href="#问题">问题</a></li>
-        <li><a href="#目标">目标</a></li>
+        <li><a href="#problem-statement">Problem Statement</a></li>
+        <li><a href="#objective">Objective</a></li>
         <li><a href="#tldr">TLDR</a></li>
       </ul>
     </li>
-    <li><a href="#求解">求解</a>
+    <li><a href="#derivation">Derivation</a>
       <ul>
-        <li><a href="#求解线性系统">求解线性系统</a></li>
-        <li><a href="#组装梯度">组装梯度</a></li>
-        <li><a href="#性质">性质</a></li>
+        <li><a href="#solving-the-linear-system">Solving the Linear System</a></li>
+        <li><a href="#assembling-the-gradient">Assembling the Gradient</a></li>
+        <li><a href="#properties">Properties</a></li>
       </ul>
     </li>
-    <li><a href="#算法">算法</a></li>
-    <li><a href="#pytorch-实现">PyTorch 实现</a></li>
-    <li><a href="#triton-实现">Triton 实现</a>
+    <li><a href="#algorithm">Algorithm</a></li>
+    <li><a href="#pytorch-implementation">PyTorch Implementation</a></li>
+    <li><a href="#triton-implementation">Triton Implementation</a>
       <ul>
-        <li><a href="#实现细节">实现细节</a></li>
-        <li><a href="#代码">代码</a></li>
+        <li><a href="#implementation-details">Implementation Details</a></li>
+        <li><a href="#code">Code</a></li>
       </ul>
     </li>
   </ul>
