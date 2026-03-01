@@ -19,15 +19,34 @@
   <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Vibe-Codeds | Da1sypetals</title>
-<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sypetals.netlify.app/vibe-coded/">
+<title>Rubberband GUI | Da1sypetals</title>
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sypetals.netlify.app/vibe-coded/rubberband-gui/">
   <meta property="og:site_name" content="Da1sypetals">
-  <meta property="og:title" content="Vibe-Codeds">
+  <meta property="og:title" content="Rubberband GUI">
+  <meta property="og:description" content="Rubberband 是一个音频伸缩软件，可以不改变音调伸缩音频/不改变时长升降key。
+但是其只有CLI，其GUI是收费的而且功能过多，非专业人士用起来有一定门槛。
+最常用的功能就是加速/减速，以及升降key；范围都在一个八度之内。决定自己做一个GUI实现。
+为了避免依赖（比如Python runtime），选用了Rust iced框架；但是对于Rust的GUI框架，LLM没有太多训练语料。
+实测下来，一个好方法是直接把框架的代码pull下来，提需求之后让LLM自己探索框架的源码和API，并进行plan。
+个人认为可能的原因是，LLM的latent空间里面应该是有对gui组件足够好的抽象的（可能是得益于react/vue/qt的大量训练数据），以至于只要去框架的源码里面把这些抽象对应的代码找出来，就可以写出来了，所以可以直接让他搜框架的源码。
+因为懒得bindgen了，集成rubberband的方式就是直接把binary用include_bytes!整个塞进去，要用的时候再写到temp file里面执行。
+实现效果如下。">
   <meta property="og:locale" content="zh_CN">
-  <meta property="og:type" content="website">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="vibe-coded">
+    <meta property="article:published_time" content="2026-03-02T00:41:54+08:00">
+    <meta property="article:modified_time" content="2026-03-02T00:41:54+08:00">
 
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Vibe-Codeds">
+  <meta name="twitter:title" content="Rubberband GUI">
+  <meta name="twitter:description" content="Rubberband 是一个音频伸缩软件，可以不改变音调伸缩音频/不改变时长升降key。
+但是其只有CLI，其GUI是收费的而且功能过多，非专业人士用起来有一定门槛。
+最常用的功能就是加速/减速，以及升降key；范围都在一个八度之内。决定自己做一个GUI实现。
+为了避免依赖（比如Python runtime），选用了Rust iced框架；但是对于Rust的GUI框架，LLM没有太多训练语料。
+实测下来，一个好方法是直接把框架的代码pull下来，提需求之后让LLM自己探索框架的源码和API，并进行plan。
+个人认为可能的原因是，LLM的latent空间里面应该是有对gui组件足够好的抽象的（可能是得益于react/vue/qt的大量训练数据），以至于只要去框架的源码里面把这些抽象对应的代码找出来，就可以写出来了，所以可以直接让他搜框架的源码。
+因为懒得bindgen了，集成rubberband的方式就是直接把binary用include_bytes!整个塞进去，要用的时候再写到temp file里面执行。
+实现效果如下。">
 
       <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
       <link rel="stylesheet" href="/css/bundle.min.d95a325399a05b50fe47dcf35b8229b8a2a014fcee5435cfb28204c6ac335fc5.css" integrity="sha256-2VoyU5mgW1D&#43;R9zzW4IpuKKgFPzuVDXPsoIExqwzX8U=" crossorigin="anonymous">
@@ -56,7 +75,7 @@
       >知识</a>
     </div>
     <div class="nav-item">
-      <a aria-current="page" class="active" href="/vibe-coded/"
+      <a aria-current="true" class="ancestor" href="/vibe-coded/"
       >vibe-coded</a>
     </div>
     <div class="nav-item">
@@ -91,7 +110,7 @@
       >知识</a>
     </div>
     <div class="nav-item">
-      <a aria-current="page" class="active" href="/vibe-coded/"
+      <a aria-current="true" class="ancestor" href="/vibe-coded/"
       >vibe-coded</a>
     </div>
     <div class="nav-item">
@@ -128,15 +147,34 @@
 </div></header>
     <div class="flex grow">
       <div id="main-pane">
-        <main id="main-content"><h1>Vibe-Codeds</h1><div class="list-group-key">2026</div><div class="list-group-heading">
-        <a href="/vibe-coded/rubberband-gui/">Rubberband GUI</a>
-        <time class="dim" style="float: right;" datetime="2023-05-02T00:00:00Z">Mar 2</time>
-      </div>
-      <div class="list-group-summary content-font">Rubberband 是一个音频伸缩软件，可以不改变音调伸缩音频/不改变时长升降key。</div><div class="list-group-heading">
-        <a href="/vibe-coded/qwen3-tts/">供MacOS使用的 Qwen3 TTS GUI</a>
-        <time class="dim" style="float: right;" datetime="2023-05-02T00:00:00Z">Feb 23</time>
-      </div>
-      <div class="list-group-summary content-font">项目地址：https://github.com/Da1sypetals/ttsui-mac</div></main>
+        <main id="main-content"><div class="single-header">
+<ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sypetals.netlify.app/">
+        <span itemprop="name">Home</span>
+      </a>
+      <meta itemprop="position" content='1' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <a itemprop="item" href="https://da1sypetals.netlify.app/vibe-coded/">
+        <span itemprop="name">Vibe-Codeds</span>
+      </a>
+      <meta itemprop="position" content='2' />
+    </li>
+    <span>&nbsp»&nbsp</span>
+</ol>
+<h1>Rubberband GUI</h1><time class="dim" datetime="2026-03-02T00:41:54&#43;08:00">March 2, 2026</time></div>
+  <section class="page-section"><p><a href="https://breakfastquay.com/rubberband/">Rubberband</a> 是一个音频伸缩软件，可以不改变音调伸缩音频/不改变时长升降key。</p>
+<p>但是其只有CLI，其<a href="https://rubberbandaudio.com/rubberbandaudio/index.html">GUI</a>是收费的而且功能过多，非专业人士用起来有一定门槛。</p>
+<p>最常用的功能就是加速/减速，以及升降key；范围都在一个八度之内。决定自己做一个GUI实现。</p>
+<p>为了避免依赖（比如Python runtime），选用了Rust <code>iced</code>框架；但是对于Rust的GUI框架，LLM没有太多训练语料。</p>
+<p><strong>实测下来，一个好方法是直接把框架的代码pull下来，提需求之后让LLM自己探索框架的源码和API，并进行plan。</strong></p>
+<p>个人认为可能的原因是，LLM的latent空间里面应该是有对gui组件足够好的抽象的（可能是得益于react/vue/qt的大量训练数据），以至于只要去框架的源码里面把这些抽象对应的代码找出来，就可以写出来了，所以可以直接让他搜框架的源码。</p>
+<p>因为懒得bindgen了，集成rubberband的方式就是直接把binary用<code>include_bytes!</code>整个塞进去，要用的时候再写到temp file里面执行。</p>
+<p>实现效果如下。</p>
+<p><img src="../images/rubberband.png" alt="alt text"></p>
+</section></main>
         <footer id="main-footer"><div class="footer">
   <a href="#">Scroll to Top</a>
   <div class="footer-copyright">
@@ -145,7 +183,9 @@
   </div>
 </div>
 </footer>
-      </div></div>
+      </div><aside id="side-pane" class="side-sticky"><div class="side-details">
+    <span>12 words</span>
+    <span>1 - 1 minutes read</span></div></aside></div>
   </div>
 </body>
 

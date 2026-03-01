@@ -6,8 +6,15 @@
     <description>Recent content on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Mon, 23 Feb 2026 21:53:16 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 02 Mar 2026 00:41:54 +0800</lastBuildDate>
     <atom:link href="https://da1sypetals.netlify.app/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Rubberband GUI</title>
+      <link>https://da1sypetals.netlify.app/vibe-coded/rubberband-gui/</link>
+      <pubDate>Mon, 02 Mar 2026 00:41:54 +0800</pubDate>
+      <guid>https://da1sypetals.netlify.app/vibe-coded/rubberband-gui/</guid>
+      <description>&lt;p&gt;&lt;a href=&#34;https://breakfastquay.com/rubberband/&#34;&gt;Rubberband&lt;/a&gt; 是一个音频伸缩软件，可以不改变音调伸缩音频/不改变时长升降key。&lt;/p&gt;&#xA;&lt;p&gt;但是其只有CLI，其&lt;a href=&#34;https://rubberbandaudio.com/rubberbandaudio/index.html&#34;&gt;GUI&lt;/a&gt;是收费的而且功能过多，非专业人士用起来有一定门槛。&lt;/p&gt;&#xA;&lt;p&gt;最常用的功能就是加速/减速，以及升降key；范围都在一个八度之内。决定自己做一个GUI实现。&lt;/p&gt;&#xA;&lt;p&gt;为了避免依赖（比如Python runtime），选用了Rust &lt;code&gt;iced&lt;/code&gt;框架；但是对于Rust的GUI框架，LLM没有太多训练语料。&lt;/p&gt;&#xA;&lt;p&gt;&lt;strong&gt;实测下来，一个好方法是直接把框架的代码pull下来，提需求之后让LLM自己探索框架的源码和API，并进行plan。&lt;/strong&gt;&lt;/p&gt;&#xA;&lt;p&gt;个人认为可能的原因是，LLM的latent空间里面应该是有对gui组件足够好的抽象的（可能是得益于react/vue/qt的大量训练数据），以至于只要去框架的源码里面把这些抽象对应的代码找出来，就可以写出来了，所以可以直接让他搜框架的源码。&lt;/p&gt;&#xA;&lt;p&gt;因为懒得bindgen了，集成rubberband的方式就是直接把binary用&lt;code&gt;include_bytes!&lt;/code&gt;整个塞进去，要用的时候再写到temp file里面执行。&lt;/p&gt;&#xA;&lt;p&gt;实现效果如下。&lt;/p&gt;&#xA;&lt;p&gt;&lt;img src=&#34;../images/rubberband.png&#34; alt=&#34;alt text&#34;&gt;&lt;/p&gt;</description>
+    </item>
     <item>
       <title>供MacOS使用的 Qwen3 TTS GUI</title>
       <link>https://da1sypetals.netlify.app/vibe-coded/qwen3-tts/</link>
