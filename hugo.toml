@@ -46,11 +46,6 @@ pageRef = '/documents'
 weight = 20
 
 [[menus.main]]
-name = '歌单'
-url = 'https://daisy-songs.vercel.app'
-weight = 25
-
-[[menus.main]]
 name = '关于我'
 pageRef = '/about.md'
 weight = 30

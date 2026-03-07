@@ -12,6 +12,12 @@ title = '关于我'
 - Email: `da1sypetals.iota@gmail.com`
 
 
+## 其他链接
+
+- [我会唱的歌曲](prompts.petals.top)
+- [提示词墙](prompts.petals.top)
+
+
 ## 爱好
 
 唱**古风歌**。
