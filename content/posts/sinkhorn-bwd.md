@@ -708,3 +708,5 @@ if __name__ == "__main__":
     main()
 
 ```
+
+> 代码开源于[Github](https://github.com/Da1sypetals/sinkhorn-bwd-cg)
