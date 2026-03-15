@@ -38,7 +38,7 @@ DeepSeek发布了最新的魔改版Residual Connection：Manifold Constrained Hy
 
 一种可能有错误的简单的代码实现[在这里](https://gist.github.com/Da1sypetals/0a7f70bf6b4ca7d46f0a1c5910e1a8b6)如下. 除了sinkhorn之外的其他计算流程都在torch的API里, deepseek还通过kernel fusion等方式获得了更好的性能.
 
-Sinkhorn的反向传播还可以通过和原文不同的, [不需要顺着正向传播"原路返回"的另一种方法](https://da1sypetals.netlify.app/posts/sinkhorn-bwd/)计算.
+Sinkhorn的反向传播还可以通过和原文不同的, [不需要顺着正向传播"原路返回"的另一种方法](https://blog.petals.top/posts/sinkhorn-bwd/)计算.
 
 ```py
 # Reference: https://www.arxiv.org/abs/2512.24880

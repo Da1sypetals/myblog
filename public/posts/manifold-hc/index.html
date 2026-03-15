@@ -20,7 +20,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>DeepSeek mHC的简单演示（可能有错误） | Da1sypetals</title>
-<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://da1sypetals.netlify.app/posts/manifold-hc/">
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" /><meta property="og:url" content="https://blog.petals.top/posts/manifold-hc/">
   <meta property="og:site_name" content="Da1sypetals">
   <meta property="og:title" content="DeepSeek mHC的简单演示（可能有错误）">
   <meta property="og:description" content="DeepSeek发布了最新的魔改版Residual Connection：Manifold Constrained Hyper-Connection.
@@ -67,7 +67,7 @@ Sinkhorn的反向传播还可以通过和原文不同的, 不需要顺着正向�
   <div id="container">
     <header id="main-header"><div role="navigation" aria-label="Main">
   <div class="nav-left">
-    <a href="https://da1sypetals.netlify.app/" style="color: inherit;">Da1sypetals</a>
+    <a href="https://blog.petals.top/" style="color: inherit;">Da1sypetals</a>
   </div>
   <div class="nav-right">
     <div style="position:absolute;width:0px;height:0px;">
@@ -144,14 +144,14 @@ Sinkhorn的反向传播还可以通过和原文不同的, 不需要顺着正向�
         <main id="main-content"><div class="single-header">
 <ol class="breadcrumbs" itemscope itemtype="https://schema.org/BreadcrumbList">
     <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-      <a itemprop="item" href="https://da1sypetals.netlify.app/">
+      <a itemprop="item" href="https://blog.petals.top/">
         <span itemprop="name">Home</span>
       </a>
       <meta itemprop="position" content='1' />
     </li>
     <span>&nbsp»&nbsp</span>
     <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-      <a itemprop="item" href="https://da1sypetals.netlify.app/posts/">
+      <a itemprop="item" href="https://blog.petals.top/posts/">
         <span itemprop="name">Posts</span>
       </a>
       <meta itemprop="position" content='2' />
@@ -210,7 +210,7 @@ Sinkhorn的反向传播还可以通过和原文不同的, 不需要顺着正向�
 </ol>
 <h2 id="简单实现不含优化">简单实现(不含优化)</h2>
 <p>一种可能有错误的简单的代码实现<a href="https://gist.github.com/Da1sypetals/0a7f70bf6b4ca7d46f0a1c5910e1a8b6">在这里</a>如下. 除了sinkhorn之外的其他计算流程都在torch的API里, deepseek还通过kernel fusion等方式获得了更好的性能.</p>
-<p>Sinkhorn的反向传播还可以通过和原文不同的, <a href="https://da1sypetals.netlify.app/posts/sinkhorn-bwd/">不需要顺着正向传播&quot;原路返回&quot;的另一种方法</a>计算.</p>
+<p>Sinkhorn的反向传播还可以通过和原文不同的, <a href="https://blog.petals.top/posts/sinkhorn-bwd/">不需要顺着正向传播&quot;原路返回&quot;的另一种方法</a>计算.</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-py" data-lang="py"><span style="display:flex;"><span><span style="color:#75715e"># Reference: https://www.arxiv.org/abs/2512.24880</span>
 </span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> torch
 </span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> torch.nn <span style="color:#66d9ef">as</span> nn
