@@ -1,6 +1,5 @@
 +++
 date = '2026-03-22T14:50:53+08:00'
-draft = true
 title = 'Blossom Slopware PAT'
 +++
 
