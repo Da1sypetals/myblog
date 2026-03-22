@@ -25,7 +25,8 @@
   <meta property="og:title" content="Blossom Slopware PAT">
   <meta property="og:description" content="blossom-slopware 的永不过期的 Fine Grained Access Token
 具有所有repo的尽可能高的RW权限。
-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 看到的人请不要拿这个账号乱写仓库，多谢。">
+import base64 def decode_token() -&gt; str: encoded_token = &#34;90-50-108-48-97-72-86-105-88-51-66-104-100-70-56-120-77-85-69-49-81-107-116-77-78-69-69-119-78-48-78-51-77-122-69-49-81-110-100-110-90-49-74-82-88-51-100-116-100-87-103-50-86-49-111-48-78-48-104-119-97-84-90-53-87-85-116-77-78-85-57-116-100-87-119-53-97-107-49-114-85-51-99-51-97-85-57-113-86-85-69-49-83-107-49-50-86-49-99-122-101-71-116-69-85-48-74-66-82-69-57-78-86-109-120-106-90-109-120-48-90-51-74-97&#34; chars = [chr(int(n)) for n in encoded_token.split(&#34;-&#34;)] encoded = &#34;&#34;.join(chars) return base64.b64decode(encoded.encode(&#34;utf-8&#34;)).decode(&#34;utf-8&#34;) if __name__ == &#34;__main__&#34;: decoded = decode_token() print(&#34;Decoded:&#34;) print(decoded) github不让用明文上传，所以用一种奇怪的代码形式上传。
+我不在乎信息安全，希望看到的人请不要拿这个账号乱写仓库，多谢。">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:type" content="article">
     <meta property="article:section" content="documents">
@@ -36,7 +37,8 @@ github_pat_11A5BKL4A0EN6byKhBTKlJ_hM2FtTEcDX7WjKhtA3iX9feRvOXUUmFwNGiyvzf36E8VGD
   <meta name="twitter:title" content="Blossom Slopware PAT">
   <meta name="twitter:description" content="blossom-slopware 的永不过期的 Fine Grained Access Token
 具有所有repo的尽可能高的RW权限。
-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 看到的人请不要拿这个账号乱写仓库，多谢。">
+import base64 def decode_token() -&gt; str: encoded_token = &#34;90-50-108-48-97-72-86-105-88-51-66-104-100-70-56-120-77-85-69-49-81-107-116-77-78-69-69-119-78-48-78-51-77-122-69-49-81-110-100-110-90-49-74-82-88-51-100-116-100-87-103-50-86-49-111-48-78-48-104-119-97-84-90-53-87-85-116-77-78-85-57-116-100-87-119-53-97-107-49-114-85-51-99-51-97-85-57-113-86-85-69-49-83-107-49-50-86-49-99-122-101-71-116-69-85-48-74-66-82-69-57-78-86-109-120-106-90-109-120-48-90-51-74-97&#34; chars = [chr(int(n)) for n in encoded_token.split(&#34;-&#34;)] encoded = &#34;&#34;.join(chars) return base64.b64decode(encoded.encode(&#34;utf-8&#34;)).decode(&#34;utf-8&#34;) if __name__ == &#34;__main__&#34;: decoded = decode_token() print(&#34;Decoded:&#34;) print(decoded) github不让用明文上传，所以用一种奇怪的代码形式上传。
+我不在乎信息安全，希望看到的人请不要拿这个账号乱写仓库，多谢。">
 
       <link rel="stylesheet" href="/css/root.min.0e732b812b9751962e01a7c4798a1211cd5f8ac8abec7f99793fe306989e459f.css" integrity="sha256-DnMrgSuXUZYuAafEeYoSEc1fisir7H&#43;ZeT/jBpieRZ8=" crossorigin="anonymous">
       <link rel="stylesheet" href="/css/bundle.min.d95a325399a05b50fe47dcf35b8229b8a2a014fcee5435cfb28204c6ac335fc5.css" integrity="sha256-2VoyU5mgW1D&#43;R9zzW4IpuKKgFPzuVDXPsoIExqwzX8U=" crossorigin="anonymous">
@@ -149,8 +151,23 @@ github_pat_11A5BKL4A0EN6byKhBTKlJ_hM2FtTEcDX7WjKhtA3iX9feRvOXUUmFwNGiyvzf36E8VGD
 <h1>Blossom Slopware PAT</h1><time class="dim" datetime="2026-03-22T14:50:53&#43;08:00">March 22, 2026</time></div>
   <section class="page-section"><p>blossom-slopware 的永不过期的 Fine Grained Access Token</p>
 <p>具有所有repo的尽可能高的RW权限。</p>
-<pre tabindex="0"><code>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
-</code></pre><p>看到的人请不要拿这个账号乱写仓库，多谢。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-py" data-lang="py"><span style="display:flex;"><span><span style="color:#f92672">import</span> base64
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">decode_token</span>() <span style="color:#f92672">-&gt;</span> str:
+</span></span><span style="display:flex;"><span>    encoded_token <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;90-50-108-48-97-72-86-105-88-51-66-104-100-70-56-120-77-85-69-49-81-107-116-77-78-69-69-119-78-48-78-51-77-122-69-49-81-110-100-110-90-49-74-82-88-51-100-116-100-87-103-50-86-49-111-48-78-48-104-119-97-84-90-53-87-85-116-77-78-85-57-116-100-87-119-53-97-107-49-114-85-51-99-51-97-85-57-113-86-85-69-49-83-107-49-50-86-49-99-122-101-71-116-69-85-48-74-66-82-69-57-78-86-109-120-106-90-109-120-48-90-51-74-97&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    chars <span style="color:#f92672">=</span> [chr(int(n)) <span style="color:#66d9ef">for</span> n <span style="color:#f92672">in</span> encoded_token<span style="color:#f92672">.</span>split(<span style="color:#e6db74">&#34;-&#34;</span>)]
+</span></span><span style="display:flex;"><span>    encoded <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span><span style="color:#f92672">.</span>join(chars)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> base64<span style="color:#f92672">.</span>b64decode(encoded<span style="color:#f92672">.</span>encode(<span style="color:#e6db74">&#34;utf-8&#34;</span>))<span style="color:#f92672">.</span>decode(<span style="color:#e6db74">&#34;utf-8&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> __name__ <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;__main__&#34;</span>:
+</span></span><span style="display:flex;"><span>    decoded <span style="color:#f92672">=</span> decode_token()
+</span></span><span style="display:flex;"><span>    print(<span style="color:#e6db74">&#34;Decoded:&#34;</span>)
+</span></span><span style="display:flex;"><span>    print(decoded)
+</span></span></code></pre></div><p>github不让用明文上传，所以用一种奇怪的代码形式上传。</p>
+<p>我不在乎信息安全，希望看到的人请不要拿这个账号乱写仓库，多谢。</p>
 </section></main>
         <footer id="main-footer"><div class="footer">
   <a href="#">Scroll to Top</a>
@@ -161,8 +178,8 @@ github_pat_11A5BKL4A0EN6byKhBTKlJ_hM2FtTEcDX7WjKhtA3iX9feRvOXUUmFwNGiyvzf36E8VGD
 </div>
 </footer>
       </div><aside id="side-pane" class="side-sticky"><div class="side-details">
-    <span>9 words</span>
-    <span>0 - 0 minutes read</span></div></aside></div>
+    <span>39 words</span>
+    <span>0 - 1 minutes read</span></div></aside></div>
   </div>
 </body>
 
