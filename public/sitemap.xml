@@ -3,7 +3,13 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://blog.petals.top/</loc>
-    <lastmod>2026-03-06T14:31:09+08:00</lastmod>
+    <lastmod>2026-03-21T17:47:39+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.petals.top/posts/hands-on-mlx/</loc>
+    <lastmod>2026-03-21T17:47:39+08:00</lastmod>
+  </url><url>
+    <loc>https://blog.petals.top/posts/</loc>
+    <lastmod>2026-03-21T17:47:39+08:00</lastmod>
   </url><url>
     <loc>https://blog.petals.top/art/</loc>
     <lastmod>2026-03-06T14:31:09+08:00</lastmod>
@@ -19,9 +25,6 @@
   </url><url>
     <loc>https://blog.petals.top/vibe-coded/qwen3-tts/</loc>
     <lastmod>2026-02-23T21:53:16+08:00</lastmod>
-  </url><url>
-    <loc>https://blog.petals.top/posts/</loc>
-    <lastmod>2026-01-05T22:07:08+08:00</lastmod>
   </url><url>
     <loc>https://blog.petals.top/posts/sinkhorn-bwd/</loc>
     <lastmod>2026-01-05T22:07:08+08:00</lastmod>

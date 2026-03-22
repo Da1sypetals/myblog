@@ -6,8 +6,15 @@
     <description>Recent content on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Fri, 06 Mar 2026 14:31:09 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 21 Mar 2026 17:47:39 +0800</lastBuildDate>
     <atom:link href="https://blog.petals.top/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MLX 初体验</title>
+      <link>https://blog.petals.top/posts/hands-on-mlx/</link>
+      <pubDate>Sat, 21 Mar 2026 17:47:39 +0800</pubDate>
+      <guid>https://blog.petals.top/posts/hands-on-mlx/</guid>
+      <description>&lt;p&gt;从公司领到了人生第一台MacBook，据说苹果的GPU有一套虽然没有CUDA那么庞大，但是封装的比较好的生态，开始尝试玩苹果的GPU。&lt;/p&gt;</description>
+    </item>
     <item>
       <title>我听到的古风（其实不是）歌00：歌行四方</title>
       <link>https://blog.petals.top/art/%E6%AD%8C%E8%A1%8C%E5%9B%9B%E6%96%B9/</link>

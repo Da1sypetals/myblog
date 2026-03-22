@@ -6,8 +6,15 @@
     <description>Recent content in Posts on Da1sypetals</description>
     <generator>Hugo</generator>
     <language>zh-CN</language>
-    <lastBuildDate>Mon, 05 Jan 2026 22:07:08 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 21 Mar 2026 17:47:39 +0800</lastBuildDate>
     <atom:link href="https://blog.petals.top/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MLX 初体验</title>
+      <link>https://blog.petals.top/posts/hands-on-mlx/</link>
+      <pubDate>Sat, 21 Mar 2026 17:47:39 +0800</pubDate>
+      <guid>https://blog.petals.top/posts/hands-on-mlx/</guid>
+      <description>&lt;p&gt;从公司领到了人生第一台MacBook，据说苹果的GPU有一套虽然没有CUDA那么庞大，但是封装的比较好的生态，开始尝试玩苹果的GPU。&lt;/p&gt;</description>
+    </item>
     <item>
       <title>不通过反转正向传播的方式计算sinkhorn迭代的梯度</title>
       <link>https://blog.petals.top/posts/sinkhorn-bwd/</link>
