@@ -60,7 +60,11 @@ Python版本有100～110 tok/s；Rust版只有33 tok/s.
 
 ![alt text](../images/orchid-use.gif)
 
-代码：[https://github.com/blossom-slopware/Orchid](https://github.com/blossom-slopware/Orchid)
+代码：
+
+- App: [https://github.com/blossom-slopware/Orchid](https://github.com/blossom-slopware/Orchid)
+
+- Rust 模型推理：[https://github.com/blossom-slopware/glm-ocr-rs/tree/main](https://github.com/blossom-slopware/glm-ocr-rs/tree/main)
 
 
 ## 小剧场
