@@ -22,7 +22,7 @@ mlx有binding的语言：Python，Swift，C（official），Rust（unofficial）
 
 让Claude扫一遍仓库之后，得知复刻仓库需要：mlx-rs，tokenizer，minijinja，swift-huggingface等库。
 
-> 显然这些库都没有在LLM的训练素材里面出现过足够次数。因此我把库直接拉下来提供给LLM参考。
+> 显然这些库都没有在LLM的训练素材里面出现过足够次数。一个比较好的办法把库直接拉下来提供给LLM参考。
 
 ## 实现
 
@@ -47,13 +47,20 @@ Python版本有100～110 tok/s；Rust版只有33 tok/s.
 - 为了profile能够显示kernel name、gpu timeline等重要信息，必须设置一个环境变量`MLX_METAL_DEBUG`，导致我需要去patch mlx-rs甚至mlx-c库
 - profile没有结构化文字输出，只能导入到Xcode GUI查看。
 
-好在界面还不算太过反人类。一番摸索之后，我了解到了瓶颈：1，fp32 -> bf16类型转换占据了特别多的GPU时间；2，大部分GEMM都是在fp32下计算的。这显然不对。
+好在界面还不算太过反人类。
+
+![alt text](../images/profile-glm-0.png)
+
+一番摸索之后，我了解到了瓶颈：1，fp32 -> bf16类型转换占据了特别多的GPU时间；2，大部分GEMM都是在fp32下计算的。这显然不对。
 
 于是我让Claude在整个仓库打上log，输出decode阶段所有tensor的shape和dtype。惊人的发现：SDPA的输入是bf16，输出居然是fp32！然后后续的计算就全用fp32计算了。十分诡异的设计。
 解决方法是SDPA的输出手动cast到bf16。
 
-这样修复后，性能直接达到120 tok/s，非常棒的速度。
+这样修复后，除了RoPE之外，进入所有算子的数据类型都是bf16了。性能直接达到120 tok/s，非常棒的速度。
 
+![alt text](../images/orchid-use.gif)
+
+代码：[https://github.com/blossom-slopware/Orchid](https://github.com/blossom-slopware/Orchid)
 
 
 ## 小剧场
